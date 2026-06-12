@@ -1,19 +1,41 @@
 import React from 'react'
 import { IoChatboxOutline, IoLibraryOutline, IoGitNetworkOutline, IoExtensionPuzzleOutline, IoSettingsOutline } from 'react-icons/io5'
 import { TbBrain } from 'react-icons/tb'
+import { useSideBarStore } from '../../stores/SideBarStore'
+import type { SidebarSection } from '../../types/sidebar'
 
 function IconBar() {
+    const { activeSection, setActiveSection } = useSideBarStore()
+
+    const navItems: { id: SidebarSection; icon: React.ComponentType<any>; title: string }[] = [
+        { id: 'conversations', icon: IoChatboxOutline, title: 'Conversations' },
+        { id: 'models', icon: TbBrain, title: 'AI Models' },
+        { id: 'knowledgebases', icon: IoLibraryOutline, title: 'Knowledgebases' },
+        { id: 'workflows', icon: IoGitNetworkOutline, title: 'Workflows' },
+        { id: 'mcps', icon: IoExtensionPuzzleOutline, title: 'MCPs' },
+    ]
+
+    const renderIcon = (id: SidebarSection, IconComponent: React.ComponentType<any>, title: string) => {
+        const isActive = activeSection === id
+        return (
+            <IconComponent
+                key={id}
+                title={title}
+                onClick={() => setActiveSection(id)}
+                className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
+                    isActive ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-100'
+                }`}
+            />
+        )
+    }
+
     return (
-        <div className='p-3 text-2xl border-r border-zinc-800 text-zinc-400 flex flex-col justify-between'>
-            <div className='flex flex-col gap-4'>
-                <IoChatboxOutline title='Conversations' className='cursor-pointer hover:text-zinc-100 transition-colors' />
-                <TbBrain title='AI Models' className='cursor-pointer hover:text-zinc-100 transition-colors' />
-                <IoLibraryOutline title='Knowledgebases' className='cursor-pointer hover:text-zinc-100 transition-colors' />
-                <IoGitNetworkOutline title='Workflows' className='cursor-pointer hover:text-zinc-100 transition-colors' />
-                <IoExtensionPuzzleOutline title='MCPs' className='cursor-pointer hover:text-zinc-100 transition-colors' />
+        <div className='p-3 text-2xl border-r border-zinc-800 text-zinc-400 flex flex-col justify-between h-full select-none'>
+            <div className='flex flex-col gap-5'>
+                {navItems.map((item) => renderIcon(item.id, item.icon, item.title))}
             </div>
             <div>
-                <IoSettingsOutline title='Settings' className='cursor-pointer hover:text-zinc-100 transition-colors' />
+                {renderIcon('settings', IoSettingsOutline, 'Settings')}
             </div>
         </div>
     )

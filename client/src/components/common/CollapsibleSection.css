@@ -1,0 +1,130 @@
+/* ============================================
+   CollapsibleSection — VS Code sidebar styling
+   Color palette: zinc-950/900/800/500/400/300, amber-600
+   ============================================ */
+
+.collapsible-section {
+    border-bottom: 1px solid #27272a; /* zinc-800 */
+}
+
+/* --- Header --- */
+.collapsible-section__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    cursor: pointer;
+    user-select: none;
+    background-color: #09090b; /* zinc-950 */
+    transition: background-color 0.15s ease;
+}
+
+.collapsible-section__header:hover {
+    background-color: #18181b; /* zinc-900 */
+}
+
+.collapsible-section__title-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+/* Chevron rotation */
+.collapsible-section__chevron {
+    font-size: 10px;
+    color: #a1a1aa; /* zinc-400 */
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.collapsible-section__chevron--open {
+    transform: rotate(90deg);
+}
+
+/* Title text */
+.collapsible-section__title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #d4d4d8; /* zinc-300 */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Action button */
+.collapsible-section__action {
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 3px;
+    border: none;
+    background-color: #d97706; /* amber-600 */
+    color: #ffffff;
+    cursor: pointer;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+/* Show action button only on header hover */
+.collapsible-section__header:hover .collapsible-section__action {
+    opacity: 1;
+}
+
+.collapsible-section__action:hover {
+    background-color: #b45309; /* amber-700 */
+}
+
+/* --- Body (animated collapse) --- */
+.collapsible-section__body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapsible-section__body--open {
+    max-height: 1000px; /* large enough to fit content */
+    transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.collapsible-section__content {
+    padding: 2px 0;
+}
+
+/* ============================================
+   Sidebar list items — used inside sections
+   ============================================ */
+
+.sidebar-item {
+    padding: 4px 10px 4px 24px; /* indent to align with title text */
+    font-size: 13px;
+    color: #a1a1aa; /* zinc-400 */
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: background-color 0.1s ease, color 0.1s ease;
+}
+
+.sidebar-item:hover {
+    background-color: #27272a; /* zinc-800 */
+    color: #e4e4e7; /* zinc-200 */
+}
+
+.sidebar-item--active {
+    background-color: #2d2d30;
+    color: #e4e4e7; /* zinc-200 */
+}
+
+.sidebar-item--empty {
+    color: #52525b; /* zinc-600 */
+    font-style: italic;
+    cursor: default;
+}
+
+.sidebar-item--empty:hover {
+    background-color: transparent;
+    color: #52525b;
+}
