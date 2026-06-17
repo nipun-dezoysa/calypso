@@ -1,56 +1,194 @@
-import React from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import CollapsibleSection from '../../common/CollapsibleSection'
+import AddProviderModal, { type NewProviderPayload } from '../../common/AddProviderModal'
+import EditProviderModal from '../../common/EditProviderModal'
+import {
+    listAIProviders,
+    createAIProvider,
+    type AIProvider,
+} from '../../../api/aiProviderApi'
+import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline } from 'react-icons/io5'
 
-const providers = [
-    {
-        name: "Gemini",
-        models: ["gemini-2.5-flash", "gemini-2.5-pro"]
-    },
-    {
-        name: "OpenAI",
-        models: ["gpt-4", "gpt-5", "gpt-4.1"]
-    },
-    {
-        name: "Ollama",
-        models: ["llama3", "llama3.1"]
-    }
-]
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type LoadState = 'idle' | 'loading' | 'error'
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 function ModelSection() {
+    const [providers, setProviders] = useState<AIProvider[]>([])
+    const [loadState, setLoadState] = useState<LoadState>('idle')
+    const [loadError, setLoadError] = useState<string | null>(null)
+    const [showAddModal, setShowAddModal] = useState(false)
+    const [editingProvider, setEditingProvider] = useState<AIProvider | null>(null)
+
+    // -----------------------------------------------------------------------
+    // Fetch providers on mount
+    // -----------------------------------------------------------------------
+
+    const fetchProviders = useCallback(async () => {
+        setLoadState('loading')
+        setLoadError(null)
+        try {
+            const data = await listAIProviders({ limit: 100 })
+            setProviders(data)
+            setLoadState('idle')
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Failed to load providers'
+            setLoadError(message)
+            setLoadState('error')
+        }
+    }, [])
+
+    useEffect(() => {
+        fetchProviders()
+    }, [fetchProviders])
+
+    // -----------------------------------------------------------------------
+    // Create provider
+    // -----------------------------------------------------------------------
+
+    async function handleAddProvider(payload: NewProviderPayload): Promise<void> {
+        const created = await createAIProvider({
+            provider_name: payload.provider_name,
+            model_names: payload.model_names,
+            url: payload.url ?? null,
+            secret_key: payload.secret_key ?? null,
+        })
+        setProviders((prev) => [...prev, created])
+    }
+
+    // -----------------------------------------------------------------------
+    // Update provider (called by EditProviderModal after PATCH succeeds)
+    // -----------------------------------------------------------------------
+
+    function handleProviderUpdated(updated: AIProvider) {
+        setProviders((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
+    }
+
+    // -----------------------------------------------------------------------
+    // Delete provider (called by EditProviderModal after DELETE succeeds)
+    // -----------------------------------------------------------------------
+
+    function handleProviderDeleted(id: string) {
+        setProviders((prev) => prev.filter((p) => p.id !== id))
+    }
+
+    // -----------------------------------------------------------------------
+    // Render helpers
+    // -----------------------------------------------------------------------
+
+    function renderProviderList() {
+        if (loadState === 'loading') {
+            return (
+                <div className="py-4 flex items-center justify-center gap-2 text-zinc-500 text-xs">
+                    <span className="apm-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
+                    Loading providers…
+                </div>
+            )
+        }
+
+        if (loadState === 'error' && providers.length === 0) {
+            return (
+                <div className="py-3 px-4 flex flex-col gap-2">
+                    <div className="flex items-center gap-1.5 text-red-400 text-xs">
+                        <IoAlertCircleOutline className="shrink-0" />
+                        <span>{loadError}</span>
+                    </div>
+                    <button
+                        className="sidebar-item text-zinc-400 hover:text-amber-400 flex items-center gap-1"
+                        onClick={fetchProviders}
+                    >
+                        <IoRefreshOutline />
+                        Retry
+                    </button>
+                </div>
+            )
+        }
+
+        if (providers.length === 0) {
+            return (
+                <div className="py-3 px-6 text-zinc-500 text-xs italic">
+                    No providers configured yet.
+                </div>
+            )
+        }
+
+        return (
+            <div className="py-1">
+                {providers.map((provider) => (
+                    <div key={provider.id} className="mb-3">
+                        {/* Provider header row — pencil opens edit modal */}
+                        <div className="flex items-center justify-between px-4 mb-1 group">
+                            <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">
+                                {provider.provider_name}
+                            </span>
+                            <button
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-amber-400 p-0.5"
+                                onClick={() => setEditingProvider(provider)}
+                                title={`Edit ${provider.provider_name}`}
+                                aria-label={`Edit ${provider.provider_name}`}
+                            >
+                                <IoPencilOutline size={12} />
+                            </button>
+                        </div>
+
+                        {/* Model rows */}
+                        {provider.model_names.map((model) => (
+                            <div
+                                key={model}
+                                className="sidebar-item flex items-center justify-between"
+                            >
+                                <span>{model}</span>
+                                <span
+                                    className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                                    title="Active"
+                                />
+                            </div>
+                        ))}
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
+    // -----------------------------------------------------------------------
+    // JSX
+    // -----------------------------------------------------------------------
+
     return (
         <div>
-            <CollapsibleSection 
+            <CollapsibleSection
                 title="AI Providers"
-                action={{ label: 'Manage', onClick: () => console.log('Manage providers') }}
+                action={{
+                    label: '+ Add',
+                    onClick: () => setShowAddModal(true),
+                }}
             >
-                <div className="py-1">
-                    {providers.map((provider) => (
-                        <div key={provider.name} className="mb-3">
-                            <div className="text-[10px] font-semibold text-zinc-600 uppercase px-6 mb-1 tracking-wider">
-                                {provider.name}
-                            </div>
-                            {provider.models.map((model) => (
-                                <div
-                                    key={model}
-                                    className="sidebar-item flex items-center justify-between"
-                                >
-                                    <span>{model}</span>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Active"></span>
-                                </div>
-                            ))}
-                        </div>
-                    ))}
-                </div>
+                {renderProviderList()}
             </CollapsibleSection>
 
-            <CollapsibleSection title="Active Models">
-                <div className="sidebar-item">
-                    gemini-2.5-flash (Default)
-                </div>
-                <div className="sidebar-item">
-                    gpt-4
-                </div>
-            </CollapsibleSection>
+            {/* Add Provider Modal */}
+            {showAddModal && (
+                <AddProviderModal
+                    onClose={() => setShowAddModal(false)}
+                    onSubmit={handleAddProvider}
+                />
+            )}
+
+            {/* Edit / Delete Provider Modal */}
+            {editingProvider && (
+                <EditProviderModal
+                    provider={editingProvider}
+                    onClose={() => setEditingProvider(null)}
+                    onUpdated={handleProviderUpdated}
+                    onDeleted={handleProviderDeleted}
+                />
+            )}
         </div>
     )
 }
