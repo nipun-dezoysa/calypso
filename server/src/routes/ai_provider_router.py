@@ -87,7 +87,13 @@ async def update_provider(
                 detail=f"Provider with name '{data.provider_name}' already exists",
             )
 
-    provider = await service.update(provider_id, data)
+    try:
+        provider = await service.update(provider_id, data)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
     if provider is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -1,10 +1,14 @@
 import uuid
 from datetime import datetime, timezone
+from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, DateTime, String
-from sqlalchemy.orm import Mapped, mapped_column, validates
+from sqlalchemy import DateTime, String
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from src.database import Base
+
+if TYPE_CHECKING:
+    from src.models.llm_model import LLMModel
 
 
 class AIProvider(Base):
@@ -21,12 +25,6 @@ class AIProvider(Base):
         nullable=False,
         unique=True,
         index=True,
-    )
-
-    model_names: Mapped[list] = mapped_column(
-        JSON,
-        nullable=False,
-        default=list,
     )
 
     url: Mapped[str | None] = mapped_column(
@@ -54,19 +52,23 @@ class AIProvider(Base):
         nullable=False,
     )
 
+    models: Mapped[list["LLMModel"]] = relationship(
+        "LLMModel",
+        back_populates="ai_provider",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    @property
+    def model_names(self) -> list[str]:
+        """Names of the models this provider offers, derived from `models`."""
+        return [m.model_name for m in self.models]
+
     @validates("provider_name")
     def validate_provider_name(self, _key: str, value: str) -> str:
         if not value or not value.strip():
             raise ValueError("provider_name must not be empty")
         return value.strip()
-
-    @validates("model_names")
-    def validate_model_names(self, _key: str, value: list) -> list:
-        if not isinstance(value, list):
-            raise ValueError("model_names must be a list")
-        if not all(isinstance(item, str) and item.strip() for item in value):
-            raise ValueError("All items in model_names must be non-empty strings")
-        return [item.strip() for item in value]
 
     @validates("url")
     def validate_url(self, _key: str, value: str | None) -> str | None:

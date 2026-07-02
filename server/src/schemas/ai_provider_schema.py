@@ -99,12 +99,25 @@ class AIProviderUpdate(BaseModel):
         return v
 
 
+class LLMModelInfo(BaseModel):
+    """A single selectable model belonging to a provider, with its id."""
+
+    id: str
+    model_name: str
+
+    model_config = {"from_attributes": True}
+
+
 class AIProviderResponse(BaseModel):
     """Schema returned from API responses."""
 
     id: str
     provider_name: str
     model_names: list[str]
+    models: list[LLMModelInfo] = Field(
+        default_factory=list,
+        description="Models offered by this provider, with their ids (use these ids to link an Agent)",
+    )
     url: str | None
     secret_key: str | None
     created_at: datetime
