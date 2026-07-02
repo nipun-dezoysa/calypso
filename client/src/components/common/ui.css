@@ -322,6 +322,46 @@
 }
 .form-pw-toggle:hover { color: var(--c-text-dim); }
 
+/* ── Range slider (creativity) ── */
+.form-range {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    outline: none;
+    cursor: pointer;
+    margin: 6px 0 2px;
+}
+.form-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--c-accent);
+    border: 2px solid #fff2;
+    cursor: pointer;
+    transition: background-color .12s;
+}
+.form-range::-webkit-slider-thumb:hover { background: var(--c-accent-hi); }
+.form-range::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--c-accent);
+    border: 2px solid #fff2;
+    cursor: pointer;
+}
+.form-range-scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--c-text-subtle);
+}
+
 /* ── Info note ── */
 .form-info-note {
     display: flex;

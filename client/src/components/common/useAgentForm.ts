@@ -1,0 +1,65 @@
+import { useState } from 'react'
+
+export interface AgentFormOptions {
+    initialName?: string
+    initialLlmModelId?: string
+    initialAgentInstructions?: string
+    initialCreativity?: number
+}
+
+export interface AgentFormValues {
+    name: string
+    llm_model_id: string
+    agent_instructions: string
+    creativity: number
+}
+
+export interface AgentFormHandle {
+    name: string
+    setName: (v: string) => void
+    llmModelId: string
+    setLlmModelId: (v: string) => void
+    agentInstructions: string
+    setAgentInstructions: (v: string) => void
+    creativity: number
+    setCreativity: (v: number) => void
+    errors: Record<string, string>
+    setErrors: (fn: (prev: Record<string, string>) => Record<string, string>) => void
+    validate: () => boolean
+    formValues: AgentFormValues
+}
+
+export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
+    const [name, setName] = useState(options?.initialName ?? '')
+    const [llmModelId, setLlmModelId] = useState(options?.initialLlmModelId ?? '')
+    const [agentInstructions, setAgentInstructions] = useState(
+        options?.initialAgentInstructions ?? '',
+    )
+    const [creativity, setCreativity] = useState(options?.initialCreativity ?? 50)
+    const [errors, setErrors] = useState<Record<string, string>>({})
+
+    function validate(): boolean {
+        const errs: Record<string, string> = {}
+        if (!name.trim()) errs.name = 'Agent name is required.'
+        if (!llmModelId) errs.llm_model_id = 'Select a model for this agent.'
+        if (!agentInstructions.trim()) errs.agent_instructions = 'Instructions are required.'
+        setErrors(errs)
+        return Object.keys(errs).length === 0
+    }
+
+    const formValues: AgentFormValues = {
+        name: name.trim(),
+        llm_model_id: llmModelId,
+        agent_instructions: agentInstructions.trim(),
+        creativity,
+    }
+
+    return {
+        name, setName,
+        llmModelId, setLlmModelId,
+        agentInstructions, setAgentInstructions,
+        creativity, setCreativity,
+        errors, setErrors,
+        validate, formValues,
+    }
+}

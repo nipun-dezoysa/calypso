@@ -1,0 +1,128 @@
+import type { AIProvider } from '../../api/aiProviderApi'
+import type { AgentFormHandle } from './useAgentForm'
+
+interface AgentFormFieldsProps {
+    form: AgentFormHandle
+    providers: AIProvider[]
+}
+
+const CREATIVITY_LABELS = ['Precise', 'Balanced', 'Creative'] as const
+
+function creativityLabel(value: number): string {
+    if (value < 34) return CREATIVITY_LABELS[0]
+    if (value < 67) return CREATIVITY_LABELS[1]
+    return CREATIVITY_LABELS[2]
+}
+
+function AgentFormFields({ form, providers }: AgentFormFieldsProps) {
+    const {
+        name, setName,
+        llmModelId, setLlmModelId,
+        agentInstructions, setAgentInstructions,
+        creativity, setCreativity,
+        errors, setErrors,
+    } = form
+
+    const providersWithModels = providers.filter((p) => p.models.length > 0)
+
+    return (
+        <>
+            <div className="form-field">
+                <label className="form-label" htmlFor="af-name">
+                    Agent Name
+                    <span className="form-label-required">* required</span>
+                </label>
+                <input
+                    id="af-name"
+                    className="form-input"
+                    placeholder="e.g. Support Bot"
+                    value={name}
+                    onChange={(e) => {
+                        setName(e.target.value)
+                        setErrors((prev) => ({ ...prev, name: '' }))
+                    }}
+                    autoComplete="off"
+                    spellCheck={false}
+                />
+                {errors.name && <div className="form-error">{errors.name}</div>}
+            </div>
+
+            <div className="form-field">
+                <label className="form-label" htmlFor="af-model">
+                    Model
+                    <span className="form-label-required">* required</span>
+                </label>
+                <select
+                    id="af-model"
+                    className="form-input"
+                    value={llmModelId}
+                    onChange={(e) => {
+                        setLlmModelId(e.target.value)
+                        setErrors((prev) => ({ ...prev, llm_model_id: '' }))
+                    }}
+                >
+                    <option value="" disabled>
+                        {providersWithModels.length === 0
+                            ? 'No models available — add a provider first'
+                            : 'Select a model…'}
+                    </option>
+                    {providersWithModels.map((provider) => (
+                        <optgroup key={provider.id} label={provider.provider_name}>
+                            {provider.models.map((model) => (
+                                <option key={model.id} value={model.id}>
+                                    {model.model_name}
+                                </option>
+                            ))}
+                        </optgroup>
+                    ))}
+                </select>
+                {errors.llm_model_id && <div className="form-error">{errors.llm_model_id}</div>}
+            </div>
+
+            <div className="form-field">
+                <label className="form-label" htmlFor="af-instructions">
+                    Instructions
+                    <span className="form-label-required">* required</span>
+                </label>
+                <textarea
+                    id="af-instructions"
+                    className="form-input"
+                    rows={5}
+                    placeholder="Describe how this agent should behave, its role, tone, and constraints…"
+                    value={agentInstructions}
+                    onChange={(e) => {
+                        setAgentInstructions(e.target.value)
+                        setErrors((prev) => ({ ...prev, agent_instructions: '' }))
+                    }}
+                    spellCheck={true}
+                    style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
+                />
+                {errors.agent_instructions && (
+                    <div className="form-error">{errors.agent_instructions}</div>
+                )}
+            </div>
+
+            <div className="form-field">
+                <label className="form-label" htmlFor="af-creativity">
+                    Creativity
+                    <span className="form-label-optional">{creativity} · {creativityLabel(creativity)}</span>
+                </label>
+                <input
+                    id="af-creativity"
+                    className="form-range"
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={creativity}
+                    onChange={(e) => setCreativity(Number(e.target.value))}
+                />
+                <div className="form-range-scale">
+                    <span>Precise</span>
+                    <span>Creative</span>
+                </div>
+            </div>
+        </>
+    )
+}
+
+export default AgentFormFields

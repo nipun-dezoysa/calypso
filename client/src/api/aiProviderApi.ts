@@ -14,13 +14,19 @@ export interface AIProviderUpdate {
     secret_key?: string | null
 }
 
+export interface LLMModelInfo {
+    id: string
+    model_name: string
+}
+
 export interface AIProvider {
     id: string
     provider_name: string
     model_names: string[]
+    models: LLMModelInfo[]
     url: string | null
     secret_key: string | null
-    created_at: string 
+    created_at: string
     updated_at: string
 }
 
