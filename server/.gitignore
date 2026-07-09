@@ -3,6 +3,8 @@
 *.sqlite
 *.sqlite3
 calypso.db
+calypso.db-shm
+calypso.db-wal
 
 # ── Python ──
 __pycache__/

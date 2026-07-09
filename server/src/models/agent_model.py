@@ -9,6 +9,7 @@ from src.database import Base
 
 if TYPE_CHECKING:
     from src.models.llm_model import LLMModel
+    from src.models.thread_model import Thread
 
 
 class Agent(Base):
@@ -64,6 +65,12 @@ class Agent(Base):
         "LLMModel",
         back_populates="agents",
         lazy="joined",
+    )
+
+    threads: Mapped[list["Thread"]] = relationship(
+        "Thread",
+        back_populates="agent",
+        cascade="all, delete-orphan",
     )
 
     @validates("name")

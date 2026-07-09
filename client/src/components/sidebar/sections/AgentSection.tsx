@@ -4,6 +4,7 @@ import AddAgentModal, { type NewAgentPayload } from '../../common/AddAgentModal'
 import EditAgentModal from '../../common/EditAgentModal'
 import { listAgents, createAgent, type Agent } from '../../../api/agentApi'
 import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline } from 'react-icons/io5'
+import { useChatStore } from '../../../stores/ChatStore'
 
 type LoadState = 'idle' | 'loading' | 'error'
 
@@ -13,6 +14,13 @@ function AgentSection() {
     const [loadError, setLoadError] = useState<string | null>(null)
     const [showAddModal, setShowAddModal] = useState(false)
     const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
+
+    const selectedAgent = useChatStore((s) => s.selectedAgent)
+    const threads = useChatStore((s) => s.threads)
+    const activeThreadId = useChatStore((s) => s.threadId)
+    const openThread = useChatStore((s) => s.openThread)
+    const newChat = useChatStore((s) => s.newChat)
+    const selectAgent = useChatStore((s) => s.selectAgent)
 
     const fetchAgents = useCallback(async () => {
         setLoadState('loading')
@@ -43,6 +51,44 @@ function AgentSection() {
 
     function handleAgentDeleted(id: string) {
         setAgents((prev) => prev.filter((a) => a.id !== id))
+        if (selectedAgent?.id === id) selectAgent(null)
+    }
+
+    function formatThreadTitle(title: string | null, updatedAt: string): string {
+        return title ?? new Date(updatedAt).toLocaleString()
+    }
+
+    function renderThreadList() {
+        if (!selectedAgent) {
+            return (
+                <div className="sidebar-item sidebar-item--empty">
+                    Select an agent to see its chats
+                </div>
+            )
+        }
+
+        if (threads.length === 0) {
+            return (
+                <div className="sidebar-item sidebar-item--empty">
+                    No recent chats
+                </div>
+            )
+        }
+
+        return (
+            <div className="py-1">
+                {threads.map((thread) => (
+                    <div
+                        key={thread.id}
+                        className={`sidebar-item truncate ${thread.id === activeThreadId ? 'text-amber-400' : ''}`}
+                        onClick={() => openThread(thread.id)}
+                        title={formatThreadTitle(thread.title, thread.updated_at)}
+                    >
+                        {formatThreadTitle(thread.title, thread.updated_at)}
+                    </div>
+                ))}
+            </div>
+        )
     }
 
     function renderAgentList() {
@@ -87,10 +133,12 @@ function AgentSection() {
                     <div
                         key={agent.id}
                         className="sidebar-item flex items-center justify-between group"
-                        onClick={() => setEditingAgent(agent)}
+                        onClick={() => selectAgent(agent)}
                     >
                         <div className="flex flex-col min-w-0">
-                            <span className="truncate">{agent.name}</span>
+                            <span className={`truncate ${agent.id === selectedAgent?.id ? 'text-amber-400' : ''}`}>
+                                {agent.name}
+                            </span>
                             <span className="text-[10px] text-zinc-600 truncate">
                                 {agent.llm_model.provider_name} · {agent.llm_model.model_name}
                             </span>
@@ -119,10 +167,11 @@ function AgentSection() {
                 {renderAgentList()}
             </CollapsibleSection>
 
-            <CollapsibleSection title="Recent Chats">
-                <div className="sidebar-item sidebar-item--empty">
-                    No recent chats
-                </div>
+            <CollapsibleSection
+                title="Recent Chats"
+                action={selectedAgent ? { label: '+ New', onClick: newChat } : undefined}
+            >
+                {renderThreadList()}
             </CollapsibleSection>
 
             {showAddModal && (
