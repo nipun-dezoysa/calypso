@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IoAdd, IoPencilOutline, IoTrashOutline, IoWarningOutline } from 'react-icons/io5'
+import { IoAdd, IoTrashOutline, IoWarningOutline } from 'react-icons/io5'
 import Modal from './Modal'
 import ProviderFormFields from './ProviderFormFields'
 import { useProviderForm } from './useProviderForm'

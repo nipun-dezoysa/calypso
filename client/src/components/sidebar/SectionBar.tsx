@@ -1,4 +1,3 @@
-import React from 'react'
 import { useSideBarStore } from '../../stores/SideBarStore'
 import AgentSection from './sections/AgentSection'
 import ModelSection from './sections/ModelSection'

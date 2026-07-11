@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { IoChevronDown, IoChevronUp, IoCheckmark } from 'react-icons/io5'
 
 export interface ModelOption {

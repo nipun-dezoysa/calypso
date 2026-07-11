@@ -1,4 +1,3 @@
-import React from 'react'
 import CollapsibleSection from '../../common/CollapsibleSection'
 
 function WorkflowSection() {

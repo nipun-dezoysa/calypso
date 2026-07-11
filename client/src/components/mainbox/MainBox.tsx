@@ -1,4 +1,3 @@
-import React from 'react'
 import ChatBox from './chatbox/ChatBox'
 
 function MainBox() {

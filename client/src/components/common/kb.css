@@ -1,0 +1,155 @@
+/* Knowledge-base specific UI, layered on top of ui.css tokens. */
+
+.kb-docs-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.kb-count-pill {
+    margin-left: 8px;
+    font-size: 10px;
+    color: var(--c-text-muted);
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.kb-hint {
+    font-size: 11px;
+    color: var(--c-text-subtle);
+    margin: -6px 0 0;
+}
+
+.kb-empty {
+    font-size: 12px;
+    color: var(--c-text-muted);
+    font-style: italic;
+    padding: 16px;
+    text-align: center;
+    background: var(--c-surface);
+    border: 1px dashed var(--c-border);
+    border-radius: var(--radius);
+}
+
+/* ── Document rows ── */
+.kb-doc-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--c-border) transparent;
+}
+.kb-doc-list::-webkit-scrollbar { width: 4px; }
+.kb-doc-list::-webkit-scrollbar-thumb { background: var(--c-border); border-radius: 4px; }
+
+.kb-doc-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+}
+
+.kb-doc-icon { color: var(--c-text-muted); font-size: 16px; flex-shrink: 0; }
+
+.kb-doc-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.kb-doc-name {
+    font-size: 12.5px;
+    color: var(--c-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.kb-doc-meta {
+    font-size: 10.5px;
+    color: var(--c-text-subtle);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.kb-doc-error { color: var(--c-danger-text); }
+
+.kb-doc-delete {
+    border: none;
+    background: transparent;
+    color: var(--c-text-subtle);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
+    transition: background-color .12s, color .12s;
+}
+.kb-doc-delete:hover { background: var(--c-danger-dim); color: var(--c-danger-text); }
+
+/* ── Status badge ── */
+.kb-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-transform: capitalize;
+}
+.kb-status--pending    { color: var(--c-text-dim);  background: var(--c-hover);          border-color: var(--c-border); }
+.kb-status--processing { color: var(--c-accent-hi); background: rgba(217,119,6,.12);     border-color: rgba(217,119,6,.35); }
+.kb-status--completed  { color: #34d399;            background: rgba(16,185,129,.12);    border-color: rgba(16,185,129,.3); text-transform: none; }
+.kb-status--failed     { color: var(--c-danger-text); background: var(--c-danger-dim);   border-color: var(--c-danger-border); }
+
+.kb-status-spinner {
+    width: 9px; height: 9px; border-width: 1.5px;
+    border-color: rgba(255,255,255,.25); border-top-color: currentColor;
+}
+
+/* ── Ghost icon button ── */
+.btn--ghost {
+    border: 1px solid var(--c-border);
+    background: var(--c-surface);
+    color: var(--c-text-dim);
+    border-radius: 7px;
+    padding: 8px 10px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    font-size: 15px;
+    transition: background-color .15s, color .15s;
+}
+.btn--ghost:hover { background: var(--c-hover); color: var(--c-text); }
+
+/* ── Segmented control (settings) ── */
+.kb-seg { display: flex; gap: 8px; }
+.kb-seg-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: flex-start;
+    padding: 9px 12px;
+    border: 1px solid var(--c-border);
+    background: var(--c-surface);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color .12s, background-color .12s;
+}
+.kb-seg-item:hover { border-color: var(--c-text-muted); }
+.kb-seg-item--on {
+    border-color: var(--c-accent);
+    background: rgba(217,119,6,.1);
+}
+.kb-seg-label { font-size: 13px; font-weight: 500; color: var(--c-text); }
+.kb-seg-item--on .kb-seg-label { color: var(--c-accent-hi); }
+.kb-seg-hint { font-size: 10.5px; color: var(--c-text-subtle); }

@@ -1,4 +1,3 @@
-import React from 'react'
 import IconBar from './IconBar'
 import SectionBar from './SectionBar'
 

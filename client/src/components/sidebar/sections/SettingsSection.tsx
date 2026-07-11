@@ -1,29 +1,43 @@
-import React from 'react'
+import { useState } from 'react'
 import CollapsibleSection from '../../common/CollapsibleSection'
+import KbSettingsModal from '../../common/KbSettingsModal'
+
+type SettingsCategory = { label: string; onOpen?: () => void }
 
 function SettingsSection() {
-    const categories = [
-        "General Settings",
-        "AI Providers Configuration",
-        "Keyboard Shortcuts",
-        "Theme & Appearance",
-        "API Keys Manager",
-        "System Diagnostics",
+    const [showKbSettings, setShowKbSettings] = useState(false)
+
+    const categories: SettingsCategory[] = [
+        { label: 'General Settings' },
+        { label: 'AI Providers Configuration' },
+        { label: 'Knowledgebase', onOpen: () => setShowKbSettings(true) },
+        { label: 'Keyboard Shortcuts' },
+        { label: 'Theme & Appearance' },
+        { label: 'API Keys Manager' },
+        { label: 'System Diagnostics' },
     ]
 
     return (
         <div>
             <CollapsibleSection title="Settings">
-                {categories.map((category, index) => (
+                {categories.map((category) => (
                     <div
-                        key={index}
+                        key={category.label}
                         className="sidebar-item"
-                        onClick={() => console.log(`Selected settings category: ${category}`)}
+                        onClick={() =>
+                            category.onOpen
+                                ? category.onOpen()
+                                : console.log(`Selected settings category: ${category.label}`)
+                        }
                     >
-                        {category}
+                        {category.label}
                     </div>
                 ))}
             </CollapsibleSection>
+
+            {showKbSettings && (
+                <KbSettingsModal onClose={() => setShowKbSettings(false)} />
+            )}
         </div>
     )
 }

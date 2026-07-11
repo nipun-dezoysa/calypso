@@ -1,4 +1,3 @@
-import React from 'react'
 import SideBar from './components/sidebar/SideBar'
 import MainBox from './components/mainbox/MainBox'
 

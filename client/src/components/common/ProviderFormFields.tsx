@@ -1,3 +1,4 @@
+import { type ReactElement } from 'react'
 import { IoClose, IoCheckmark, IoEye, IoEyeOff, IoInformationCircle } from 'react-icons/io5'
 import type { ProviderFormHandle } from './useProviderForm'
 
@@ -5,7 +6,7 @@ import type { ProviderFormHandle } from './useProviderForm'
 // Highlight helper
 // ---------------------------------------------------------------------------
 
-function highlightMatch(text: string, query: string): JSX.Element {
+function highlightMatch(text: string, query: string): ReactElement {
     if (!query) return <>{text}</>
     const idx = text.toLowerCase().indexOf(query.toLowerCase())
     if (idx === -1) return <>{text}</>
