@@ -8,6 +8,7 @@ from src.database import engine, init_db
 from src.routes.agent_router import router as agent_router
 from src.routes.ai_provider_router import router as ai_provider_router
 from src.routes.chat_router import router as chat_router
+from src.routes.kb_router import router as kb_router
 
 import src.models
 
@@ -34,6 +35,7 @@ def create_app() -> FastAPI:
     app.include_router(ai_provider_router, prefix="/api/v1")
     app.include_router(agent_router, prefix="/api/v1")
     app.include_router(chat_router, prefix="/api/v1")
+    app.include_router(kb_router, prefix="/api/v1")
 
     return app
 

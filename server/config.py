@@ -38,6 +38,8 @@ def require_env(value: str | None, env_name: str) -> str:
 class Settings:
     cors_origins: list[str]
     cors_origin_regex: str | None
+    kb_upload_dir: str
+    chroma_persist_dir: str
 
 
 settings = Settings(
@@ -49,5 +51,6 @@ settings = Settings(
         "CORS_ORIGIN_REGEX",
         r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     ),
-
+    kb_upload_dir=os.getenv("KB_UPLOAD_DIR", "kb_files"),
+    chroma_persist_dir=os.getenv("CHROMA_PERSIST_DIR", "chroma_db"),
 )

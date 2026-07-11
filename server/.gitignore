@@ -6,6 +6,10 @@ calypso.db
 calypso.db-shm
 calypso.db-wal
 
+# ── Knowledge base storage ──
+kb_files/
+chroma_db/
+
 # ── Python ──
 __pycache__/
 *.py[cod]
