@@ -17,6 +17,7 @@ interface ChatState {
     loadingMessages: boolean
     error: string | null
     selectAgent: (agent: Agent | null) => void
+    patchSelectedAgent: (agent: Agent) => void
     newChat: () => void
     openThread: (threadId: string) => Promise<void>
     sendMessage: (question: string) => Promise<void>
@@ -42,6 +43,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
             error: null,
         })
         if (agent) void get().refreshThreads()
+    },
+
+    patchSelectedAgent: (agent) => {
+        if (get().selectedAgent?.id !== agent.id) return
+        set({ selectedAgent: agent })
     },
 
     newChat: () => set({ threadId: null, messages: [], error: null }),

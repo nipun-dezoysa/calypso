@@ -1,15 +1,9 @@
 import { useEffect, useState } from 'react'
 import { IoArrowUp } from 'react-icons/io5'
 import DropdownSelector, { type SelectOption } from '../../common/DropdownSelector'
-import { listAgents, type Agent } from '../../../api/agentApi'
+import { listAgents, updateAgent, type Agent } from '../../../api/agentApi'
+import { listCollections, type Collection } from '../../../api/kbApi'
 import { useChatStore } from '../../../stores/ChatStore'
-
-const knowledgebases: SelectOption[] = [
-    { id: 'kb-company', name: 'Company Docs', description: 'Internal documentation' },
-    { id: 'kb-product', name: 'Product Wiki', description: 'Product knowledge base' },
-    { id: 'kb-support', name: 'Support FAQs', description: 'Customer support articles' },
-    { id: 'kb-api', name: 'API Reference', description: 'API documentation' },
-]
 
 const mcps: SelectOption[] = [
     { id: 'mcp-web', name: 'Web Search', description: 'Search the internet' },
@@ -22,12 +16,14 @@ const AGENT_PLACEHOLDER: SelectOption = { id: '', name: 'Select an agent' }
 
 function ChatInput() {
     const [agents, setAgents] = useState<Agent[]>([])
+    const [collections, setCollections] = useState<Collection[]>([])
     const [text, setText] = useState('')
-    const [selectedKB, setSelectedKB] = useState(knowledgebases[0])
     const [selectedMCPs, setSelectedMCPs] = useState<SelectOption[]>([])
+    const [savingKBs, setSavingKBs] = useState(false)
 
     const selectedAgent = useChatStore((s) => s.selectedAgent)
     const selectAgent = useChatStore((s) => s.selectAgent)
+    const patchSelectedAgent = useChatStore((s) => s.patchSelectedAgent)
     const sendMessage = useChatStore((s) => s.sendMessage)
     const sending = useChatStore((s) => s.sending)
 
@@ -47,6 +43,42 @@ function ChatInput() {
             cancelled = true
         }
     }, [selectAgent])
+
+    useEffect(() => {
+        let cancelled = false
+        listCollections({ limit: 100 })
+            .then((data) => { if (!cancelled) setCollections(data) })
+            .catch(() => {
+                // Non-critical: the KB picker just stays empty on failure.
+            })
+        return () => { cancelled = true }
+    }, [])
+
+    const kbOptions: SelectOption[] = collections.map((c) => ({
+        id: c.id,
+        name: c.name,
+        description: `${c.document_count} doc${c.document_count === 1 ? '' : 's'}`,
+    }))
+
+    const selectedKBs: SelectOption[] = (selectedAgent?.collections ?? []).map((c) => ({
+        id: c.id,
+        name: c.name,
+    }))
+
+    async function handleChangeKBs(options: SelectOption[]) {
+        if (!selectedAgent || savingKBs) return
+        const collection_ids = options.map((o) => o.id)
+        setSavingKBs(true)
+        try {
+            const updated = await updateAgent(selectedAgent.id, { collection_ids })
+            patchSelectedAgent(updated)
+            setAgents((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
+        } catch {
+            // Keep the previous selection on failure; nothing to persist.
+        } finally {
+            setSavingKBs(false)
+        }
+    }
 
     const agentOptions: SelectOption[] = agents.map((a) => ({
         id: a.id,
@@ -99,10 +131,11 @@ function ChatInput() {
                         />
                         <span className='text-zinc-600'>·</span>
                         <DropdownSelector
-                            options={knowledgebases}
-                            selected={selectedKB}
-                            onSelect={setSelectedKB}
-                            label='Knowledgebase'
+                            options={kbOptions}
+                            selected={selectedKBs}
+                            onSelect={handleChangeKBs}
+                            label={selectedAgent ? 'Knowledgebases' : 'Select an agent first'}
+                            multiple
                         />
                         <span className='text-zinc-600'>·</span>
                         <DropdownSelector

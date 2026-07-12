@@ -4,12 +4,14 @@ import Modal from './Modal'
 import AgentFormFields from './AgentFormFields'
 import { useAgentForm } from './useAgentForm'
 import { listAIProviders, type AIProvider } from '../../api/aiProviderApi'
+import { listCollections, type Collection } from '../../api/kbApi'
 
 export interface NewAgentPayload {
     name: string
     llm_model_id: string
     agent_instructions: string
     creativity: number
+    collection_ids: string[]
 }
 
 interface AddAgentModalProps {
@@ -22,13 +24,18 @@ function AddAgentModal({ onClose, onSubmit }: AddAgentModalProps) {
     const [submitting, setSubmitting] = useState(false)
 
     const [providers, setProviders] = useState<AIProvider[]>([])
+    const [collections, setCollections] = useState<Collection[]>([])
     const [loadingProviders, setLoadingProviders] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false
-        listAIProviders({ limit: 100 })
-            .then((data) => { if (!cancelled) setProviders(data) })
+        Promise.all([listAIProviders({ limit: 100 }), listCollections({ limit: 100 })])
+            .then(([providerData, collectionData]) => {
+                if (cancelled) return
+                setProviders(providerData)
+                setCollections(collectionData)
+            })
             .catch((err: unknown) => {
                 if (cancelled) return
                 setLoadError(err instanceof Error ? err.message : 'Failed to load providers')
@@ -93,7 +100,7 @@ function AddAgentModal({ onClose, onSubmit }: AddAgentModalProps) {
                     Loading providers…
                 </div>
             ) : (
-                <AgentFormFields form={form} providers={providers} />
+                <AgentFormFields form={form} providers={providers} collections={collections} />
             )}
         </Modal>
     )

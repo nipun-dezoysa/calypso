@@ -7,11 +7,17 @@ export interface AgentLLMModelInfo {
     provider_name: string
 }
 
+export interface AgentCollectionInfo {
+    id: string
+    name: string
+}
+
 export interface AgentCreate {
     name: string
     llm_model_id: string
     agent_instructions: string
     creativity?: number
+    collection_ids?: string[]
 }
 
 export interface AgentUpdate {
@@ -19,6 +25,7 @@ export interface AgentUpdate {
     llm_model_id?: string | null
     agent_instructions?: string | null
     creativity?: number | null
+    collection_ids?: string[] | null
 }
 
 export interface Agent {
@@ -28,6 +35,7 @@ export interface Agent {
     llm_model: AgentLLMModelInfo
     agent_instructions: string
     creativity: number
+    collections: AgentCollectionInfo[]
     created_at: string
     updated_at: string
 }

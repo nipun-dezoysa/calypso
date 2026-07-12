@@ -5,6 +5,7 @@ import AgentFormFields from './AgentFormFields'
 import { useAgentForm } from './useAgentForm'
 import { updateAgent, deleteAgent, type Agent } from '../../api/agentApi'
 import { listAIProviders, type AIProvider } from '../../api/aiProviderApi'
+import { listCollections, type Collection } from '../../api/kbApi'
 import './ui.css'
 
 interface EditAgentModalProps {
@@ -20,6 +21,7 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
         initialLlmModelId: agent.llm_model_id,
         initialAgentInstructions: agent.agent_instructions,
         initialCreativity: agent.creativity,
+        initialCollectionIds: agent.collections.map((c) => c.id),
     })
 
     const [submitting, setSubmitting] = useState(false)
@@ -27,13 +29,18 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
     const [deleting, setDeleting] = useState(false)
 
     const [providers, setProviders] = useState<AIProvider[]>([])
+    const [collections, setCollections] = useState<Collection[]>([])
     const [loadingProviders, setLoadingProviders] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false
-        listAIProviders({ limit: 100 })
-            .then((data) => { if (!cancelled) setProviders(data) })
+        Promise.all([listAIProviders({ limit: 100 }), listCollections({ limit: 100 })])
+            .then(([providerData, collectionData]) => {
+                if (cancelled) return
+                setProviders(providerData)
+                setCollections(collectionData)
+            })
             .catch((err: unknown) => {
                 if (cancelled) return
                 setLoadError(err instanceof Error ? err.message : 'Failed to load providers')
@@ -146,7 +153,7 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
                     Loading providers…
                 </div>
             ) : (
-                <AgentFormFields form={form} providers={providers} />
+                <AgentFormFields form={form} providers={providers} collections={collections} />
             )}
 
             <hr className="ui-divider" />

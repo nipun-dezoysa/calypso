@@ -1,9 +1,12 @@
+import { IoCheckmark } from 'react-icons/io5'
 import type { AIProvider } from '../../api/aiProviderApi'
+import type { Collection } from '../../api/kbApi'
 import type { AgentFormHandle } from './useAgentForm'
 
 interface AgentFormFieldsProps {
     form: AgentFormHandle
     providers: AIProvider[]
+    collections: Collection[]
 }
 
 const CREATIVITY_LABELS = ['Precise', 'Balanced', 'Creative'] as const
@@ -14,12 +17,13 @@ function creativityLabel(value: number): string {
     return CREATIVITY_LABELS[2]
 }
 
-function AgentFormFields({ form, providers }: AgentFormFieldsProps) {
+function AgentFormFields({ form, providers, collections }: AgentFormFieldsProps) {
     const {
         name, setName,
         llmModelId, setLlmModelId,
         agentInstructions, setAgentInstructions,
         creativity, setCreativity,
+        collectionIds, toggleCollection,
         errors, setErrors,
     } = form
 
@@ -120,6 +124,44 @@ function AgentFormFields({ form, providers }: AgentFormFieldsProps) {
                     <span>Precise</span>
                     <span>Creative</span>
                 </div>
+            </div>
+
+            <div className="form-field">
+                <label className="form-label">
+                    Knowledgebases
+                    <span className="form-label-optional">optional</span>
+                </label>
+                {collections.length === 0 ? (
+                    <p style={{ fontSize: 12, color: '#71717a', fontStyle: 'italic' }}>
+                        No knowledgebases yet — create one in the Knowledgebases panel.
+                    </p>
+                ) : (
+                    <>
+                        <p style={{ fontSize: 11, color: '#52525b', marginBottom: 5 }}>
+                            Attach collections this agent can retrieve context from — click to toggle:
+                        </p>
+                        <div className="form-model-pills">
+                            {collections.map((c) => {
+                                const on = collectionIds.includes(c.id)
+                                return (
+                                    <button
+                                        key={c.id}
+                                        type="button"
+                                        className={`form-model-pill ${on ? 'form-model-pill--on' : ''}`}
+                                        onClick={() => toggleCollection(c.id)}
+                                        title={c.description ?? c.name}
+                                    >
+                                        {on && <IoCheckmark style={{ marginRight: 3, fontSize: 10 }} />}
+                                        {c.name}
+                                        <span style={{ marginLeft: 5, opacity: 0.6, fontSize: 10 }}>
+                                            {c.document_count}
+                                        </span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </>
+                )}
             </div>
         </>
     )

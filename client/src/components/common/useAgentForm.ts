@@ -5,6 +5,7 @@ export interface AgentFormOptions {
     initialLlmModelId?: string
     initialAgentInstructions?: string
     initialCreativity?: number
+    initialCollectionIds?: string[]
 }
 
 export interface AgentFormValues {
@@ -12,6 +13,7 @@ export interface AgentFormValues {
     llm_model_id: string
     agent_instructions: string
     creativity: number
+    collection_ids: string[]
 }
 
 export interface AgentFormHandle {
@@ -23,6 +25,8 @@ export interface AgentFormHandle {
     setAgentInstructions: (v: string) => void
     creativity: number
     setCreativity: (v: number) => void
+    collectionIds: string[]
+    toggleCollection: (id: string) => void
     errors: Record<string, string>
     setErrors: (fn: (prev: Record<string, string>) => Record<string, string>) => void
     validate: () => boolean
@@ -36,7 +40,16 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
         options?.initialAgentInstructions ?? '',
     )
     const [creativity, setCreativity] = useState(options?.initialCreativity ?? 50)
+    const [collectionIds, setCollectionIds] = useState<string[]>(
+        options?.initialCollectionIds ?? [],
+    )
     const [errors, setErrors] = useState<Record<string, string>>({})
+
+    function toggleCollection(id: string) {
+        setCollectionIds((prev) =>
+            prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+        )
+    }
 
     function validate(): boolean {
         const errs: Record<string, string> = {}
@@ -52,6 +65,7 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
         llm_model_id: llmModelId,
         agent_instructions: agentInstructions.trim(),
         creativity,
+        collection_ids: collectionIds,
     }
 
     return {
@@ -59,6 +73,7 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
         llmModelId, setLlmModelId,
         agentInstructions, setAgentInstructions,
         creativity, setCreativity,
+        collectionIds, toggleCollection,
         errors, setErrors,
         validate, formValues,
     }
