@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent_model import Agent
+from src.models.kb_collection_model import KbCollection
 from src.models.llm_model import LLMModel
 from src.schemas.agent_schema import AgentCreate, AgentUpdate
 
@@ -14,11 +15,13 @@ class AgentService:
 
     async def create(self, data: AgentCreate) -> Agent:
         """Create a new agent."""
+        collections = await self._resolve_collections(data.collection_ids)
         agent = Agent(
             name=data.name,
             llm_model_id=data.llm_model_id,
             agent_instructions=data.agent_instructions,
             creativity=data.creativity,
+            collections=collections,
         )
         self.db.add(agent)
         await self.db.commit()
@@ -55,6 +58,12 @@ class AgentService:
             return None
 
         update_data = data.model_dump(exclude_unset=True)
+
+        # Attached collections are set through the relationship, not setattr.
+        if "collection_ids" in update_data:
+            collection_ids = update_data.pop("collection_ids") or []
+            agent.collections = await self._resolve_collections(collection_ids)
+
         for field, value in update_data.items():
             setattr(agent, field, value)
 
@@ -81,3 +90,27 @@ class AgentService:
     async def get_llm_model(self, llm_model_id: str) -> LLMModel | None:
         """Get an LLMModel by its ID, used to validate agent.llm_model_id."""
         return await self.db.get(LLMModel, llm_model_id)
+
+    async def missing_collection_ids(self, collection_ids: list[str]) -> list[str]:
+        """Return the subset of ids that don't correspond to a collection."""
+        unique = list(dict.fromkeys(collection_ids))
+        if not unique:
+            return []
+        stmt = select(KbCollection.id).where(KbCollection.id.in_(unique))
+        result = await self.db.execute(stmt)
+        found = set(result.scalars().all())
+        return [cid for cid in unique if cid not in found]
+
+    async def _resolve_collections(self, collection_ids: list[str]) -> list[KbCollection]:
+        """Fetch collection rows for the given ids, deduplicated and preserving
+        order. Raises ValueError if any id is unknown."""
+        unique = list(dict.fromkeys(collection_ids))
+        if not unique:
+            return []
+        stmt = select(KbCollection).where(KbCollection.id.in_(unique))
+        result = await self.db.execute(stmt)
+        by_id = {c.id: c for c in result.scalars().all()}
+        missing = [cid for cid in unique if cid not in by_id]
+        if missing:
+            raise ValueError(f"Collections not found: {missing}")
+        return [by_id[cid] for cid in unique]

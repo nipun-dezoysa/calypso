@@ -6,8 +6,10 @@ from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from src.database import Base
+from src.models.agent_collection import agent_collection
 
 if TYPE_CHECKING:
+    from src.models.kb_collection_model import KbCollection
     from src.models.llm_model import LLMModel
     from src.models.thread_model import Thread
 
@@ -71,6 +73,15 @@ class Agent(Base):
         "Thread",
         back_populates="agent",
         cascade="all, delete-orphan",
+    )
+
+    # Knowledge-base collections attached to this agent, used to retrieve
+    # context during chat. Eager-loaded so responses and RAG can read them.
+    collections: Mapped[list["KbCollection"]] = relationship(
+        "KbCollection",
+        secondary=agent_collection,
+        back_populates="agents",
+        lazy="selectin",
     )
 
     @validates("name")

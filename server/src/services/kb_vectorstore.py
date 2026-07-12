@@ -86,6 +86,19 @@ def get_vector_store(cfg: KbConfig, collection_name: str) -> VectorStore:
     raise ValueError(_unsupported_vector_db(cfg))
 
 
+def search_collection(
+    cfg: KbConfig,
+    collection_name: str,
+    query: str,
+    k: int = 4,
+) -> list[Document]:
+    try:
+        store = get_vector_store(cfg, collection_name)
+        return store.similarity_search(query, k=k)
+    except Exception:
+        return []
+
+
 def add_documents(
     cfg: KbConfig,
     collection_name: str,

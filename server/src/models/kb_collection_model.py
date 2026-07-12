@@ -6,8 +6,10 @@ from sqlalchemy import DateTime, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from src.database import Base
+from src.models.agent_collection import agent_collection
 
 if TYPE_CHECKING:
+    from src.models.agent_model import Agent
     from src.models.kb_document_model import KbDocument
 
 
@@ -52,6 +54,14 @@ class KbCollection(Base):
         back_populates="collection",
         cascade="all, delete-orphan",
         lazy="selectin",
+    )
+
+    # Agents this collection is attached to. Not eager-loaded — accessed only
+    # via the agent side; kept here so ORM deletes clean up the link rows.
+    agents: Mapped[list["Agent"]] = relationship(
+        "Agent",
+        secondary=agent_collection,
+        back_populates="collections",
     )
 
     @property

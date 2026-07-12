@@ -36,6 +36,13 @@ async def create_agent(
             detail=f"LLM model with id '{data.llm_model_id}' not found",
         )
 
+    missing = await service.missing_collection_ids(data.collection_ids)
+    if missing:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Collections not found: {missing}",
+        )
+
     agent = await service.create(data)
     return AgentResponse.model_validate(agent)
 
@@ -97,6 +104,14 @@ async def update_agent(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"LLM model with id '{data.llm_model_id}' not found",
+            )
+
+    if data.collection_ids is not None:
+        missing = await service.missing_collection_ids(data.collection_ids)
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Collections not found: {missing}",
             )
 
     agent = await service.update(agent_id, data)

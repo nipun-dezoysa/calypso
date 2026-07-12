@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
@@ -7,8 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.agent_model import Agent
 from src.models.message_model import Message
 from src.models.thread_model import Thread
+from src.services import kb_vectorstore
+from src.services.kb_settings_service import KbSettingsService
+from src.services.kb_vectorstore import KbConfig
 from src.services.llm_factory import build_chat_model
 
+RAG_TOP_K_PER_COLLECTION = 4
+RAG_MAX_CHUNKS = 8
 
 class ChatService:
     """Answers a question by invoking an Agent's configured LLM provider/model,
@@ -48,8 +54,13 @@ class ChatService:
             temperature=temperature,
         )
 
+        system_content = agent.agent_instructions
+        context = await self._retrieve_context(agent, question)
+        if context:
+            system_content = f"{system_content}\n\n{context}"
+
         messages = [
-            SystemMessage(content=agent.agent_instructions),
+            SystemMessage(content=system_content),
             *chat_history,
             HumanMessage(content=question),
         ]
@@ -72,6 +83,30 @@ class ChatService:
 
         return thread.id, answer
 
+    async def _retrieve_context(self, agent: Agent, question: str) -> str:
+        collections = list(agent.collections)
+        if not collections:
+            return ""
+
+        cfg = await KbSettingsService(self.db).get_config()
+        collection_names = [c.vector_collection_name for c in collections]
+
+        # Embedding + vector search are blocking; run off the event loop.
+        docs = await asyncio.to_thread(
+            _gather_chunks, cfg, collection_names, question
+        )
+        if not docs:
+            return ""
+
+        formatted = "\n\n".join(
+            f"[{i}] {doc.page_content.strip()}" for i, doc in enumerate(docs, start=1)
+        )
+        return (
+            "Use the following knowledge-base context to answer the question when "
+            "relevant. If the context is not relevant, rely on your own knowledge.\n\n"
+            f"--- CONTEXT ---\n{formatted}\n--- END CONTEXT ---"
+        )
+
     async def list_messages(self, thread_id: str) -> list[Message] | None:
         thread = await self.db.get(Thread, thread_id)
         if thread is None:
@@ -86,3 +121,14 @@ class ChatService:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+
+def _gather_chunks(cfg: KbConfig, collection_names: list[str], question: str):
+    gathered = []
+    for name in collection_names:
+        gathered.extend(
+            kb_vectorstore.search_collection(
+                cfg, name, question, k=RAG_TOP_K_PER_COLLECTION
+            )
+        )
+    return gathered[:RAG_MAX_CHUNKS]

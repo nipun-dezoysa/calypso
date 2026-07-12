@@ -1,3 +1,4 @@
+from src.models.agent_collection import agent_collection
 from src.models.agent_model import Agent
 from src.models.ai_provide_model import AIProvider
 from src.models.kb_collection_model import KbCollection
@@ -16,4 +17,5 @@ __all__ = [
     "LLMModel",
     "Message",
     "Thread",
+    "agent_collection",
 ]
