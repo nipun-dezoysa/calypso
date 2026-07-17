@@ -6,6 +6,7 @@ export interface AgentFormOptions {
     initialAgentInstructions?: string
     initialCreativity?: number
     initialCollectionIds?: string[]
+    initialMcpServerIds?: string[]
 }
 
 export interface AgentFormValues {
@@ -14,6 +15,7 @@ export interface AgentFormValues {
     agent_instructions: string
     creativity: number
     collection_ids: string[]
+    mcp_server_ids: string[]
 }
 
 export interface AgentFormHandle {
@@ -27,6 +29,8 @@ export interface AgentFormHandle {
     setCreativity: (v: number) => void
     collectionIds: string[]
     toggleCollection: (id: string) => void
+    mcpServerIds: string[]
+    toggleMcpServer: (id: string) => void
     errors: Record<string, string>
     setErrors: (fn: (prev: Record<string, string>) => Record<string, string>) => void
     validate: () => boolean
@@ -43,11 +47,20 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
     const [collectionIds, setCollectionIds] = useState<string[]>(
         options?.initialCollectionIds ?? [],
     )
+    const [mcpServerIds, setMcpServerIds] = useState<string[]>(
+        options?.initialMcpServerIds ?? [],
+    )
     const [errors, setErrors] = useState<Record<string, string>>({})
 
     function toggleCollection(id: string) {
         setCollectionIds((prev) =>
             prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+        )
+    }
+
+    function toggleMcpServer(id: string) {
+        setMcpServerIds((prev) =>
+            prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
         )
     }
 
@@ -66,6 +79,7 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
         agent_instructions: agentInstructions.trim(),
         creativity,
         collection_ids: collectionIds,
+        mcp_server_ids: mcpServerIds,
     }
 
     return {
@@ -74,6 +88,7 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
         agentInstructions, setAgentInstructions,
         creativity, setCreativity,
         collectionIds, toggleCollection,
+        mcpServerIds, toggleMcpServer,
         errors, setErrors,
         validate, formValues,
     }

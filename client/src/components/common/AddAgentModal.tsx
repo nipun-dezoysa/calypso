@@ -5,6 +5,7 @@ import AgentFormFields from './AgentFormFields'
 import { useAgentForm } from './useAgentForm'
 import { listAIProviders, type AIProvider } from '../../api/aiProviderApi'
 import { listCollections, type Collection } from '../../api/kbApi'
+import { listMcpServers, type McpServer } from '../../api/mcpApi'
 
 export interface NewAgentPayload {
     name: string
@@ -12,6 +13,7 @@ export interface NewAgentPayload {
     agent_instructions: string
     creativity: number
     collection_ids: string[]
+    mcp_server_ids: string[]
 }
 
 interface AddAgentModalProps {
@@ -25,16 +27,22 @@ function AddAgentModal({ onClose, onSubmit }: AddAgentModalProps) {
 
     const [providers, setProviders] = useState<AIProvider[]>([])
     const [collections, setCollections] = useState<Collection[]>([])
+    const [mcpServers, setMcpServers] = useState<McpServer[]>([])
     const [loadingProviders, setLoadingProviders] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false
-        Promise.all([listAIProviders({ limit: 100 }), listCollections({ limit: 100 })])
-            .then(([providerData, collectionData]) => {
+        Promise.all([
+            listAIProviders({ limit: 100 }),
+            listCollections({ limit: 100 }),
+            listMcpServers({ limit: 100 }),
+        ])
+            .then(([providerData, collectionData, mcpData]) => {
                 if (cancelled) return
                 setProviders(providerData)
                 setCollections(collectionData)
+                setMcpServers(mcpData)
             })
             .catch((err: unknown) => {
                 if (cancelled) return
@@ -100,7 +108,7 @@ function AddAgentModal({ onClose, onSubmit }: AddAgentModalProps) {
                     Loading providers…
                 </div>
             ) : (
-                <AgentFormFields form={form} providers={providers} collections={collections} />
+                <AgentFormFields form={form} providers={providers} collections={collections} mcpServers={mcpServers} />
             )}
         </Modal>
     )

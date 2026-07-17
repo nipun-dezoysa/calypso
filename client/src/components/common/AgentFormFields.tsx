@@ -1,12 +1,14 @@
 import { IoCheckmark } from 'react-icons/io5'
 import type { AIProvider } from '../../api/aiProviderApi'
 import type { Collection } from '../../api/kbApi'
+import type { McpServer } from '../../api/mcpApi'
 import type { AgentFormHandle } from './useAgentForm'
 
 interface AgentFormFieldsProps {
     form: AgentFormHandle
     providers: AIProvider[]
     collections: Collection[]
+    mcpServers: McpServer[]
 }
 
 const CREATIVITY_LABELS = ['Precise', 'Balanced', 'Creative'] as const
@@ -17,13 +19,14 @@ function creativityLabel(value: number): string {
     return CREATIVITY_LABELS[2]
 }
 
-function AgentFormFields({ form, providers, collections }: AgentFormFieldsProps) {
+function AgentFormFields({ form, providers, collections, mcpServers }: AgentFormFieldsProps) {
     const {
         name, setName,
         llmModelId, setLlmModelId,
         agentInstructions, setAgentInstructions,
         creativity, setCreativity,
         collectionIds, toggleCollection,
+        mcpServerIds, toggleMcpServer,
         errors, setErrors,
     } = form
 
@@ -156,6 +159,41 @@ function AgentFormFields({ form, providers, collections }: AgentFormFieldsProps)
                                         <span style={{ marginLeft: 5, opacity: 0.6, fontSize: 10 }}>
                                             {c.document_count}
                                         </span>
+                                    </button>
+                                )
+                            })}
+                        </div>
+                    </>
+                )}
+            </div>
+
+            <div className="form-field">
+                <label className="form-label">
+                    MCP Servers
+                    <span className="form-label-optional">optional</span>
+                </label>
+                {mcpServers.length === 0 ? (
+                    <p style={{ fontSize: 12, color: '#71717a', fontStyle: 'italic' }}>
+                        No MCP servers yet — add one in the MCPs panel.
+                    </p>
+                ) : (
+                    <>
+                        <p style={{ fontSize: 11, color: '#52525b', marginBottom: 5 }}>
+                            Attach MCP servers whose tools this agent can call — click to toggle:
+                        </p>
+                        <div className="form-model-pills">
+                            {mcpServers.map((s) => {
+                                const on = mcpServerIds.includes(s.id)
+                                return (
+                                    <button
+                                        key={s.id}
+                                        type="button"
+                                        className={`form-model-pill ${on ? 'form-model-pill--on' : ''}`}
+                                        onClick={() => toggleMcpServer(s.id)}
+                                        title={`${s.transport}${s.enabled ? '' : ' · disabled'}`}
+                                    >
+                                        {on && <IoCheckmark style={{ marginRight: 3, fontSize: 10 }} />}
+                                        {s.name}
                                     </button>
                                 )
                             })}

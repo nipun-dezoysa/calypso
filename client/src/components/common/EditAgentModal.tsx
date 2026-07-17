@@ -6,6 +6,7 @@ import { useAgentForm } from './useAgentForm'
 import { updateAgent, deleteAgent, type Agent } from '../../api/agentApi'
 import { listAIProviders, type AIProvider } from '../../api/aiProviderApi'
 import { listCollections, type Collection } from '../../api/kbApi'
+import { listMcpServers, type McpServer } from '../../api/mcpApi'
 import './ui.css'
 
 interface EditAgentModalProps {
@@ -22,6 +23,7 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
         initialAgentInstructions: agent.agent_instructions,
         initialCreativity: agent.creativity,
         initialCollectionIds: agent.collections.map((c) => c.id),
+        initialMcpServerIds: agent.mcp_servers.map((s) => s.id),
     })
 
     const [submitting, setSubmitting] = useState(false)
@@ -30,16 +32,22 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
 
     const [providers, setProviders] = useState<AIProvider[]>([])
     const [collections, setCollections] = useState<Collection[]>([])
+    const [mcpServers, setMcpServers] = useState<McpServer[]>([])
     const [loadingProviders, setLoadingProviders] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
 
     useEffect(() => {
         let cancelled = false
-        Promise.all([listAIProviders({ limit: 100 }), listCollections({ limit: 100 })])
-            .then(([providerData, collectionData]) => {
+        Promise.all([
+            listAIProviders({ limit: 100 }),
+            listCollections({ limit: 100 }),
+            listMcpServers({ limit: 100 }),
+        ])
+            .then(([providerData, collectionData, mcpData]) => {
                 if (cancelled) return
                 setProviders(providerData)
                 setCollections(collectionData)
+                setMcpServers(mcpData)
             })
             .catch((err: unknown) => {
                 if (cancelled) return
@@ -153,7 +161,7 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
                     Loading providers…
                 </div>
             ) : (
-                <AgentFormFields form={form} providers={providers} collections={collections} />
+                <AgentFormFields form={form} providers={providers} collections={collections} mcpServers={mcpServers} />
             )}
 
             <hr className="ui-divider" />

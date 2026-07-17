@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.agent_model import Agent
 from src.models.kb_collection_model import KbCollection
 from src.models.llm_model import LLMModel
+from src.models.mcp_server_model import McpServer
 from src.schemas.agent_schema import AgentCreate, AgentUpdate
 
 
@@ -16,12 +17,14 @@ class AgentService:
     async def create(self, data: AgentCreate) -> Agent:
         """Create a new agent."""
         collections = await self._resolve_collections(data.collection_ids)
+        mcp_servers = await self._resolve_mcp_servers(data.mcp_server_ids)
         agent = Agent(
             name=data.name,
             llm_model_id=data.llm_model_id,
             agent_instructions=data.agent_instructions,
             creativity=data.creativity,
             collections=collections,
+            mcp_servers=mcp_servers,
         )
         self.db.add(agent)
         await self.db.commit()
@@ -59,10 +62,14 @@ class AgentService:
 
         update_data = data.model_dump(exclude_unset=True)
 
-        # Attached collections are set through the relationship, not setattr.
+        # Attached collections/servers are set through relationships, not setattr.
         if "collection_ids" in update_data:
             collection_ids = update_data.pop("collection_ids") or []
             agent.collections = await self._resolve_collections(collection_ids)
+
+        if "mcp_server_ids" in update_data:
+            mcp_server_ids = update_data.pop("mcp_server_ids") or []
+            agent.mcp_servers = await self._resolve_mcp_servers(mcp_server_ids)
 
         for field, value in update_data.items():
             setattr(agent, field, value)
@@ -114,3 +121,27 @@ class AgentService:
         if missing:
             raise ValueError(f"Collections not found: {missing}")
         return [by_id[cid] for cid in unique]
+
+    async def missing_mcp_server_ids(self, mcp_server_ids: list[str]) -> list[str]:
+        """Return the subset of ids that don't correspond to an MCP server."""
+        unique = list(dict.fromkeys(mcp_server_ids))
+        if not unique:
+            return []
+        stmt = select(McpServer.id).where(McpServer.id.in_(unique))
+        result = await self.db.execute(stmt)
+        found = set(result.scalars().all())
+        return [sid for sid in unique if sid not in found]
+
+    async def _resolve_mcp_servers(self, mcp_server_ids: list[str]) -> list[McpServer]:
+        """Fetch MCP server rows for the given ids, deduplicated and preserving
+        order. Raises ValueError if any id is unknown."""
+        unique = list(dict.fromkeys(mcp_server_ids))
+        if not unique:
+            return []
+        stmt = select(McpServer).where(McpServer.id.in_(unique))
+        result = await self.db.execute(stmt)
+        by_id = {s.id: s for s in result.scalars().all()}
+        missing = [sid for sid in unique if sid not in by_id]
+        if missing:
+            raise ValueError(f"MCP servers not found: {missing}")
+        return [by_id[sid] for sid in unique]

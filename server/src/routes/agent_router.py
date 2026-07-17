@@ -43,6 +43,13 @@ async def create_agent(
             detail=f"Collections not found: {missing}",
         )
 
+    missing_mcp = await service.missing_mcp_server_ids(data.mcp_server_ids)
+    if missing_mcp:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"MCP servers not found: {missing_mcp}",
+        )
+
     agent = await service.create(data)
     return AgentResponse.model_validate(agent)
 
@@ -112,6 +119,14 @@ async def update_agent(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Collections not found: {missing}",
+            )
+
+    if data.mcp_server_ids is not None:
+        missing_mcp = await service.missing_mcp_server_ids(data.mcp_server_ids)
+        if missing_mcp:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"MCP servers not found: {missing_mcp}",
             )
 
     agent = await service.update(agent_id, data)

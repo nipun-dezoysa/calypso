@@ -3,23 +3,18 @@ import { IoArrowUp } from 'react-icons/io5'
 import DropdownSelector, { type SelectOption } from '../../common/DropdownSelector'
 import { listAgents, updateAgent, type Agent } from '../../../api/agentApi'
 import { listCollections, type Collection } from '../../../api/kbApi'
+import { listMcpServers, type McpServer } from '../../../api/mcpApi'
 import { useChatStore } from '../../../stores/ChatStore'
-
-const mcps: SelectOption[] = [
-    { id: 'mcp-web', name: 'Web Search', description: 'Search the internet' },
-    { id: 'mcp-code', name: 'Code Executor', description: 'Run code snippets' },
-    { id: 'mcp-db', name: 'Database', description: 'Query databases' },
-    { id: 'mcp-file', name: 'File System', description: 'Read & write files' },
-]
 
 const AGENT_PLACEHOLDER: SelectOption = { id: '', name: 'Select an agent' }
 
 function ChatInput() {
     const [agents, setAgents] = useState<Agent[]>([])
     const [collections, setCollections] = useState<Collection[]>([])
+    const [mcpServers, setMcpServers] = useState<McpServer[]>([])
     const [text, setText] = useState('')
-    const [selectedMCPs, setSelectedMCPs] = useState<SelectOption[]>([])
     const [savingKBs, setSavingKBs] = useState(false)
+    const [savingMcps, setSavingMcps] = useState(false)
 
     const selectedAgent = useChatStore((s) => s.selectedAgent)
     const selectAgent = useChatStore((s) => s.selectAgent)
@@ -54,6 +49,16 @@ function ChatInput() {
         return () => { cancelled = true }
     }, [])
 
+    useEffect(() => {
+        let cancelled = false
+        listMcpServers({ limit: 100 })
+            .then((data) => { if (!cancelled) setMcpServers(data) })
+            .catch(() => {
+                // Non-critical: the MCP picker just stays empty on failure.
+            })
+        return () => { cancelled = true }
+    }, [])
+
     const kbOptions: SelectOption[] = collections.map((c) => ({
         id: c.id,
         name: c.name,
@@ -77,6 +82,32 @@ function ChatInput() {
             // Keep the previous selection on failure; nothing to persist.
         } finally {
             setSavingKBs(false)
+        }
+    }
+
+    const mcpOptions: SelectOption[] = mcpServers.map((s) => ({
+        id: s.id,
+        name: s.name,
+        description: s.transport,
+    }))
+
+    const selectedMcpOptions: SelectOption[] = (selectedAgent?.mcp_servers ?? []).map((s) => ({
+        id: s.id,
+        name: s.name,
+    }))
+
+    async function handleChangeMcps(options: SelectOption[]) {
+        if (!selectedAgent || savingMcps) return
+        const mcp_server_ids = options.map((o) => o.id)
+        setSavingMcps(true)
+        try {
+            const updated = await updateAgent(selectedAgent.id, { mcp_server_ids })
+            patchSelectedAgent(updated)
+            setAgents((prev) => prev.map((a) => (a.id === updated.id ? updated : a)))
+        } catch {
+            // Keep the previous selection on failure; nothing to persist.
+        } finally {
+            setSavingMcps(false)
         }
     }
 
@@ -139,10 +170,10 @@ function ChatInput() {
                         />
                         <span className='text-zinc-600'>·</span>
                         <DropdownSelector
-                            options={mcps}
-                            selected={selectedMCPs}
-                            onSelect={setSelectedMCPs}
-                            label='MCPs'
+                            options={mcpOptions}
+                            selected={selectedMcpOptions}
+                            onSelect={handleChangeMcps}
+                            label={selectedAgent ? 'MCP Servers' : 'Select an agent first'}
                             multiple
                         />
                     </div>

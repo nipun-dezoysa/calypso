@@ -1,0 +1,59 @@
+/* MCP-server modal UI, layered on ui.css tokens. */
+
+.mcp-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--c-text-dim);
+    cursor: pointer;
+    user-select: none;
+}
+.mcp-toggle input { width: 15px; height: 15px; accent-color: var(--c-accent); cursor: pointer; }
+
+.mcp-test-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.mcp-test-hint { font-size: 11px; color: var(--c-text-subtle); }
+
+.mcp-test-result {
+    border-radius: var(--radius);
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12.5px;
+}
+.mcp-test-result--ok  { background: rgba(16,185,129,.1);  border: 1px solid rgba(16,185,129,.3); }
+.mcp-test-result--err { background: var(--c-danger-dim);  border: 1px solid var(--c-danger-border); }
+
+.mcp-test-result__head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+.mcp-test-result--ok  .mcp-test-result__head { color: #34d399; }
+.mcp-test-result--err .mcp-test-result__head { color: var(--c-danger-text); }
+
+.mcp-test-result__msg {
+    color: var(--c-text-dim);
+    font-family: monospace;
+    font-size: 11.5px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.mcp-tool-list { display: flex; flex-wrap: wrap; gap: 5px; }
+.mcp-tool-pill {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    color: var(--c-text-dim);
+    font-family: monospace;
+}

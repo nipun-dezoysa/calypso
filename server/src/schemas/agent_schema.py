@@ -31,6 +31,10 @@ class AgentCreate(BaseModel):
         default_factory=list,
         description="IDs of knowledge-base collections to attach to this agent",
     )
+    mcp_server_ids: list[str] = Field(
+        default_factory=list,
+        description="IDs of MCP servers to attach to this agent",
+    )
 
     @field_validator("name")
     @classmethod
@@ -63,6 +67,10 @@ class AgentUpdate(BaseModel):
     collection_ids: list[str] | None = Field(
         default=None,
         description="Replace the agent's attached collections with these IDs",
+    )
+    mcp_server_ids: list[str] | None = Field(
+        default=None,
+        description="Replace the agent's attached MCP servers with these IDs",
     )
 
     @field_validator("name")
@@ -106,6 +114,17 @@ class AgentCollectionInfo(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AgentMcpServerInfo(BaseModel):
+    """Read-only summary of an MCP server attached to an agent."""
+
+    id: str
+    name: str
+    transport: str
+    enabled: bool
+
+    model_config = {"from_attributes": True}
+
+
 class AgentResponse(BaseModel):
     """Schema returned from API responses."""
 
@@ -116,6 +135,7 @@ class AgentResponse(BaseModel):
     agent_instructions: str
     creativity: int
     collections: list[AgentCollectionInfo] = []
+    mcp_servers: list[AgentMcpServerInfo] = []
     created_at: datetime
     updated_at: datetime
 

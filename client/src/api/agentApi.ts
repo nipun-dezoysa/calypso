@@ -12,12 +12,20 @@ export interface AgentCollectionInfo {
     name: string
 }
 
+export interface AgentMcpServerInfo {
+    id: string
+    name: string
+    transport: string
+    enabled: boolean
+}
+
 export interface AgentCreate {
     name: string
     llm_model_id: string
     agent_instructions: string
     creativity?: number
     collection_ids?: string[]
+    mcp_server_ids?: string[]
 }
 
 export interface AgentUpdate {
@@ -26,6 +34,7 @@ export interface AgentUpdate {
     agent_instructions?: string | null
     creativity?: number | null
     collection_ids?: string[] | null
+    mcp_server_ids?: string[] | null
 }
 
 export interface Agent {
@@ -36,6 +45,7 @@ export interface Agent {
     agent_instructions: string
     creativity: number
     collections: AgentCollectionInfo[]
+    mcp_servers: AgentMcpServerInfo[]
     created_at: string
     updated_at: string
 }
