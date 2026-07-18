@@ -3,42 +3,49 @@ import CollapsibleSection from '../../common/CollapsibleSection'
 import AddAgentModal, { type NewAgentPayload } from '../../common/AddAgentModal'
 import EditAgentModal from '../../common/EditAgentModal'
 import { listAgents, createAgent, type Agent } from '../../../api/agentApi'
-import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline } from 'react-icons/io5'
+import { listWorkflows, type WorkflowSummary } from '../../../api/workflowApi'
+import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline, IoGitNetworkOutline } from 'react-icons/io5'
 import { useChatStore } from '../../../stores/ChatStore'
 
 type LoadState = 'idle' | 'loading' | 'error'
 
 function AgentSection() {
     const [agents, setAgents] = useState<Agent[]>([])
+    const [workflows, setWorkflows] = useState<WorkflowSummary[]>([])
     const [loadState, setLoadState] = useState<LoadState>('idle')
     const [loadError, setLoadError] = useState<string | null>(null)
     const [showAddModal, setShowAddModal] = useState(false)
     const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
 
-    const selectedAgent = useChatStore((s) => s.selectedAgent)
+    const targetId = useChatStore((s) => s.targetId)
+    const targetType = useChatStore((s) => s.targetType)
     const threads = useChatStore((s) => s.threads)
     const activeThreadId = useChatStore((s) => s.threadId)
     const openThread = useChatStore((s) => s.openThread)
     const newChat = useChatStore((s) => s.newChat)
     const selectAgent = useChatStore((s) => s.selectAgent)
+    const selectWorkflow = useChatStore((s) => s.selectWorkflow)
 
-    const fetchAgents = useCallback(async () => {
+    const fetchAll = useCallback(async () => {
         setLoadState('loading')
         setLoadError(null)
         try {
-            const data = await listAgents({ limit: 100 })
-            setAgents(data)
+            const [agentData, workflowData] = await Promise.all([
+                listAgents({ limit: 100 }),
+                listWorkflows({ limit: 100 }),
+            ])
+            setAgents(agentData)
+            setWorkflows(workflowData)
             setLoadState('idle')
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Failed to load agents'
-            setLoadError(message)
+            setLoadError(err instanceof Error ? err.message : 'Failed to load')
             setLoadState('error')
         }
     }, [])
 
     useEffect(() => {
-        fetchAgents()
-    }, [fetchAgents])
+        fetchAll()
+    }, [fetchAll])
 
     async function handleAddAgent(payload: NewAgentPayload): Promise<void> {
         const created = await createAgent(payload)
@@ -51,7 +58,7 @@ function AgentSection() {
 
     function handleAgentDeleted(id: string) {
         setAgents((prev) => prev.filter((a) => a.id !== id))
-        if (selectedAgent?.id === id) selectAgent(null)
+        if (targetType === 'agent' && targetId === id) selectAgent(null)
     }
 
     function formatThreadTitle(title: string | null, updatedAt: string): string {
@@ -59,14 +66,13 @@ function AgentSection() {
     }
 
     function renderThreadList() {
-        if (!selectedAgent) {
+        if (!targetId) {
             return (
                 <div className="sidebar-item sidebar-item--empty">
-                    Select an agent to see its chats
+                    Select an agent or workflow to see its chats
                 </div>
             )
         }
-
         if (threads.length === 0) {
             return (
                 <div className="sidebar-item sidebar-item--empty">
@@ -74,7 +80,6 @@ function AgentSection() {
                 </div>
             )
         }
-
         return (
             <div className="py-1">
                 {threads.map((thread) => (
@@ -110,7 +115,7 @@ function AgentSection() {
                     </div>
                     <button
                         className="sidebar-item text-zinc-400 hover:text-amber-400 flex items-center gap-1"
-                        onClick={fetchAgents}
+                        onClick={fetchAll}
                     >
                         <IoRefreshOutline />
                         Retry
@@ -136,7 +141,7 @@ function AgentSection() {
                         onClick={() => selectAgent(agent)}
                     >
                         <div className="flex flex-col min-w-0">
-                            <span className={`truncate ${agent.id === selectedAgent?.id ? 'text-amber-400' : ''}`}>
+                            <span className={`truncate ${targetType === 'agent' && agent.id === targetId ? 'text-amber-400' : ''}`}>
                                 {agent.name}
                             </span>
                             <span className="text-[10px] text-zinc-600 truncate">
@@ -157,9 +162,34 @@ function AgentSection() {
         )
     }
 
+    function renderWorkflowList() {
+        if (workflows.length === 0) {
+            return (
+                <div className="py-3 px-6 text-zinc-500 text-xs italic">
+                    No workflows yet.
+                </div>
+            )
+        }
+        return (
+            <div className="py-1">
+                {workflows.map((wf) => (
+                    <div
+                        key={wf.id}
+                        className="sidebar-item flex items-center gap-2"
+                        onClick={() => selectWorkflow({ id: wf.id, name: wf.name })}
+                    >
+                        <IoGitNetworkOutline size={13} className="shrink-0 text-zinc-600" />
+                        <span className={`truncate ${targetType === 'workflow' && wf.id === targetId ? 'text-amber-400' : ''}`}>
+                            {wf.name}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        )
+    }
+
     return (
         <div>
-
             <CollapsibleSection
                 title="Agents"
                 action={{ label: '+ New', onClick: () => setShowAddModal(true) }}
@@ -167,9 +197,13 @@ function AgentSection() {
                 {renderAgentList()}
             </CollapsibleSection>
 
+            <CollapsibleSection title="Workflows">
+                {renderWorkflowList()}
+            </CollapsibleSection>
+
             <CollapsibleSection
                 title="Recent Chats"
-                action={selectedAgent ? { label: '+ New', onClick: newChat } : undefined}
+                action={targetId ? { label: '+ New', onClick: newChat } : undefined}
             >
                 {renderThreadList()}
             </CollapsibleSection>

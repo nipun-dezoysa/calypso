@@ -16,6 +16,9 @@ function ChatInput() {
     const [savingKBs, setSavingKBs] = useState(false)
     const [savingMcps, setSavingMcps] = useState(false)
 
+    const targetId = useChatStore((s) => s.targetId)
+    const targetType = useChatStore((s) => s.targetType)
+    const targetName = useChatStore((s) => s.targetName)
     const selectedAgent = useChatStore((s) => s.selectedAgent)
     const selectAgent = useChatStore((s) => s.selectAgent)
     const patchSelectedAgent = useChatStore((s) => s.patchSelectedAgent)
@@ -28,7 +31,7 @@ function ChatInput() {
             .then((data) => {
                 if (cancelled) return
                 setAgents(data)
-                const current = useChatStore.getState().selectedAgent
+                const current = useChatStore.getState().targetId
                 if (!current && data.length > 0) selectAgent(data[0])
             })
             .catch(() => {
@@ -117,11 +120,11 @@ function ChatInput() {
         description: `${a.llm_model.provider_name} · ${a.llm_model.model_name}`,
     }))
 
-    const selectedOption: SelectOption = selectedAgent
-        ? { id: selectedAgent.id, name: selectedAgent.name }
+    const selectedOption: SelectOption = targetId
+        ? { id: targetId, name: targetName ?? '' }
         : AGENT_PLACEHOLDER
 
-    const canSend = Boolean(selectedAgent) && text.trim().length > 0 && !sending
+    const canSend = Boolean(targetId) && text.trim().length > 0 && !sending
 
     function handleSend() {
         if (!canSend) return
@@ -142,11 +145,11 @@ function ChatInput() {
             <div className=' bg-zinc-950 w-1/2 rounded-2xl  p-3'>
                 <textarea
                     className='w-full bg-transparent focus:outline-none text-zinc-300 resize-none placeholder:text-zinc-500'
-                    placeholder={selectedAgent ? 'Type your message here...' : 'Select an agent to start chatting...'}
+                    placeholder={targetId ? 'Type your message here...' : 'Select an agent or workflow to start chatting...'}
                     value={text}
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={handleKeyDown}
-                    disabled={!selectedAgent}
+                    disabled={!targetId}
                 >
                 </textarea>
                 <div className='flex justify-between text-zinc-500 items-center'>
@@ -160,22 +163,31 @@ function ChatInput() {
                             }}
                             label='Select an agent'
                         />
-                        <span className='text-zinc-600'>·</span>
-                        <DropdownSelector
-                            options={kbOptions}
-                            selected={selectedKBs}
-                            onSelect={handleChangeKBs}
-                            label={selectedAgent ? 'Knowledgebases' : 'Select an agent first'}
-                            multiple
-                        />
-                        <span className='text-zinc-600'>·</span>
-                        <DropdownSelector
-                            options={mcpOptions}
-                            selected={selectedMcpOptions}
-                            onSelect={handleChangeMcps}
-                            label={selectedAgent ? 'MCP Servers' : 'Select an agent first'}
-                            multiple
-                        />
+                        {targetType === 'workflow' && (
+                            <span className='text-[11px] text-amber-500/80 border border-amber-700/40 rounded px-1.5 py-0.5'>
+                                Workflow
+                            </span>
+                        )}
+                        {targetType === 'agent' && (
+                            <>
+                                <span className='text-zinc-600'>·</span>
+                                <DropdownSelector
+                                    options={kbOptions}
+                                    selected={selectedKBs}
+                                    onSelect={handleChangeKBs}
+                                    label='Knowledgebases'
+                                    multiple
+                                />
+                                <span className='text-zinc-600'>·</span>
+                                <DropdownSelector
+                                    options={mcpOptions}
+                                    selected={selectedMcpOptions}
+                                    onSelect={handleChangeMcps}
+                                    label='MCP Servers'
+                                    multiple
+                                />
+                            </>
+                        )}
                     </div>
                     <button
                         className={`p-2 rounded-sm text-white ${canSend ? 'bg-amber-600 cursor-pointer' : 'bg-zinc-700 cursor-not-allowed'}`}

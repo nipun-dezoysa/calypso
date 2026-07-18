@@ -2,7 +2,9 @@ import axiosInstance from './axiosInstance'
 
 export interface ChatThread {
     id: string
-    agent_id: string
+    type: 'agent' | 'workflow'
+    agent_id: string | null
+    workflow_id: string | null
     title: string | null
     created_at: string
     updated_at: string
@@ -31,17 +33,18 @@ const BASE = '/api/v1/chat'
 // LLM responses can take well over the default 15s axios timeout.
 const ASK_TIMEOUT_MS = 120_000
 
-export async function askAgent(agentId: string, data: ChatAskRequest): Promise<ChatAskResponse> {
+// `targetId` may be an agent id or a workflow id — the server decides.
+export async function ask(targetId: string, data: ChatAskRequest): Promise<ChatAskResponse> {
     const response = await axiosInstance.post<ChatAskResponse>(
-        `${BASE}/${agentId}/ask`,
+        `${BASE}/${targetId}/ask`,
         data,
         { timeout: ASK_TIMEOUT_MS },
     )
     return response.data
 }
 
-export async function listThreads(agentId: string): Promise<ChatThread[]> {
-    const response = await axiosInstance.get<ChatThread[]>(`${BASE}/${agentId}/threads`)
+export async function listThreads(targetId: string): Promise<ChatThread[]> {
+    const response = await axiosInstance.get<ChatThread[]>(`${BASE}/${targetId}/threads`)
     return response.data
 }
 

@@ -5,7 +5,8 @@ import UserMessage from './UserMessage'
 import { useChatStore } from '../../../stores/ChatStore'
 
 function ChatBox() {
-    const selectedAgent = useChatStore((s) => s.selectedAgent)
+    const targetId = useChatStore((s) => s.targetId)
+    const targetName = useChatStore((s) => s.targetName)
     const threadId = useChatStore((s) => s.threadId)
     const threads = useChatStore((s) => s.threads)
     const messages = useChatStore((s) => s.messages)
@@ -21,13 +22,13 @@ function ChatBox() {
 
     const currentThread = threads.find((t) => t.id === threadId)
     const headerTitle = currentThread?.title
-        ?? (selectedAgent ? `New chat · ${selectedAgent.name}` : 'Chat')
+        ?? (targetName ? `New chat · ${targetName}` : 'Chat')
 
     function renderBody() {
-        if (!selectedAgent) {
+        if (!targetId) {
             return (
                 <div className='flex-1 flex items-center justify-center text-zinc-500'>
-                    Select an agent below to start chatting.
+                    Select an agent or workflow below to start chatting.
                 </div>
             )
         }
@@ -43,7 +44,7 @@ function ChatBox() {
         if (messages.length === 0 && !sending) {
             return (
                 <div className='flex-1 flex items-center justify-center text-zinc-500'>
-                    Start a conversation with {selectedAgent.name}.
+                    Start a conversation with {targetName}.
                 </div>
             )
         }

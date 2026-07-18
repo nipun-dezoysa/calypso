@@ -1,22 +1,32 @@
 import { create } from 'zustand'
 import type { Agent } from '../api/agentApi'
 import {
-    askAgent,
+    ask,
     listThreadMessages,
     listThreads,
     type ChatMessage,
     type ChatThread,
 } from '../api/chatApi'
 
+export type ChatTargetType = 'agent' | 'workflow'
+
 interface ChatState {
+    // The active chat target — an agent or a workflow.
+    targetId: string | null
+    targetType: ChatTargetType | null
+    targetName: string | null
+    // The full agent object when the target is an agent (drives the agent-only KB/MCP editors in the chat input); null for workflow targets.
     selectedAgent: Agent | null
+
     threadId: string | null
     messages: ChatMessage[]
     threads: ChatThread[]
     sending: boolean
     loadingMessages: boolean
     error: string | null
+
     selectAgent: (agent: Agent | null) => void
+    selectWorkflow: (workflow: { id: string; name: string }) => void
     patchSelectedAgent: (agent: Agent) => void
     newChat: () => void
     openThread: (threadId: string) => Promise<void>
@@ -24,7 +34,17 @@ interface ChatState {
     refreshThreads: () => Promise<void>
 }
 
+const resetConversation = (): Pick<ChatState, 'threadId' | 'messages' | 'threads' | 'error'> => ({
+    threadId: null,
+    messages: [],
+    threads: [],
+    error: null,
+})
+
 export const useChatStore = create<ChatState>((set, get) => ({
+    targetId: null,
+    targetType: null,
+    targetName: null,
     selectedAgent: null,
     threadId: null,
     messages: [],
@@ -34,20 +54,42 @@ export const useChatStore = create<ChatState>((set, get) => ({
     error: null,
 
     selectAgent: (agent) => {
-        if (get().selectedAgent?.id === agent?.id) return
+        if (agent === null) {
+            set({ targetId: null, targetType: null, targetName: null, selectedAgent: null, ...resetConversation() })
+            return
+        }
+        if (get().targetType === 'agent' && get().targetId === agent.id) {
+            // Same agent re-selected — keep its full object fresh but don't reset.
+            set({ selectedAgent: agent })
+            return
+        }
         set({
+            targetId: agent.id,
+            targetType: 'agent',
+            targetName: agent.name,
             selectedAgent: agent,
-            threadId: null,
-            messages: [],
-            threads: [],
-            error: null,
+            ...resetConversation(),
         })
-        if (agent) void get().refreshThreads()
+        void get().refreshThreads()
     },
 
+    selectWorkflow: (workflow) => {
+        if (get().targetType === 'workflow' && get().targetId === workflow.id) return
+        set({
+            targetId: workflow.id,
+            targetType: 'workflow',
+            targetName: workflow.name,
+            selectedAgent: null,
+            ...resetConversation(),
+        })
+        void get().refreshThreads()
+    },
+
+    // Replace the selected agent in place (e.g. after editing its KBs/MCPs)
+    // without resetting the current thread or messages.
     patchSelectedAgent: (agent) => {
-        if (get().selectedAgent?.id !== agent.id) return
-        set({ selectedAgent: agent })
+        if (get().targetType !== 'agent' || get().targetId !== agent.id) return
+        set({ selectedAgent: agent, targetName: agent.name })
     },
 
     newChat: () => set({ threadId: null, messages: [], error: null }),
@@ -66,11 +108,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     refreshThreads: async () => {
-        const agent = get().selectedAgent
-        if (!agent) return
+        const targetId = get().targetId
+        if (!targetId) return
         try {
-            const threads = await listThreads(agent.id)
-            if (get().selectedAgent?.id !== agent.id) return
+            const threads = await listThreads(targetId)
+            if (get().targetId !== targetId) return
             set({ threads })
         } catch {
             // Thread list is non-critical; keep whatever we had.
@@ -78,8 +120,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     sendMessage: async (question) => {
-        const agent = get().selectedAgent
-        if (!agent || get().sending) return
+        const targetId = get().targetId
+        if (!targetId || get().sending) return
         const threadId = get().threadId
 
         const optimistic: ChatMessage = {
@@ -92,9 +134,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set((s) => ({ messages: [...s.messages, optimistic], sending: true, error: null }))
 
         try {
-            const res = await askAgent(agent.id, { question, thread_id: threadId })
-            // User may have switched agent or thread while waiting.
-            if (get().selectedAgent?.id !== agent.id || get().threadId !== threadId) {
+            const res = await ask(targetId, { question, thread_id: threadId })
+            // User may have switched target or thread while waiting.
+            if (get().targetId !== targetId || get().threadId !== threadId) {
                 set({ sending: false })
                 return
             }
@@ -113,7 +155,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             void get().refreshThreads()
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : 'Failed to send message'
-            if (get().selectedAgent?.id !== agent.id || get().threadId !== threadId) {
+            if (get().targetId !== targetId || get().threadId !== threadId) {
                 set({ sending: false })
                 return
             }

@@ -18,17 +18,22 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> ChatService:
 
 
 @router.post(
-    "/{agent_id}/ask",
+    "/{target_id}/ask",
     response_model=ChatAskResponse,
-    summary="Ask a question to an agent",
+    summary="Ask a question to an agent or a workflow",
 )
-async def ask_agent(
-    agent_id: str,
+async def ask(
+    target_id: str,
     data: ChatAskRequest,
     service: ChatService = Depends(_get_service),
 ) -> ChatAskResponse:
     try:
-        result = await service.answer_question(agent_id, data.question, data.thread_id)
+        result = await service.answer(target_id, data.question, data.thread_id)
+    except ValueError as exc:
+        # Workflow/graph configuration problems (e.g. no start node).
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
+        ) from exc
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
@@ -38,7 +43,7 @@ async def ask_agent(
     if result is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Agent with id '{agent_id}' not found, or thread does not belong to it",
+            detail=f"No agent or workflow with id '{target_id}', or thread does not belong to it",
         )
 
     thread_id, answer = result
@@ -46,15 +51,15 @@ async def ask_agent(
 
 
 @router.get(
-    "/{agent_id}/threads",
+    "/{target_id}/threads",
     response_model=list[ThreadResponse],
-    summary="List an agent's conversation threads",
+    summary="List conversation threads for an agent or workflow",
 )
 async def list_threads(
-    agent_id: str,
+    target_id: str,
     service: ChatService = Depends(_get_service),
 ) -> list[ThreadResponse]:
-    threads = await service.list_threads(agent_id)
+    threads = await service.list_threads(target_id)
     return [ThreadResponse.model_validate(t) for t in threads]
 
 

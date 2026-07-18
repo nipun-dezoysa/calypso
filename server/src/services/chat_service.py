@@ -7,51 +7,79 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent_model import Agent
 from src.models.message_model import Message
-from src.models.thread_model import Thread
+from src.models.node_model import Node
+from src.models.thread_model import THREAD_TYPE_AGENT, THREAD_TYPE_WORKFLOW, Thread
+from src.models.workflow_model import Workflow
 from src.services import kb_vectorstore, mcp_client
 from src.services.kb_settings_service import KbSettingsService
 from src.services.kb_vectorstore import KbConfig
 from src.services.llm_factory import build_chat_model
+from src.services.workflow_builder_service import build_workflow_graph, latest_text
 
 RAG_TOP_K_PER_COLLECTION = 4
 RAG_MAX_CHUNKS = 8
 MCP_MAX_TOOL_ITERATIONS = 6
 
+
 class ChatService:
-    """Answers a question by invoking an Agent's configured LLM provider/model,
-    persisting the exchange to a Thread's message history."""
 
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
-    async def answer_question(
+    async def answer(
         self,
-        agent_id: str,
+        target_id: str,
         question: str,
         thread_id: str | None = None,
     ) -> tuple[str, str] | None:
-        """Returns (thread_id, answer). None if the agent or thread isn't found."""
-        agent = await self.db.get(Agent, agent_id)
-        if agent is None:
-            return None
+        agent = await self.db.get(Agent, target_id)
+        if agent is not None:
+            return await self._answer_agent(agent, question, thread_id)
 
-        # Don't create the thread (or any other write) before the LLM call:
+        workflow = await self.db.get(Workflow, target_id)
+        if workflow is not None:
+            return await self._answer_workflow(workflow, question, thread_id)
+
+        return None
+
+    # ── Agent ─────────────────────────────────────────────────────────────
+
+    async def _answer_agent(
+        self,
+        agent: Agent,
+        question: str,
+        thread_id: str | None,
+    ) -> tuple[str, str] | None:
         thread: Thread | None = None
-        chat_history: list[AIMessage | HumanMessage] = []
+        history: list[AIMessage | HumanMessage] = []
         if thread_id is not None:
             thread = await self.db.get(Thread, thread_id)
-            if thread is None or thread.agent_id != agent_id:
+            if thread is None or thread.agent_id != agent.id:
                 return None
-            chat_history = [
-                AIMessage(content=m.content) if m.is_bot else HumanMessage(content=m.content)
-                for m in thread.messages
-            ]
+            history = _history_from(thread)
 
+        answer = await self._run_agent_turn(agent, question, history)
+
+        if thread is None:
+            thread = Thread(type=THREAD_TYPE_AGENT, agent_id=agent.id, messages=[])
+            self.db.add(thread)
+            await self.db.flush()
+
+        return await self._persist_exchange(thread, question, answer)
+
+    async def _run_agent_turn(
+        self,
+        agent: Agent,
+        question: str,
+        history: list[AIMessage | HumanMessage] | None = None,
+    ) -> str:
+        """Run one agent turn (LLM + KB context + MCP tools) and return the
+        answer text. No persistence — reused by both direct chat and workflows."""
         provider = agent.llm_model.ai_provider
         temperature = round(agent.creativity / 100, 2)
         chat_model = build_chat_model(
@@ -67,25 +95,68 @@ class ChatService:
 
         messages = [
             SystemMessage(content=system_content),
-            *chat_history,
+            *(history or []),
             HumanMessage(content=question),
         ]
         answer = await self._invoke_with_tools(chat_model, agent, messages)
         if not answer:
             raise RuntimeError("The LLM returned an empty response")
+        return answer
+
+    # ── Workflow ──────────────────────────────────────────────────────────
+
+    async def _answer_workflow(
+        self,
+        workflow: Workflow,
+        question: str,
+        thread_id: str | None,
+    ) -> tuple[str, str] | None:
+        thread: Thread | None = None
+        if thread_id is not None:
+            thread = await self.db.get(Thread, thread_id)
+            if thread is None or thread.workflow_id != workflow.id:
+                return None
+
+        answer = await self._run_workflow(workflow, question)
 
         if thread is None:
-            thread = Thread(agent_id=agent_id, messages=[])
+            thread = Thread(
+                type=THREAD_TYPE_WORKFLOW, workflow_id=workflow.id, messages=[]
+            )
             self.db.add(thread)
             await self.db.flush()
 
+        return await self._persist_exchange(thread, question, answer)
+
+    async def _run_workflow(self, workflow: Workflow, question: str) -> str:
+        """Execute the workflow as a LangGraph graph, seeding the start node with
+        the question and returning the final node's output."""
+        graph = build_workflow_graph(workflow, self._run_node)
+        result = await graph.ainvoke({"messages": [HumanMessage(content=question)]})
+        answer = latest_text(result["messages"]).strip()
+        return answer or "The workflow produced no output."
+
+    async def _run_node(self, node: Node, node_input: str) -> str:
+        if node.type != "agent" or not node.i_id:
+            raise ValueError(
+                "a workflow node is not linked to an agent — assign one and save"
+            )
+        agent = await self.db.get(Agent, node.i_id)
+        if agent is None:
+            raise ValueError("an agent used by this workflow no longer exists")
+        return await self._run_agent_turn(agent, node_input)
+
+    # ── Shared ────────────────────────────────────────────────────────────
+
+    async def _persist_exchange(
+        self, thread: Thread, question: str, answer: str
+    ) -> tuple[str, str]:
         if thread.title is None:
             thread.title = question.strip()[:200]
         thread.messages.append(Message(thread_id=thread.id, is_bot=False, content=question))
         thread.messages.append(Message(thread_id=thread.id, is_bot=True, content=answer))
         thread.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
-
         return thread.id, answer
 
     async def _retrieve_context(self, agent: Agent, question: str) -> str:
@@ -172,14 +243,22 @@ class ChatService:
             return None
         return thread.messages
 
-    async def list_threads(self, agent_id: str) -> list[Thread]:
+    async def list_threads(self, target_id: str) -> list[Thread]:
+        """Threads for a chat target, whether it's an agent or a workflow."""
         stmt = (
             select(Thread)
-            .where(Thread.agent_id == agent_id)
+            .where(or_(Thread.agent_id == target_id, Thread.workflow_id == target_id))
             .order_by(Thread.updated_at.desc())
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+
+def _history_from(thread: Thread) -> list[AIMessage | HumanMessage]:
+    return [
+        AIMessage(content=m.content) if m.is_bot else HumanMessage(content=m.content)
+        for m in thread.messages
+    ]
 
 
 def _stringify_tool_content(content) -> str:

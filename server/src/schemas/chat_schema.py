@@ -41,7 +41,9 @@ class MessageResponse(BaseModel):
 
 class ThreadResponse(BaseModel):
     id: str
-    agent_id: str
+    type: str
+    agent_id: str | None
+    workflow_id: str | None
     title: str | None
     created_at: datetime
     updated_at: datetime
