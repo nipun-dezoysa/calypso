@@ -141,8 +141,8 @@ function ChatInput() {
     }
 
     return (
-        <div className='w-full absolute left-0 bottom-0 flex items-center justify-center pb-5 flex-col'>
-            <div className=' bg-zinc-950 w-1/2 rounded-2xl  p-3'>
+        <div className='w-full px-4 absolute left-0 bottom-0 flex items-center justify-center pb-5 flex-col'>
+            <div className=' bg-zinc-950 w-full max-w-4xl rounded-2xl p-3'>
                 <textarea
                     className='w-full bg-transparent focus:outline-none text-zinc-300 resize-none placeholder:text-zinc-500'
                     placeholder={targetId ? 'Type your message here...' : 'Select an agent or workflow to start chatting...'}

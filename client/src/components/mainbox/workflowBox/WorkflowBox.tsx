@@ -21,9 +21,12 @@ import {
     IoTrashOutline,
     IoFlagOutline,
     IoCheckmarkCircle,
+    IoChatbubbleEllipsesOutline,
 } from 'react-icons/io5'
 import { getWorkflow, replaceWorkflow, type WorkflowNode } from '../../../api/workflowApi'
 import { listAgents, type Agent } from '../../../api/agentApi'
+import ChatBox from '../chatbox/ChatBox'
+import { useChatStore } from '../../../stores/ChatStore'
 
 interface AgentData extends Record<string, unknown> {
     i_id: string | null
@@ -109,6 +112,19 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
     const [agents, setAgents] = useState<Agent[]>([])
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
     const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
+    const [chatOpen, setChatOpen] = useState(false)
+
+    const selectWorkflow = useChatStore((s) => s.selectWorkflow)
+
+    // Point the shared chat at this workflow, then reveal the chat box.
+    function toggleChat() {
+        if (chatOpen) {
+            setChatOpen(false)
+            return
+        }
+        selectWorkflow({ id: workflowId, name: name.trim() || 'Untitled Workflow' })
+        setChatOpen(true)
+    }
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
     const [saveError, setSaveError] = useState<string | null>(null)
@@ -275,7 +291,8 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
     }
 
     return (
-        <div className="h-full w-full relative">
+        <div className="h-full w-full flex">
+            <div className={`relative h-full ${chatOpen ? 'w-1/2 border-r border-zinc-800' : 'w-full'}`}>
             {/* Toolbar */}
             <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-zinc-950/90 border border-zinc-800 rounded-lg px-3 py-2">
                 <input
@@ -380,6 +397,22 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                 <Background />
                 <Controls />
             </ReactFlow>
+
+            {/* Bottom-center chat toggle */}
+            <button
+                className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 text-sm text-white bg-amber-600 hover:bg-amber-700 rounded-full px-4 py-2 shadow-lg shadow-black/40"
+                onClick={toggleChat}
+            >
+                <IoChatbubbleEllipsesOutline size={16} />
+                {chatOpen ? 'Hide Chat' : 'Chat'}
+            </button>
+            </div>
+
+            {chatOpen && (
+                <div className="w-1/2 h-full border-l border-zinc-800">
+                    <ChatBox />
+                </div>
+            )}
         </div>
     )
 }

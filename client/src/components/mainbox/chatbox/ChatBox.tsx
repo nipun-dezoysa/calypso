@@ -50,23 +50,25 @@ function ChatBox() {
         }
 
         return (
-            <div className='w-full flex-1 overflow-y-auto flex flex-col items-center'>
-                <div className='w-1/2 flex flex-col gap-5 pt-15 pb-45'>
-                    {messages.map((m) =>
-                        m.is_bot
-                            ? <BotMessage key={m.id} message={m.content} />
-                            : <UserMessage key={m.id} message={m.content} />,
-                    )}
-                    {sending && (
-                        <div className='text-zinc-500 text-sm animate-pulse'>Thinking…</div>
-                    )}
-                    {error && (
-                        <div className='text-red-400 text-sm'>{error}</div>
-                    )}
-                    <div ref={bottomRef} />
+          <div className="w-full flex-1 overflow-y-auto flex flex-col items-center">
+            <div className="w-full px-4 max-w-4xl flex flex-col gap-5 pt-15 pb-45">
+              {messages.map((m) =>
+                m.is_bot ? (
+                  <BotMessage key={m.id} message={m.content} />
+                ) : (
+                  <UserMessage key={m.id} message={m.content} />
+                ),
+              )}
+              {sending && (
+                <div className="text-zinc-500 text-sm animate-pulse">
+                  Thinking…
                 </div>
+              )}
+              {error && <div className="text-red-400 text-sm">{error}</div>}
+              <div ref={bottomRef} />
             </div>
-        )
+          </div>
+        );
     }
 
     return (
