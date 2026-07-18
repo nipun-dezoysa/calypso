@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, ForeignKey, String
+from sqlalchemy import Boolean, Float, ForeignKey, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from src.database import Base
@@ -58,6 +58,10 @@ class Node(Base):
         nullable=True,
         default=None,
     )
+
+    # Canvas position, persisted so the visual builder can restore the layout.
+    position_x: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
+    position_y: Mapped[float] = mapped_column(Float, nullable=False, default=0.0)
 
     workflow: Mapped["Workflow"] = relationship(
         "Workflow",
