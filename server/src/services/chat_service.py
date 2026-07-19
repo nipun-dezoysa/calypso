@@ -15,7 +15,7 @@ from src.models.message_model import Message
 from src.models.node_model import Node
 from src.models.thread_model import THREAD_TYPE_AGENT, THREAD_TYPE_WORKFLOW, Thread
 from src.models.workflow_model import Workflow
-from src.services import kb_vectorstore, mcp_client
+from src.services import kb_vectorstore, mcp_client, tool_schema
 from src.services.kb_settings_service import KbSettingsService
 from src.services.kb_vectorstore import KbConfig
 from src.services.llm_factory import build_chat_model
@@ -204,8 +204,10 @@ class ChatService:
             response = await chat_model.ainvoke(messages)
             return str(response.content).strip()
 
-        model = chat_model.bind_tools(tools)
         tools_by_name = {t.name: t for t in tools}
+        if type(chat_model).__name__ == "ChatGoogleGenerativeAI":
+            tools = tool_schema.sanitize_for_gemini(tools)
+        model = chat_model.bind_tools(tools)
 
         response = await model.ainvoke(messages)
         iterations = 0
