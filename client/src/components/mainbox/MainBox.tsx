@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
 import ChatBox from "./chatbox/ChatBox";
 import WorkflowBox from "./workflowBox/WorkflowBox";
-import { useSideBarStore } from "../../stores/SideBarStore";
+import { useMainViewStore, type MainView } from "../../stores/MainViewStore";
 import { useWorkflowStore } from "../../stores/WorkflowStore";
-import type { SidebarSection } from "../../types/sidebar";
 
 interface BoxContext {
-  activeSection: SidebarSection;
+  view: MainView;
   selectedWorkflowId: string | null;
 }
 
@@ -20,7 +19,7 @@ const BOXES: BoxDefinition[] = [
   {
     id: "workflow-builder",
     isActive: (ctx) =>
-      ctx.activeSection === "workflows" && ctx.selectedWorkflowId !== null,
+      ctx.view === "workflow" && ctx.selectedWorkflowId !== null,
     render: (ctx) => (
       <WorkflowBox
         key={ctx.selectedWorkflowId as string}
@@ -30,7 +29,7 @@ const BOXES: BoxDefinition[] = [
   },
   {
     id: "workflow-empty",
-    isActive: (ctx) => ctx.activeSection === "workflows",
+    isActive: (ctx) => ctx.view === "workflow",
     render: () => (
       <div className="h-full w-full flex items-center justify-center text-zinc-500 text-sm">
         Select a workflow, or create a new one to start building.
@@ -45,10 +44,10 @@ const BOXES: BoxDefinition[] = [
 ];
 
 function MainBox() {
-  const activeSection = useSideBarStore((s) => s.activeSection);
+  const view = useMainViewStore((s) => s.view);
   const selectedWorkflowId = useWorkflowStore((s) => s.selectedWorkflowId);
 
-  const ctx: BoxContext = { activeSection, selectedWorkflowId };
+  const ctx: BoxContext = { view, selectedWorkflowId };
   const box = BOXES.find((b) => b.isActive(ctx)) ?? BOXES[BOXES.length - 1];
 
   return <div className="h-full w-full">{box.render(ctx)}</div>;

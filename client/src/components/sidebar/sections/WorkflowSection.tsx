@@ -8,6 +8,7 @@ import {
     type WorkflowSummary,
 } from '../../../api/workflowApi'
 import { useWorkflowStore } from '../../../stores/WorkflowStore'
+import { useMainViewStore } from '../../../stores/MainViewStore'
 
 type LoadState = 'idle' | 'loading' | 'error'
 
@@ -19,6 +20,7 @@ function WorkflowSection() {
 
     const selectedWorkflowId = useWorkflowStore((s) => s.selectedWorkflowId)
     const selectWorkflow = useWorkflowStore((s) => s.selectWorkflow)
+    const showWorkflow = useMainViewStore((s) => s.showWorkflow)
 
     const fetchWorkflows = useCallback(async () => {
         setLoadState('loading')
@@ -45,6 +47,7 @@ function WorkflowSection() {
                 { id: wf.id, name: wf.name, node_count: 0, created_at: wf.created_at, updated_at: wf.updated_at },
                 ...prev,
             ])
+            showWorkflow()
             selectWorkflow(wf.id)
         } catch {
             // Non-fatal: the list just won't gain a row.
@@ -102,7 +105,7 @@ function WorkflowSection() {
                     <div
                         key={wf.id}
                         className="sidebar-item flex items-center justify-between group"
-                        onClick={() => selectWorkflow(wf.id)}
+                        onClick={() => { showWorkflow(); selectWorkflow(wf.id) }}
                     >
                         <div className="flex flex-col min-w-0">
                             <span className={`truncate ${wf.id === selectedWorkflowId ? 'text-amber-400' : ''}`}>

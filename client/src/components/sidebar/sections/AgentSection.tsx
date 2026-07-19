@@ -6,6 +6,7 @@ import { listAgents, createAgent, type Agent } from '../../../api/agentApi'
 import { listWorkflows, type WorkflowSummary } from '../../../api/workflowApi'
 import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline, IoGitNetworkOutline } from 'react-icons/io5'
 import { useChatStore } from '../../../stores/ChatStore'
+import { useMainViewStore } from '../../../stores/MainViewStore'
 
 type LoadState = 'idle' | 'loading' | 'error'
 
@@ -25,6 +26,7 @@ function AgentSection() {
     const newChat = useChatStore((s) => s.newChat)
     const selectAgent = useChatStore((s) => s.selectAgent)
     const selectWorkflow = useChatStore((s) => s.selectWorkflow)
+    const showChat = useMainViewStore((s) => s.showChat)
 
     const fetchAll = useCallback(async () => {
         setLoadState('loading')
@@ -86,7 +88,7 @@ function AgentSection() {
                     <div
                         key={thread.id}
                         className={`sidebar-item truncate ${thread.id === activeThreadId ? 'text-amber-400' : ''}`}
-                        onClick={() => openThread(thread.id)}
+                        onClick={() => { showChat(); openThread(thread.id) }}
                         title={formatThreadTitle(thread.title, thread.updated_at)}
                     >
                         {formatThreadTitle(thread.title, thread.updated_at)}
@@ -138,7 +140,7 @@ function AgentSection() {
                     <div
                         key={agent.id}
                         className="sidebar-item flex items-center justify-between group"
-                        onClick={() => selectAgent(agent)}
+                        onClick={() => { showChat(); selectAgent(agent) }}
                     >
                         <div className="flex flex-col min-w-0">
                             <span className={`truncate ${targetType === 'agent' && agent.id === targetId ? 'text-amber-400' : ''}`}>
@@ -176,7 +178,7 @@ function AgentSection() {
                     <div
                         key={wf.id}
                         className="sidebar-item flex items-center gap-2"
-                        onClick={() => selectWorkflow({ id: wf.id, name: wf.name })}
+                        onClick={() => { showChat(); selectWorkflow({ id: wf.id, name: wf.name }) }}
                     >
                         <IoGitNetworkOutline size={13} className="shrink-0 text-zinc-600" />
                         <span className={`truncate ${targetType === 'workflow' && wf.id === targetId ? 'text-amber-400' : ''}`}>
@@ -203,7 +205,7 @@ function AgentSection() {
 
             <CollapsibleSection
                 title="Recent Chats"
-                action={targetId ? { label: '+ New', onClick: newChat } : undefined}
+                action={targetId ? { label: '+ New', onClick: () => { showChat(); newChat() } } : undefined}
             >
                 {renderThreadList()}
             </CollapsibleSection>
