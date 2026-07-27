@@ -245,6 +245,15 @@ class ChatService:
             return None
         return thread.messages
 
+    async def delete_thread(self, thread_id: str) -> bool:
+        """Delete a thread and its messages. False if there was no such thread."""
+        thread = await self.db.get(Thread, thread_id)
+        if thread is None:
+            return False
+        await self.db.delete(thread) 
+        await self.db.commit()
+        return True
+
     async def list_threads(self, target_id: str) -> list[Thread]:
         """Threads for a chat target, whether it's an agent or a workflow."""
         stmt = (

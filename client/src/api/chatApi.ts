@@ -48,6 +48,10 @@ export async function listThreads(targetId: string): Promise<ChatThread[]> {
     return response.data
 }
 
+export async function deleteThread(threadId: string): Promise<void> {
+    await axiosInstance.delete(`${BASE}/threads/${threadId}`)
+}
+
 export async function listThreadMessages(threadId: string): Promise<ChatMessage[]> {
     const response = await axiosInstance.get<ChatMessage[]>(`${BASE}/threads/${threadId}/messages`)
     return response.data

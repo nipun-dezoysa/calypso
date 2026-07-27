@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Agent } from '../api/agentApi'
 import {
     ask,
+    deleteThread,
     listThreadMessages,
     listThreads,
     type ChatMessage,
@@ -30,6 +31,7 @@ interface ChatState {
     patchSelectedAgent: (agent: Agent) => void
     newChat: () => void
     openThread: (threadId: string) => Promise<void>
+    removeThread: (threadId: string) => Promise<void>
     sendMessage: (question: string) => Promise<void>
     refreshThreads: () => Promise<void>
 }
@@ -104,6 +106,23 @@ export const useChatStore = create<ChatState>((set, get) => ({
             if (get().threadId !== threadId) return
             const message = err instanceof Error ? err.message : 'Failed to load messages'
             set({ loadingMessages: false, error: message })
+        }
+    },
+
+    removeThread: async (threadId) => {
+        const previous = get().threads
+        // Drop it optimistically; if the delete fails we put the list back.
+        set((s) => ({
+            threads: s.threads.filter((t) => t.id !== threadId),
+            error: null,
+            // Deleting the open thread leaves the chat on a fresh conversation.
+            ...(s.threadId === threadId ? { threadId: null, messages: [] } : {}),
+        }))
+        try {
+            await deleteThread(threadId)
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Failed to delete chat'
+            set({ threads: previous, error: message })
         }
     },
 

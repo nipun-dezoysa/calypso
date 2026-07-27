@@ -4,7 +4,7 @@ import AddAgentModal, { type NewAgentPayload } from '../../common/AddAgentModal'
 import EditAgentModal from '../../common/EditAgentModal'
 import { listAgents, createAgent, type Agent } from '../../../api/agentApi'
 import { listWorkflows, type WorkflowSummary } from '../../../api/workflowApi'
-import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline, IoGitNetworkOutline } from 'react-icons/io5'
+import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline, IoGitNetworkOutline, IoTrashOutline } from 'react-icons/io5'
 import { useChatStore } from '../../../stores/ChatStore'
 import { useMainViewStore } from '../../../stores/MainViewStore'
 
@@ -24,6 +24,7 @@ function AgentSection() {
     const activeThreadId = useChatStore((s) => s.threadId)
     const openThread = useChatStore((s) => s.openThread)
     const newChat = useChatStore((s) => s.newChat)
+    const removeThread = useChatStore((s) => s.removeThread)
     const selectAgent = useChatStore((s) => s.selectAgent)
     const selectWorkflow = useChatStore((s) => s.selectWorkflow)
     const showChat = useMainViewStore((s) => s.showChat)
@@ -87,11 +88,21 @@ function AgentSection() {
                 {threads.map((thread) => (
                     <div
                         key={thread.id}
-                        className={`sidebar-item truncate ${thread.id === activeThreadId ? 'text-amber-400' : ''}`}
+                        className="sidebar-item flex items-center justify-between gap-1 group"
                         onClick={() => { showChat(); openThread(thread.id) }}
                         title={formatThreadTitle(thread.title, thread.updated_at)}
                     >
-                        {formatThreadTitle(thread.title, thread.updated_at)}
+                        <span className={`truncate ${thread.id === activeThreadId ? 'text-amber-400' : ''}`}>
+                            {formatThreadTitle(thread.title, thread.updated_at)}
+                        </span>
+                        <button
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-red-400 p-0.5 shrink-0"
+                            onClick={(e) => { e.stopPropagation(); removeThread(thread.id) }}
+                            title="Delete chat"
+                            aria-label={`Delete chat ${formatThreadTitle(thread.title, thread.updated_at)}`}
+                        >
+                            <IoTrashOutline size={12} />
+                        </button>
                     </div>
                 ))}
             </div>

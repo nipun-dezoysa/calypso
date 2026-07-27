@@ -63,6 +63,23 @@ async def list_threads(
     return [ThreadResponse.model_validate(t) for t in threads]
 
 
+@router.delete(
+    "/threads/{thread_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a conversation thread and its messages",
+)
+async def delete_thread(
+    thread_id: str,
+    service: ChatService = Depends(_get_service),
+) -> None:
+    deleted = await service.delete_thread(thread_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Thread with id '{thread_id}' not found",
+        )
+
+
 @router.get(
     "/threads/{thread_id}/messages",
     response_model=list[MessageResponse],
