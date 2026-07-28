@@ -2,3 +2,14 @@
     stroke: #f59e0b !important;
     stroke-width: 2.5;
 }
+
+.react-flow__handle.wf-handle {
+    width: 8px;
+    height: 8px;
+    background: #52525b;
+    border: 1px solid #18181b;
+}
+
+.react-flow__handle.wf-handle:hover {
+    background: #38bdf8;
+}

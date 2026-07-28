@@ -2,6 +2,7 @@ from src.models.agent_collection import agent_collection
 from src.models.agent_mcp_server import agent_mcp_server
 from src.models.agent_model import Agent
 from src.models.ai_provide_model import AIProvider
+from src.models.condition_model import Condition
 from src.models.edge_model import Edge
 from src.models.kb_collection_model import KbCollection
 from src.models.kb_document_model import KbDocument
@@ -16,6 +17,7 @@ from src.models.workflow_model import Workflow
 __all__ = [
     "Agent",
     "AIProvider",
+    "Condition",
     "Edge",
     "KbCollection",
     "KbDocument",

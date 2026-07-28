@@ -44,6 +44,12 @@ class Edge(Base):
         index=True,
     )
 
+    source_handle: Mapped[str | None] = mapped_column(
+        String(36),
+        nullable=True,
+        default=None,
+    )
+
     workflow: Mapped["Workflow"] = relationship(
         "Workflow",
         back_populates="edges",

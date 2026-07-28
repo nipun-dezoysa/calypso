@@ -7,12 +7,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from src.database import Base
 
 if TYPE_CHECKING:
+    from src.models.condition_model import Condition
     from src.models.workflow_model import Workflow
 
-# Node types. Only "agent" is implemented today; more component types (e.g. KB,
-# MCP, condition, ...) will be added here as they are built.
 NODE_TYPE_AGENT = "agent"
-NODE_TYPES = {NODE_TYPE_AGENT}
+NODE_TYPE_CONDITION = "condition"
+NODE_TYPES = {NODE_TYPE_AGENT, NODE_TYPE_CONDITION}
 
 
 class Node(Base):
@@ -21,7 +21,10 @@ class Node(Base):
     `i_id` is a loose reference to the underlying component instance the node
     wraps (an agent id today; other component ids in future), so it is stored as
     a plain string rather than a hard foreign key. Connections between nodes live
-    in the separate `edges` table."""
+    in the separate `edges` table.
+
+    A "condition" node wraps no component — its behaviour comes from the branches
+    in the `conditions` table instead."""
 
     __tablename__ = "nodes"
 
@@ -66,6 +69,13 @@ class Node(Base):
     workflow: Mapped["Workflow"] = relationship(
         "Workflow",
         back_populates="nodes",
+    )
+
+    # Branches, for condition nodes. Empty for every other node type.
+    conditions: Mapped[list["Condition"]] = relationship(
+        "Condition",
+        back_populates="node",
+        cascade="all, delete-orphan",
     )
 
     @validates("type")

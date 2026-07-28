@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from src.database import Base
 
 if TYPE_CHECKING:
+    from src.models.condition_model import Condition
     from src.models.edge_model import Edge
     from src.models.node_model import Node
     from src.models.thread_model import Thread
@@ -52,6 +53,13 @@ class Workflow(Base):
 
     edges: Mapped[list["Edge"]] = relationship(
         "Edge",
+        back_populates="workflow",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    conditions: Mapped[list["Condition"]] = relationship(
+        "Condition",
         back_populates="workflow",
         cascade="all, delete-orphan",
         lazy="selectin",

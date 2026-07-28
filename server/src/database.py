@@ -1,4 +1,4 @@
-from sqlalchemy import MetaData, event
+from sqlalchemy import Connection, MetaData, event, inspect
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -35,9 +35,29 @@ class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=convention)
 
 
+# Nullable columns added to tables that shipped without them. `create_all` only
+# creates missing *tables*, so an existing database needs these added by hand.
+_ADDED_COLUMNS: dict[str, dict[str, str]] = {
+    "edges": {"source_handle": "VARCHAR(36)"},
+}
+
+
+def _add_missing_columns(conn: Connection) -> None:
+    inspector = inspect(conn)
+    tables = set(inspector.get_table_names())
+    for table, columns in _ADDED_COLUMNS.items():
+        if table not in tables:
+            continue
+        existing = {c["name"] for c in inspector.get_columns(table)}
+        for name, ddl in columns.items():
+            if name not in existing:
+                conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
+
+
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.run_sync(_add_missing_columns)
 
 
 async def get_db() -> AsyncSession:

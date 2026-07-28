@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent_model import Agent
 from src.models.message_model import Message
-from src.models.node_model import Node
+from src.models.node_model import NODE_TYPE_AGENT, Node
 from src.models.thread_model import THREAD_TYPE_AGENT, THREAD_TYPE_WORKFLOW, Thread
 from src.models.workflow_model import Workflow
 from src.services import kb_vectorstore, mcp_client, tool_schema
@@ -137,7 +137,7 @@ class ChatService:
         return answer or "The workflow produced no output."
 
     async def _run_node(self, node: Node, node_input: str) -> str:
-        if node.type != "agent" or not node.i_id:
+        if node.type != NODE_TYPE_AGENT or not node.i_id:
             raise ValueError(
                 "a workflow node is not linked to an agent — assign one and save"
             )

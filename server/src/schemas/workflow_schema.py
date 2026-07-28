@@ -1,8 +1,13 @@
+import re
 from datetime import datetime
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from src.models.node_model import NODE_TYPE_AGENT, NODE_TYPES
+from src.models.condition_model import (
+    CONDITION_OPERATORS,
+    VALUELESS_OPERATORS,
+)
+from src.models.node_model import NODE_TYPE_AGENT, NODE_TYPE_CONDITION, NODE_TYPES
 
 
 class NodeInput(BaseModel):
@@ -24,19 +29,70 @@ class NodeInput(BaseModel):
             raise ValueError(f"node type must be one of {sorted(NODE_TYPES)}")
         return v
 
+    @model_validator(mode="after")
+    def clear_instance_for_condition(self) -> "NodeInput":
+        # A condition node wraps no component; its config lives in `conditions`.
+        if self.type == NODE_TYPE_CONDITION:
+            self.i_id = None
+        return self
+
+
+class ConditionInput(BaseModel):
+    """One branch of a condition node. `id` is client-generated so an edge can
+    name it as its `source_handle` in the same payload."""
+
+    id: str = Field(..., min_length=1)
+    n_id: str = Field(..., min_length=1, description="Id of the condition node")
+    label: str = Field(default="", max_length=100)
+    operator: str = Field(default="contains")
+    value: str | None = Field(default=None, max_length=500)
+    case_sensitive: bool = Field(default=False)
+    order_index: int = Field(default=0, ge=0)
+
+    @field_validator("operator")
+    @classmethod
+    def normalize_operator(cls, v: str) -> str:
+        v = (v or "").strip().lower()
+        if v not in CONDITION_OPERATORS:
+            raise ValueError(f"operator must be one of {sorted(CONDITION_OPERATORS)}")
+        return v
+
+    @model_validator(mode="after")
+    def check_value(self) -> "ConditionInput":
+        if self.operator in VALUELESS_OPERATORS:
+            self.value = None
+            return self
+        if not (self.value or "").strip():
+            raise ValueError(f"a '{self.operator}' branch needs a value to match against")
+        if self.operator == "regex":
+            try:
+                re.compile(self.value)
+            except re.error as exc:
+                raise ValueError(f"invalid regular expression: {exc}") from exc
+        return self
+
 
 class EdgeInput(BaseModel):
     id: str | None = Field(default=None)
     source: str = Field(..., min_length=1)
     target: str = Field(..., min_length=1)
+    source_handle: str | None = Field(
+        default=None,
+        description="Branch id this edge leaves from, for condition-node sources",
+    )
 
 
-def validate_graph(nodes: list[NodeInput], edges: list[EdgeInput]) -> None:
+def validate_graph(
+    nodes: list[NodeInput],
+    edges: list[EdgeInput],
+    conditions: list[ConditionInput],
+) -> None:
     """Enforce the workflow graph rules. Raises ValueError on the first breach."""
     ids = [n.id for n in nodes]
     if len(ids) != len(set(ids)):
         raise ValueError("node ids must be unique")
     id_set = set(ids)
+    condition_node_ids = {n.id for n in nodes if n.type == NODE_TYPE_CONDITION}
 
     start_count = sum(1 for n in nodes if n.is_start)
     if start_count > 1:
@@ -44,24 +100,58 @@ def validate_graph(nodes: list[NodeInput], edges: list[EdgeInput]) -> None:
     if nodes and start_count == 0:
         raise ValueError("a workflow must have a start node")
 
-    seen_pairs: set[frozenset[str]] = set()
+    branch_ids = [c.id for c in conditions]
+    if len(branch_ids) != len(set(branch_ids)):
+        raise ValueError("condition branch ids must be unique")
+
+    branches_by_node: dict[str, list[ConditionInput]] = {}
+    for c in conditions:
+        if c.n_id not in id_set:
+            raise ValueError("a condition branch references a node that is not in the workflow")
+        if c.n_id not in condition_node_ids:
+            raise ValueError("only condition nodes can have branches")
+        branches_by_node.setdefault(c.n_id, []).append(c)
+
+    for nid in condition_node_ids:
+        if not branches_by_node.get(nid):
+            raise ValueError("a condition node must have at least one branch")
+
+    branch_owner = {c.id: c.n_id for c in conditions}
+
+    # A pair of nodes may be wired together in one direction only. Two branches of
+    # the same condition node may each reach the same target, though — that is
+    # still one direction, just two ways of getting there.
+    seen: set[tuple[str, str | None, str]] = set()
+    direction: dict[frozenset[str], str] = {}
     for e in edges:
         if e.source == e.target:
             raise ValueError("a node cannot connect to itself")
         if e.source not in id_set or e.target not in id_set:
             raise ValueError("an edge references a node that is not in the workflow")
-        # One connection per node pair, regardless of direction (blocks both a
-        # duplicate A->B and a reverse B->A).
+
+        if e.source in condition_node_ids:
+            if not e.source_handle:
+                raise ValueError("an edge out of a condition node must leave from a branch")
+            if branch_owner.get(e.source_handle) != e.source:
+                raise ValueError("an edge references a branch of a different node")
+        else:
+            e.source_handle = None
+
+        key = (e.source, e.source_handle, e.target)
+        if key in seen:
+            raise ValueError("this outlet is already connected to that node")
+        seen.add(key)
+
         pair = frozenset((e.source, e.target))
-        if pair in seen_pairs:
+        if direction.setdefault(pair, e.source) != e.source:
             raise ValueError("only one connection is allowed between two nodes")
-        seen_pairs.add(pair)
 
 
 class WorkflowCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=100, examples=["My Workflow"])
     nodes: list[NodeInput] = Field(default_factory=list)
     edges: list[EdgeInput] = Field(default_factory=list)
+    conditions: list[ConditionInput] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod
@@ -73,7 +163,7 @@ class WorkflowCreate(BaseModel):
 
     @model_validator(mode="after")
     def check_graph(self) -> "WorkflowCreate":
-        validate_graph(self.nodes, self.edges)
+        validate_graph(self.nodes, self.edges, self.conditions)
         return self
 
 
@@ -83,6 +173,7 @@ class WorkflowReplace(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     nodes: list[NodeInput] = Field(default_factory=list)
     edges: list[EdgeInput] = Field(default_factory=list)
+    conditions: list[ConditionInput] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod
@@ -94,7 +185,7 @@ class WorkflowReplace(BaseModel):
 
     @model_validator(mode="after")
     def check_graph(self) -> "WorkflowReplace":
-        validate_graph(self.nodes, self.edges)
+        validate_graph(self.nodes, self.edges, self.conditions)
         return self
 
 
@@ -113,6 +204,19 @@ class EdgeResponse(BaseModel):
     id: str
     source: str
     target: str
+    source_handle: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class ConditionResponse(BaseModel):
+    id: str
+    n_id: str
+    label: str
+    operator: str
+    value: str | None
+    case_sensitive: bool
+    order_index: int
 
     model_config = {"from_attributes": True}
 
@@ -142,6 +246,7 @@ class WorkflowResponse(BaseModel):
     name: str
     nodes: list[NodeResponse]
     edges: list[EdgeResponse]
+    conditions: list[ConditionResponse]
     created_at: datetime
     updated_at: datetime
 
@@ -152,6 +257,10 @@ class WorkflowResponse(BaseModel):
             name=wf.name,
             nodes=[NodeResponse.model_validate(n) for n in wf.nodes],
             edges=[EdgeResponse.model_validate(e) for e in wf.edges],
+            conditions=[
+                ConditionResponse.model_validate(c)
+                for c in sorted(wf.conditions, key=lambda c: c.order_index)
+            ],
             created_at=wf.created_at,
             updated_at=wf.updated_at,
         )
