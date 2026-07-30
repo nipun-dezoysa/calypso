@@ -54,10 +54,29 @@ def _add_missing_columns(conn: Connection) -> None:
                 conn.exec_driver_sql(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}")
 
 
+def _backfill_workflow_agents(conn: Connection) -> None:
+    conn.exec_driver_sql(
+        """
+        INSERT INTO workflow_agents (id, w_id, n_id, name, agent_id,
+                                     node_instructions, output_instructions)
+        SELECT lower(hex(randomblob(4))) || '-' || lower(hex(randomblob(2)))
+                 || '-4' || substr(lower(hex(randomblob(2))), 2)
+                 || '-a' || substr(lower(hex(randomblob(2))), 2)
+                 || '-' || lower(hex(randomblob(6))),
+               n.w_id, n.id, COALESCE(a.name, ''), n.i_id, '', ''
+        FROM nodes n
+        LEFT JOIN agents a ON a.id = n.i_id
+        WHERE n.type = 'agent'
+          AND NOT EXISTS (SELECT 1 FROM workflow_agents wa WHERE wa.n_id = n.id)
+        """
+    )
+
+
 async def init_db() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
         await conn.run_sync(_add_missing_columns)
+        await conn.run_sync(_backfill_workflow_agents)
 
 
 async def get_db() -> AsyncSession:

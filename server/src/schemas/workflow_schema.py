@@ -10,6 +10,60 @@ from src.models.condition_model import (
 from src.models.node_model import NODE_TYPE_AGENT, NODE_TYPE_CONDITION, NODE_TYPES
 
 
+class AgentNodeInput(BaseModel):
+    """The workflow-scoped agent behind one agent node. `id` is client-generated
+    so the canvas keeps a stable identity across saves."""
+
+    id: str = Field(..., min_length=1)
+    n_id: str = Field(..., min_length=1, description="Id of the agent node")
+    name: str = Field(default="", max_length=100)
+    agent_id: str | None = Field(
+        default=None,
+        description="Optional existing agent used as this node's base",
+    )
+    llm_model_id: str | None = Field(
+        default=None,
+        description="Model override; falls back to the base agent's model",
+    )
+    node_instructions: str = Field(default="", description="What this step should do")
+    output_instructions: str = Field(
+        default="",
+        description="How this step should shape what it hands to the next node",
+    )
+    creativity: int | None = Field(default=None, ge=0, le=100)
+    collection_ids: list[str] = Field(default_factory=list)
+    mcp_server_ids: list[str] = Field(default_factory=list)
+
+    @field_validator("name", "node_instructions", "output_instructions")
+    @classmethod
+    def strip_text(cls, v: str) -> str:
+        return (v or "").strip()
+
+    @field_validator("agent_id", "llm_model_id")
+    @classmethod
+    def blank_to_none(cls, v: str | None) -> str | None:
+        return v or None
+
+    @field_validator("collection_ids", "mcp_server_ids")
+    @classmethod
+    def dedupe(cls, v: list[str]) -> list[str]:
+        return list(dict.fromkeys(v))
+
+    @model_validator(mode="after")
+    def check_runnable(self) -> "AgentNodeInput":
+        # Without a base agent to inherit from, the node has to name its own
+        # model — otherwise there is nothing to call at run time.
+        if not self.agent_id and not self.llm_model_id:
+            raise ValueError(
+                "an agent node needs a model, or an agent to take one from"
+            )
+        if not self.agent_id and not self.node_instructions:
+            raise ValueError(
+                "an agent node needs instructions, or an agent to take them from"
+            )
+        return self
+
+
 class NodeInput(BaseModel):
     """A node as submitted by the client. `id` is client-generated so edges can
     reference it in the same payload."""
@@ -86,6 +140,7 @@ def validate_graph(
     nodes: list[NodeInput],
     edges: list[EdgeInput],
     conditions: list[ConditionInput],
+    agent_nodes: list[AgentNodeInput],
 ) -> None:
     """Enforce the workflow graph rules. Raises ValueError on the first breach."""
     ids = [n.id for n in nodes]
@@ -93,6 +148,24 @@ def validate_graph(
         raise ValueError("node ids must be unique")
     id_set = set(ids)
     condition_node_ids = {n.id for n in nodes if n.type == NODE_TYPE_CONDITION}
+    agent_node_ids = {n.id for n in nodes if n.type == NODE_TYPE_AGENT}
+
+    agent_ids = [a.id for a in agent_nodes]
+    if len(agent_ids) != len(set(agent_ids)):
+        raise ValueError("agent node ids must be unique")
+
+    configured: set[str] = set()
+    for a in agent_nodes:
+        if a.n_id not in id_set:
+            raise ValueError("an agent config references a node that is not in the workflow")
+        if a.n_id not in agent_node_ids:
+            raise ValueError("only agent nodes can have an agent config")
+        if a.n_id in configured:
+            raise ValueError("an agent node can only have one agent config")
+        configured.add(a.n_id)
+
+    if agent_node_ids - configured:
+        raise ValueError("every agent node must have an agent config")
 
     start_count = sum(1 for n in nodes if n.is_start)
     if start_count > 1:
@@ -152,6 +225,7 @@ class WorkflowCreate(BaseModel):
     nodes: list[NodeInput] = Field(default_factory=list)
     edges: list[EdgeInput] = Field(default_factory=list)
     conditions: list[ConditionInput] = Field(default_factory=list)
+    agent_nodes: list[AgentNodeInput] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod
@@ -163,7 +237,7 @@ class WorkflowCreate(BaseModel):
 
     @model_validator(mode="after")
     def check_graph(self) -> "WorkflowCreate":
-        validate_graph(self.nodes, self.edges, self.conditions)
+        validate_graph(self.nodes, self.edges, self.conditions, self.agent_nodes)
         return self
 
 
@@ -174,6 +248,7 @@ class WorkflowReplace(BaseModel):
     nodes: list[NodeInput] = Field(default_factory=list)
     edges: list[EdgeInput] = Field(default_factory=list)
     conditions: list[ConditionInput] = Field(default_factory=list)
+    agent_nodes: list[AgentNodeInput] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod
@@ -185,7 +260,7 @@ class WorkflowReplace(BaseModel):
 
     @model_validator(mode="after")
     def check_graph(self) -> "WorkflowReplace":
-        validate_graph(self.nodes, self.edges, self.conditions)
+        validate_graph(self.nodes, self.edges, self.conditions, self.agent_nodes)
         return self
 
 
@@ -221,6 +296,34 @@ class ConditionResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AgentNodeResponse(BaseModel):
+    id: str
+    n_id: str
+    name: str
+    agent_id: str | None
+    llm_model_id: str | None
+    node_instructions: str
+    output_instructions: str
+    creativity: int | None
+    collection_ids: list[str]
+    mcp_server_ids: list[str]
+
+    @classmethod
+    def from_model(cls, wa) -> "AgentNodeResponse":
+        return cls(
+            id=wa.id,
+            n_id=wa.n_id,
+            name=wa.name,
+            agent_id=wa.agent_id,
+            llm_model_id=wa.llm_model_id,
+            node_instructions=wa.node_instructions,
+            output_instructions=wa.output_instructions,
+            creativity=wa.creativity,
+            collection_ids=[c.id for c in wa.collections],
+            mcp_server_ids=[s.id for s in wa.mcp_servers],
+        )
+
+
 class WorkflowSummary(BaseModel):
     """List view — no graph, just counts."""
 
@@ -247,6 +350,7 @@ class WorkflowResponse(BaseModel):
     nodes: list[NodeResponse]
     edges: list[EdgeResponse]
     conditions: list[ConditionResponse]
+    agent_nodes: list[AgentNodeResponse]
     created_at: datetime
     updated_at: datetime
 
@@ -261,6 +365,7 @@ class WorkflowResponse(BaseModel):
                 ConditionResponse.model_validate(c)
                 for c in sorted(wf.conditions, key=lambda c: c.order_index)
             ],
+            agent_nodes=[AgentNodeResponse.from_model(a) for a in wf.agent_nodes],
             created_at=wf.created_at,
             updated_at=wf.updated_at,
         )

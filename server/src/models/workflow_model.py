@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from src.models.edge_model import Edge
     from src.models.node_model import Node
     from src.models.thread_model import Thread
+    from src.models.workflow_agent_model import WorkflowAgent
 
 
 class Workflow(Base):
@@ -60,6 +61,13 @@ class Workflow(Base):
 
     conditions: Mapped[list["Condition"]] = relationship(
         "Condition",
+        back_populates="workflow",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
+    agent_nodes: Mapped[list["WorkflowAgent"]] = relationship(
+        "WorkflowAgent",
         back_populates="workflow",
         cascade="all, delete-orphan",
         lazy="selectin",

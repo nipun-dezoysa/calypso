@@ -26,103 +26,104 @@ import {
 import {
     getWorkflow,
     replaceWorkflow,
+    type AgentNodeInput,
     type ConditionInput,
+    type WorkflowAgentNode,
     type WorkflowCondition,
     type WorkflowNode,
 } from '../../../api/workflowApi'
 import { listAgents, type Agent } from '../../../api/agentApi'
+import { listAIProviders, type AIProvider } from '../../../api/aiProviderApi'
+import { listCollections, type Collection } from '../../../api/kbApi'
+import { listMcpServers, type McpServer } from '../../../api/mcpApi'
 import ChatBox from '../chatbox/ChatBox'
 import { useChatStore } from '../../../stores/ChatStore'
 import ConditionNode from './ConditionNode'
+import AgentNode from './AgentNode'
 import BranchEditor from './BranchEditor'
-import { newBranch, type Branch, type FlowNode, type FlowNodeData } from './workflowTypes'
+import AgentNodeEditor from './AgentNodeEditor'
+import {
+    newAgentConfig,
+    newBranch,
+    type AgentConfig,
+    type Branch,
+    type FlowNode,
+    type FlowNodeData,
+} from './workflowTypes'
 
 interface WorkflowBoxProps {
     workflowId: string
 }
 
-const START_STYLE = {
-    border: '2px solid #d97706',
-    borderRadius: 8,
-    background: '#1c1917',
-    color: '#e4e4e7',
-    fontSize: 12,
-    padding: 8,
-}
-const NODE_STYLE = {
-    border: '1px solid #3f3f46',
-    borderRadius: 8,
-    background: '#18181b',
-    color: '#e4e4e7',
-    fontSize: 12,
-    padding: 8,
-}
-// Condition nodes paint their own chrome, so React Flow gets a bare wrapper.
-const CONDITION_STYLE = {}
+// Both node types paint their own chrome, so React Flow gets a bare wrapper.
+const BARE_STYLE = {}
 
 const EDGE_MARKER = { type: MarkerType.ArrowClosed, width: 18, height: 18, color: '#a1a1aa' }
 const EDGE_STYLE = { stroke: '#a1a1aa' }
 
-const NODE_TYPES = { condition: ConditionNode }
+const NODE_TYPES = { condition: ConditionNode, agent: AgentNode }
 
-function labelFor(iId: string | null, agents: Agent[]): string {
-    if (!iId) return 'Unassigned agent'
-    const a = agents.find((x) => x.id === iId)
-    return a ? a.name : 'Unknown agent'
-}
-
-const START_BADGE_STYLE = {
-    fontSize: 8.5,
-    fontWeight: 700,
-    letterSpacing: '0.08em',
-    color: '#fbbf24',
-    background: 'rgba(217,119,6,0.15)',
-    border: '1px solid rgba(217,119,6,0.5)',
-    borderRadius: 4,
-    padding: '1px 5px',
-    textTransform: 'uppercase' as const,
-    lineHeight: 1.4,
+/** The "built from" line under an agent node's name. */
+function subtitleFor(
+    config: AgentConfig | null,
+    agents: Agent[],
+    providers: AIProvider[],
+): string {
+    if (!config) return 'Not configured'
+    const base = agents.find((a) => a.id === config.agent_id)
+    const model = providers
+        .flatMap((p) => p.models)
+        .find((m) => m.id === config.llm_model_id)
+    if (base && model) return `${base.name} · ${model.model_name}`
+    if (base) return `${base.name} · ${base.llm_model.model_name}`
+    if (model) return model.model_name
+    return config.agent_id ? 'Unknown agent' : 'No model'
 }
 
 function makeData(
     kind: FlowNodeData['kind'],
-    iId: string | null,
     isStart: boolean,
+    agent: AgentConfig | null,
+    branches: Branch[],
     agents: Agent[],
-    branches: Branch[] = [],
+    providers: AIProvider[],
 ): FlowNodeData {
-    const name = labelFor(iId, agents)
     return {
         kind,
-        i_id: kind === 'condition' ? null : iId,
         is_start: isStart,
-        branches,
-        // Condition nodes render themselves; only the default node uses `label`.
-        label:
-            kind === 'condition' ? null : isStart ? (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <span style={START_BADGE_STYLE}>Start</span>
-                    {name}
-                </span>
-            ) : (
-                name
-            ),
+        agent: kind === 'agent' ? agent : null,
+        branches: kind === 'condition' ? branches : [],
+        subtitle: kind === 'agent' ? subtitleFor(agent, agents, providers) : '',
     }
 }
 
-function styleFor(data: FlowNodeData) {
-    if (data.kind === 'condition') return CONDITION_STYLE
-    return data.is_start ? START_STYLE : NODE_STYLE
-}
-
-function toFlowNode(n: WorkflowNode, agents: Agent[], branches: Branch[]): FlowNode {
-    const data = makeData(n.type, n.i_id, n.is_start, agents, branches)
+function toFlowNode(
+    n: WorkflowNode,
+    agent: AgentConfig | null,
+    branches: Branch[],
+    agents: Agent[],
+    providers: AIProvider[],
+): FlowNode {
     return {
         id: n.id,
-        type: n.type === 'condition' ? 'condition' : undefined,
+        type: n.type,
         position: { x: n.position_x, y: n.position_y },
-        data,
-        style: styleFor(data),
+        data: makeData(n.type, n.is_start, agent, branches, agents, providers),
+        style: BARE_STYLE,
+    }
+}
+
+function toAgentConfig(a: WorkflowAgentNode): AgentConfig {
+    return {
+        id: a.id,
+        name: a.name,
+        agent_id: a.agent_id,
+        llm_model_id: a.llm_model_id,
+        node_instructions: a.node_instructions,
+        output_instructions: a.output_instructions,
+        creativity: a.creativity,
+        collection_ids: a.collection_ids,
+        mcp_server_ids: a.mcp_server_ids,
     }
 }
 
@@ -147,6 +148,9 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
     const [nodes, setNodes] = useState<FlowNode[]>([])
     const [edges, setEdges] = useState<Edge[]>([])
     const [agents, setAgents] = useState<Agent[]>([])
+    const [providers, setProviders] = useState<AIProvider[]>([])
+    const [collections, setCollections] = useState<Collection[]>([])
+    const [mcpServers, setMcpServers] = useState<McpServer[]>([])
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
     const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
     const [chatOpen, setChatOpen] = useState(false)
@@ -167,17 +171,39 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
     const [saveError, setSaveError] = useState<string | null>(null)
     const [savedAt, setSavedAt] = useState<number | null>(null)
 
-    // Load the workflow + agents.
+    // Load the workflow plus everything an agent node can be built from.
     useEffect(() => {
         let cancelled = false
         setLoading(true)
-        Promise.all([getWorkflow(workflowId), listAgents({ limit: 100 })])
-            .then(([wf, agentList]) => {
+        Promise.all([
+            getWorkflow(workflowId),
+            listAgents({ limit: 100 }),
+            listAIProviders({ limit: 100 }),
+            listCollections({ limit: 100 }),
+            listMcpServers({ limit: 100 }),
+        ])
+            .then(([wf, agentList, providerList, collectionList, serverList]) => {
                 if (cancelled) return
                 const branchesByNode = groupBranches(wf.conditions)
+                const agentByNode = new Map(
+                    wf.agent_nodes.map((a) => [a.n_id, toAgentConfig(a)] as const),
+                )
                 setName(wf.name)
                 setAgents(agentList)
-                setNodes(wf.nodes.map((n) => toFlowNode(n, agentList, branchesByNode.get(n.id) ?? [])))
+                setProviders(providerList)
+                setCollections(collectionList)
+                setMcpServers(serverList)
+                setNodes(
+                    wf.nodes.map((n) =>
+                        toFlowNode(
+                            n,
+                            agentByNode.get(n.id) ?? null,
+                            branchesByNode.get(n.id) ?? [],
+                            agentList,
+                            providerList,
+                        ),
+                    ),
+                )
                 setEdges(wf.edges.map((e) => ({
                     id: e.id,
                     source: e.source,
@@ -240,15 +266,17 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
             kind === 'condition'
                 ? [newBranch({ label: 'Match' }), newBranch({ label: 'Otherwise', operator: 'always' })]
                 : []
-        const data = makeData(kind, null, false, agents, branches)
+        // Every agent node owns a config from the moment it exists — that is what
+        // makes it an agent defined *in* the workflow rather than a pointer out.
+        const agent = kind === 'agent' ? newAgentConfig() : null
         setNodes((nds) => [
             ...nds,
             {
                 id,
-                type: kind === 'condition' ? 'condition' : undefined,
+                type: kind,
                 position: { x: 120 + offset, y: 100 + offset },
-                data,
-                style: styleFor(data),
+                data: makeData(kind, false, agent, branches, agents, providers),
+                style: BARE_STYLE,
             },
         ])
         setSelectedNodeId(id)
@@ -260,14 +288,19 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
             nds.map((n) => {
                 if (n.id !== nodeId) return n
                 const next = { ...n.data, ...changes }
-                const data = makeData(next.kind, next.i_id, next.is_start, agents, next.branches)
-                return { ...n, data, style: styleFor(data) }
+                return {
+                    ...n,
+                    data: makeData(next.kind, next.is_start, next.agent, next.branches, agents, providers),
+                }
             }),
         )
     }
 
-    function setNodeAgent(iId: string | null) {
-        if (selectedNodeId) patchNode(selectedNodeId, { i_id: iId })
+    function patchAgent(changes: Partial<AgentConfig>) {
+        if (!selectedNodeId) return
+        const current = nodes.find((n) => n.id === selectedNodeId)?.data.agent
+        if (!current) return
+        patchNode(selectedNodeId, { agent: { ...current, ...changes } })
     }
 
     function setBranches(branches: Branch[]) {
@@ -283,8 +316,10 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
         setNodes((nds) =>
             nds.map((n) => {
                 const isStart = n.id === nodeId
-                const data = makeData(n.data.kind, n.data.i_id, isStart, agents, n.data.branches)
-                return { ...n, data, style: styleFor(data) }
+                return {
+                    ...n,
+                    data: makeData(n.data.kind, isStart, n.data.agent, n.data.branches, agents, providers),
+                }
             }),
         )
     }
@@ -317,12 +352,16 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                       }))
                     : [],
             )
+            const agentNodes: AgentNodeInput[] = nodes.flatMap((n) =>
+                n.data.kind === 'agent' && n.data.agent
+                    ? [{ ...n.data.agent, n_id: n.id, name: n.data.agent.name.trim() }]
+                    : [],
+            )
             await replaceWorkflow(workflowId, {
                 name: name.trim() || 'Untitled Workflow',
                 nodes: nodes.map((n) => ({
                     id: n.id,
                     type: n.data.kind,
-                    i_id: n.data.kind === 'condition' ? null : n.data.i_id,
                     is_start: n.data.is_start,
                     position_x: n.position.x,
                     position_y: n.position.y,
@@ -333,6 +372,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                     source_handle: e.sourceHandle ?? null,
                 })),
                 conditions,
+                agent_nodes: agentNodes,
             })
             setSavedAt(Date.now())
         } catch (err: unknown) {
@@ -429,19 +469,16 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                             onRemoved={dropBranchEdges}
                         />
                     ) : (
-                        <div className="flex flex-col gap-1">
-                            <label className="text-[11px] text-zinc-500">Agent</label>
-                            <select
-                                className="bg-zinc-900 border border-zinc-700 rounded text-zinc-200 text-xs px-2 py-1.5 outline-none"
-                                value={selectedNode.data.i_id ?? ''}
-                                onChange={(e) => setNodeAgent(e.target.value || null)}
-                            >
-                                <option value="">Unassigned</option>
-                                {agents.map((a) => (
-                                    <option key={a.id} value={a.id}>{a.name}</option>
-                                ))}
-                            </select>
-                        </div>
+                        selectedNode.data.agent && (
+                            <AgentNodeEditor
+                                config={selectedNode.data.agent}
+                                onChange={patchAgent}
+                                agents={agents}
+                                providers={providers}
+                                collections={collections}
+                                mcpServers={mcpServers}
+                            />
+                        )
                     )}
 
                     <button

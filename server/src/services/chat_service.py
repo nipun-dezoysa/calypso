@@ -1,4 +1,5 @@
 import asyncio
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from langchain_core.messages import (
@@ -11,9 +12,13 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent_model import Agent
+from src.models.kb_collection_model import KbCollection
+from src.models.llm_model import LLMModel
+from src.models.mcp_server_model import McpServer
 from src.models.message_model import Message
 from src.models.node_model import NODE_TYPE_AGENT, Node
 from src.models.thread_model import THREAD_TYPE_AGENT, THREAD_TYPE_WORKFLOW, Thread
+from src.models.workflow_agent_model import WorkflowAgent
 from src.models.workflow_model import Workflow
 from src.services import kb_vectorstore, mcp_client, tool_schema
 from src.services.kb_settings_service import KbSettingsService
@@ -24,6 +29,19 @@ from src.services.workflow_builder_service import build_workflow_graph, latest_t
 RAG_TOP_K_PER_COLLECTION = 4
 RAG_MAX_CHUNKS = 8
 MCP_MAX_TOOL_ITERATIONS = 6
+DEFAULT_CREATIVITY = 50
+
+
+@dataclass
+class RunConfig:
+    """Everything one LLM turn needs, flattened. A chat agent and a workflow
+    agent node resolve to this same shape, so they share one execution path."""
+
+    llm_model: LLMModel
+    creativity: int
+    instructions: str
+    collections: list[KbCollection]
+    mcp_servers: list[McpServer]
 
 
 class ChatService:
@@ -63,7 +81,7 @@ class ChatService:
                 return None
             history = _history_from(thread)
 
-        answer = await self._run_agent_turn(agent, question, history)
+        answer = await self._run_turn(_config_from_agent(agent), question, history)
 
         if thread is None:
             thread = Thread(type=THREAD_TYPE_AGENT, agent_id=agent.id, messages=[])
@@ -72,24 +90,22 @@ class ChatService:
 
         return await self._persist_exchange(thread, question, answer)
 
-    async def _run_agent_turn(
+    async def _run_turn(
         self,
-        agent: Agent,
+        config: RunConfig,
         question: str,
         history: list[AIMessage | HumanMessage] | None = None,
     ) -> str:
-        """Run one agent turn (LLM + KB context + MCP tools) and return the
-        answer text. No persistence — reused by both direct chat and workflows."""
-        provider = agent.llm_model.ai_provider
-        temperature = round(agent.creativity / 100, 2)
+        """Run one turn (LLM + KB context + MCP tools) and return the answer text.
+        No persistence — reused by both direct chat and workflow nodes."""
         chat_model = build_chat_model(
-            provider=provider,
-            model_name=agent.llm_model.model_name,
-            temperature=temperature,
+            provider=config.llm_model.ai_provider,
+            model_name=config.llm_model.model_name,
+            temperature=round(config.creativity / 100, 2),
         )
 
-        system_content = agent.agent_instructions
-        context = await self._retrieve_context(agent, question)
+        system_content = config.instructions
+        context = await self._retrieve_context(config.collections, question)
         if context:
             system_content = f"{system_content}\n\n{context}"
 
@@ -98,7 +114,7 @@ class ChatService:
             *(history or []),
             HumanMessage(content=question),
         ]
-        answer = await self._invoke_with_tools(chat_model, agent, messages)
+        answer = await self._invoke_with_tools(chat_model, config.mcp_servers, messages)
         if not answer:
             raise RuntimeError("The LLM returned an empty response")
         return answer
@@ -137,14 +153,15 @@ class ChatService:
         return answer or "The workflow produced no output."
 
     async def _run_node(self, node: Node, node_input: str) -> str:
-        if node.type != NODE_TYPE_AGENT or not node.i_id:
+        # Condition nodes route inside the graph and never reach this.
+        if node.type != NODE_TYPE_AGENT:
+            raise ValueError(f"a workflow node of type '{node.type}' cannot be run")
+        if node.agent_config is None:
             raise ValueError(
-                "a workflow node is not linked to an agent — assign one and save"
+                "a workflow node has no agent set up — open the workflow and configure it"
             )
-        agent = await self.db.get(Agent, node.i_id)
-        if agent is None:
-            raise ValueError("an agent used by this workflow no longer exists")
-        return await self._run_agent_turn(agent, node_input)
+        config = _config_from_workflow_agent(node.agent_config)
+        return await self._run_turn(config, node_input)
 
     # ── Shared ────────────────────────────────────────────────────────────
 
@@ -159,8 +176,9 @@ class ChatService:
         await self.db.commit()
         return thread.id, answer
 
-    async def _retrieve_context(self, agent: Agent, question: str) -> str:
-        collections = list(agent.collections)
+    async def _retrieve_context(
+        self, collections: list[KbCollection], question: str
+    ) -> str:
         if not collections:
             return ""
 
@@ -183,8 +201,8 @@ class ChatService:
             f"--- CONTEXT ---\n{formatted}\n--- END CONTEXT ---"
         )
 
-    async def _load_tools(self, agent: Agent) -> list:
-        servers = [s for s in agent.mcp_servers if s.enabled]
+    async def _load_tools(self, mcp_servers: list[McpServer]) -> list:
+        servers = [s for s in mcp_servers if s.enabled]
         if not servers:
             return []
         connections = {s.name: s.to_connection() for s in servers}
@@ -196,10 +214,10 @@ class ChatService:
     async def _invoke_with_tools(
         self,
         chat_model,
-        agent: Agent,
+        mcp_servers: list[McpServer],
         messages: list,
     ) -> str:
-        tools = await self._load_tools(agent)
+        tools = await self._load_tools(mcp_servers)
         if not tools:
             response = await chat_model.ainvoke(messages)
             return str(response.content).strip()
@@ -263,6 +281,66 @@ class ChatService:
         )
         result = await self.db.execute(stmt)
         return list(result.scalars().all())
+
+
+def _config_from_agent(agent: Agent) -> RunConfig:
+    return RunConfig(
+        llm_model=agent.llm_model,
+        creativity=agent.creativity,
+        instructions=agent.agent_instructions,
+        collections=list(agent.collections),
+        mcp_servers=list(agent.mcp_servers),
+    )
+
+
+def _config_from_workflow_agent(wa: WorkflowAgent) -> RunConfig:
+    """Flatten a workflow agent node onto its optional base agent.
+
+    The base supplies defaults; the node layers on top. Model and creativity are
+    overrides (the node's value wins), collections and MCP servers are additive,
+    and the instructions concatenate: what the agent is, then what this step
+    should do, then how to shape the hand-off."""
+    base = wa.agent
+    label = wa.name or "an agent node"
+
+    llm_model = wa.llm_model or (base.llm_model if base else None)
+    if llm_model is None:
+        raise ValueError(
+            f"'{label}' has no model — choose one, or an agent to take one from"
+        )
+
+    if wa.creativity is not None:
+        creativity = wa.creativity
+    elif base is not None:
+        creativity = base.creativity
+    else:
+        creativity = DEFAULT_CREATIVITY
+
+    parts = []
+    if base is not None:
+        parts.append(base.agent_instructions)
+    if wa.node_instructions:
+        parts.append(wa.node_instructions)
+    if wa.output_instructions:
+        parts.append(f"Output requirements:\n{wa.output_instructions}")
+    instructions = "\n\n".join(p for p in parts if p)
+    if not instructions:
+        raise ValueError(f"'{label}' has no instructions — add some and save")
+
+    return RunConfig(
+        llm_model=llm_model,
+        creativity=creativity,
+        instructions=instructions,
+        collections=_merge_by_id(base.collections if base else [], wa.collections),
+        mcp_servers=_merge_by_id(base.mcp_servers if base else [], wa.mcp_servers),
+    )
+
+
+def _merge_by_id(base: list, extra: list) -> list:
+    """Base items first, then the node's own, without duplicates."""
+    merged = {item.id: item for item in base}
+    merged.update({item.id: item for item in extra})
+    return list(merged.values())
 
 
 def _history_from(thread: Thread) -> list[AIMessage | HumanMessage]:

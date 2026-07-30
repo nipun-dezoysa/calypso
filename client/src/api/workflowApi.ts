@@ -38,12 +38,33 @@ export interface WorkflowCondition {
     order_index: number
 }
 
+/** The agent defined inside a workflow, backing one agent node. These are
+ *  workflow-scoped: they never show up in the agents list or as a chat target.
+ *
+ *  `agent_id` optionally names an existing agent as a base. The node's own
+ *  settings layer on top: `llm_model_id` and `creativity` override the base,
+ *  collections and MCP servers are added to it, and the instructions are
+ *  concatenated after the base agent's. */
+export interface WorkflowAgentNode {
+    id: string
+    n_id: string
+    name: string
+    agent_id: string | null
+    llm_model_id: string | null
+    node_instructions: string
+    output_instructions: string
+    creativity: number | null
+    collection_ids: string[]
+    mcp_server_ids: string[]
+}
+
 export interface Workflow {
     id: string
     name: string
     nodes: WorkflowNode[]
     edges: WorkflowEdge[]
     conditions: WorkflowCondition[]
+    agent_nodes: WorkflowAgentNode[]
     created_at: string
     updated_at: string
 }
@@ -82,11 +103,14 @@ export interface ConditionInput {
     order_index: number
 }
 
+export type AgentNodeInput = WorkflowAgentNode
+
 export interface WorkflowCreate {
     name: string
     nodes?: NodeInput[]
     edges?: EdgeInput[]
     conditions?: ConditionInput[]
+    agent_nodes?: AgentNodeInput[]
 }
 
 export interface WorkflowReplace {
@@ -94,6 +118,7 @@ export interface WorkflowReplace {
     nodes: NodeInput[]
     edges: EdgeInput[]
     conditions: ConditionInput[]
+    agent_nodes: AgentNodeInput[]
 }
 
 export interface ListParams {

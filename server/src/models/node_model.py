@@ -8,6 +8,7 @@ from src.database import Base
 
 if TYPE_CHECKING:
     from src.models.condition_model import Condition
+    from src.models.workflow_agent_model import WorkflowAgent
     from src.models.workflow_model import Workflow
 
 NODE_TYPE_AGENT = "agent"
@@ -16,15 +17,6 @@ NODE_TYPES = {NODE_TYPE_AGENT, NODE_TYPE_CONDITION}
 
 
 class Node(Base):
-    """A single node in a workflow graph.
-
-    `i_id` is a loose reference to the underlying component instance the node
-    wraps (an agent id today; other component ids in future), so it is stored as
-    a plain string rather than a hard foreign key. Connections between nodes live
-    in the separate `edges` table.
-
-    A "condition" node wraps no component — its behaviour comes from the branches
-    in the `conditions` table instead."""
 
     __tablename__ = "nodes"
 
@@ -55,7 +47,7 @@ class Node(Base):
         default=False,
     )
 
-    # Id of the component instance this node wraps (e.g. an agent id).
+    # Id of the component instance this node wraps. Unused by current node types.
     i_id: Mapped[str | None] = mapped_column(
         String(36),
         nullable=True,
@@ -76,6 +68,16 @@ class Node(Base):
         "Condition",
         back_populates="node",
         cascade="all, delete-orphan",
+    )
+
+    # The workflow-scoped agent backing an agent node. None for other types.
+    # Eager: the graph runner reads it for every node it executes.
+    agent_config: Mapped["WorkflowAgent | None"] = relationship(
+        "WorkflowAgent",
+        back_populates="node",
+        cascade="all, delete-orphan",
+        uselist=False,
+        lazy="selectin",
     )
 
     @validates("type")

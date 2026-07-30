@@ -1,4 +1,3 @@
-import type { ReactNode } from 'react'
 import type { Node } from '@xyflow/react'
 import type { ConditionOperator, NodeType } from '../../../api/workflowApi'
 
@@ -10,15 +9,41 @@ export interface Branch {
     case_sensitive: boolean
 }
 
+export interface AgentConfig {
+    id: string
+    name: string
+    agent_id: string | null
+    llm_model_id: string | null
+    node_instructions: string
+    output_instructions: string
+    creativity: number | null
+    collection_ids: string[]
+    mcp_server_ids: string[]
+}
+
 export interface FlowNodeData extends Record<string, unknown> {
     kind: NodeType
-    i_id: string | null
     is_start: boolean
-    label: ReactNode
+    agent: AgentConfig | null
     branches: Branch[]
+    subtitle: string
 }
 
 export type FlowNode = Node<FlowNodeData>
+
+export function newAgentConfig(): AgentConfig {
+    return {
+        id: crypto.randomUUID(),
+        name: '',
+        agent_id: null,
+        llm_model_id: null,
+        node_instructions: '',
+        output_instructions: '',
+        creativity: null,
+        collection_ids: [],
+        mcp_server_ids: [],
+    }
+}
 
 export const OPERATORS: { value: ConditionOperator; label: string; short: string }[] = [
     { value: 'contains', label: 'contains', short: 'contains' },

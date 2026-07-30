@@ -12,6 +12,11 @@ from src.models.mcp_server_model import McpServer
 from src.models.message_model import Message
 from src.models.node_model import Node
 from src.models.thread_model import Thread
+from src.models.workflow_agent_links import (
+    workflow_agent_collection,
+    workflow_agent_mcp_server,
+)
+from src.models.workflow_agent_model import WorkflowAgent
 from src.models.workflow_model import Workflow
 
 __all__ = [
@@ -28,6 +33,9 @@ __all__ = [
     "Node",
     "Thread",
     "Workflow",
+    "WorkflowAgent",
     "agent_collection",
     "agent_mcp_server",
+    "workflow_agent_collection",
+    "workflow_agent_mcp_server",
 ]

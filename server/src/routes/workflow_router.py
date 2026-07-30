@@ -27,7 +27,12 @@ async def create_workflow(
     data: WorkflowCreate,
     service: WorkflowService = Depends(_get_service),
 ) -> WorkflowResponse:
-    wf = await service.create(data)
+    try:
+        wf = await service.create(data)
+    except ValueError as exc:  # an agent node points at something that is gone
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
     return WorkflowResponse.from_model(wf)
 
 
@@ -73,7 +78,12 @@ async def replace_workflow(
     data: WorkflowReplace,
     service: WorkflowService = Depends(_get_service),
 ) -> WorkflowResponse:
-    wf = await service.replace(workflow_id, data)
+    try:
+        wf = await service.replace(workflow_id, data)
+    except ValueError as exc:  # an agent node points at something that is gone
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
+        ) from exc
     if wf is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
