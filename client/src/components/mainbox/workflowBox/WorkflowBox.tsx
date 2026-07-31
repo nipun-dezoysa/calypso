@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
     ReactFlow,
     Background,
@@ -382,6 +382,25 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
         }
     }
 
+    const saveRef = useRef<() => void>(() => {})
+    useEffect(() => {
+        saveRef.current = () => {
+            if (loading || saving) return
+            void handleSave()
+        }
+    })
+
+    useEffect(() => {
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (!(e.ctrlKey || e.metaKey) || e.altKey) return
+            if (e.key !== 's' && e.key !== 'S') return
+            e.preventDefault()
+            saveRef.current()
+        }
+        window.addEventListener('keydown', onKeyDown, { capture: true })
+        return () => window.removeEventListener('keydown', onKeyDown, { capture: true })
+    }, [])
+
     const selectedNode = useMemo(
         () => nodes.find((n) => n.id === selectedNodeId) ?? null,
         [nodes, selectedNodeId],
@@ -439,6 +458,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                     className="flex items-center gap-1 text-xs text-white bg-amber-600 hover:bg-amber-700 rounded px-2.5 py-1 disabled:opacity-50"
                     onClick={handleSave}
                     disabled={saving}
+                    title="Save workflow (Ctrl+S)"
                 >
                     {saving ? <span className="ui-spinner" /> : <IoSaveOutline />} Save
                 </button>
