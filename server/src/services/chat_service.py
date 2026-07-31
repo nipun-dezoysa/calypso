@@ -95,6 +95,7 @@ class ChatService:
         config: RunConfig,
         question: str,
         history: list[AIMessage | HumanMessage] | None = None,
+        handoff: str = "",
     ) -> str:
         """Run one turn (LLM + KB context + MCP tools) and return the answer text.
         No persistence — reused by both direct chat and workflow nodes."""
@@ -105,6 +106,8 @@ class ChatService:
         )
 
         system_content = config.instructions
+        if handoff:
+            system_content = f"{system_content}\n\n{_handoff_block(handoff)}"
         context = await self._retrieve_context(config.collections, question)
         if context:
             system_content = f"{system_content}\n\n{context}"
@@ -128,12 +131,14 @@ class ChatService:
         thread_id: str | None,
     ) -> tuple[str, str] | None:
         thread: Thread | None = None
+        history: list[AIMessage | HumanMessage] = []
         if thread_id is not None:
             thread = await self.db.get(Thread, thread_id)
             if thread is None or thread.workflow_id != workflow.id:
                 return None
+            history = _history_from(thread)
 
-        answer = await self._run_workflow(workflow, question)
+        answer = await self._run_workflow(workflow, question, history)
 
         if thread is None:
             thread = Thread(
@@ -144,15 +149,37 @@ class ChatService:
 
         return await self._persist_exchange(thread, question, answer)
 
-    async def _run_workflow(self, workflow: Workflow, question: str) -> str:
-        """Execute the workflow as a LangGraph graph, seeding the start node with
-        the question and returning the final node's output."""
-        graph = build_workflow_graph(workflow, self._run_node)
-        result = await graph.ainvoke({"messages": [HumanMessage(content=question)]})
+    async def _run_workflow(
+        self,
+        workflow: Workflow,
+        question: str,
+        history: list[AIMessage | HumanMessage] | None = None,
+    ) -> str:
+        """Execute the workflow as a LangGraph graph and return the final node's
+        output. Every node sees the user's question and the thread history; the
+        previous node's output rides along as `handoff`."""
+
+        async def run_node(node: Node, node_question: str, handoff: str) -> str:
+            return await self._run_node(node, node_question, handoff, history)
+
+        graph = build_workflow_graph(workflow, run_node)
+        result = await graph.ainvoke(
+            {
+                "messages": [HumanMessage(content=question)],
+                "question": question,
+                "handoff": "",
+            }
+        )
         answer = latest_text(result["messages"]).strip()
         return answer or "The workflow produced no output."
 
-    async def _run_node(self, node: Node, node_input: str) -> str:
+    async def _run_node(
+        self,
+        node: Node,
+        question: str,
+        handoff: str,
+        history: list[AIMessage | HumanMessage] | None = None,
+    ) -> str:
         # Condition nodes route inside the graph and never reach this.
         if node.type != NODE_TYPE_AGENT:
             raise ValueError(f"a workflow node of type '{node.type}' cannot be run")
@@ -161,7 +188,7 @@ class ChatService:
                 "a workflow node has no agent set up — open the workflow and configure it"
             )
         config = _config_from_workflow_agent(node.agent_config)
-        return await self._run_turn(config, node_input)
+        return await self._run_turn(config, question, history, handoff)
 
     # ── Shared ────────────────────────────────────────────────────────────
 
@@ -220,7 +247,7 @@ class ChatService:
         tools = await self._load_tools(mcp_servers)
         if not tools:
             response = await chat_model.ainvoke(messages)
-            return str(response.content).strip()
+            return _stringify_content(response.content)
 
         tools_by_name = {t.name: t for t in tools}
         if type(chat_model).__name__ == "ChatGoogleGenerativeAI":
@@ -243,7 +270,7 @@ class ChatService:
                     continue
                 try:
                     tool_msg = await tool.ainvoke(call)
-                    tool_msg.content = _stringify_tool_content(tool_msg.content)
+                    tool_msg.content = _stringify_content(tool_msg.content)
                     messages.append(tool_msg)
                 except Exception as exc:
                     messages.append(
@@ -255,7 +282,7 @@ class ChatService:
             response = await model.ainvoke(messages)
             iterations += 1
 
-        return str(response.content).strip()
+        return _stringify_content(response.content)
 
     async def list_messages(self, thread_id: str) -> list[Message] | None:
         thread = await self.db.get(Thread, thread_id)
@@ -350,9 +377,20 @@ def _history_from(thread: Thread) -> list[AIMessage | HumanMessage]:
     ]
 
 
-def _stringify_tool_content(content) -> str:
+def _handoff_block(handoff: str) -> str:
+    return (
+        "The previous step of this workflow produced the output below. Treat it as "
+        "context for your own step — do not answer it as if it were the user's "
+        "message.\n\n"
+        f"--- PREVIOUS STEP OUTPUT ---\n{handoff}\n--- END PREVIOUS STEP OUTPUT ---"
+    )
+
+
+def _stringify_content(content) -> str:
+    """Flatten message content to text. Providers that return content blocks
+    (a list of dicts) would otherwise be stored as a Python repr."""
     if isinstance(content, str):
-        return content
+        return content.strip()
     if isinstance(content, list):
         parts = []
         for block in content:
@@ -360,8 +398,8 @@ def _stringify_tool_content(content) -> str:
                 parts.append(block.get("text") or "")
             else:
                 parts.append(str(block))
-        return "\n".join(p for p in parts if p)
-    return str(content)
+        return "\n".join(p for p in parts if p).strip()
+    return str(content).strip()
 
 
 def _gather_chunks(cfg: KbConfig, collection_names: list[str], question: str):

@@ -1,6 +1,7 @@
 import re
 from collections import defaultdict
 from collections.abc import Awaitable, Callable
+from typing import Annotated
 
 from langchain_core.messages import AIMessage, BaseMessage
 from langgraph.graph import END, START, MessagesState, StateGraph
@@ -10,7 +11,17 @@ from src.models.edge_model import Edge
 from src.models.node_model import NODE_TYPE_CONDITION, Node
 from src.models.workflow_model import Workflow
 
-NodeRunner = Callable[[Node, str], Awaitable[str]]
+# (node, question, handoff) -> output text
+NodeRunner = Callable[[Node, str, str], Awaitable[str]]
+
+
+def _last_write_wins(_current: str, incoming: str) -> str:
+    return incoming
+
+
+class WorkflowState(MessagesState):
+    question: str
+    handoff: Annotated[str, _last_write_wins]
 
 
 def latest_text(messages: list[BaseMessage]) -> str:
@@ -80,16 +91,16 @@ def build_workflow_graph(workflow: Workflow, run_node: NodeRunner):
         reachable.add(nid)
         stack.extend(e.target for e in outgoing[nid])
 
-    graph = StateGraph(MessagesState)
+    graph = StateGraph(WorkflowState)
 
     def make_node_fn(node: Node):
-        async def node_fn(state: MessagesState) -> dict:
-            output = await run_node(node, latest_text(state["messages"]))
-            return {"messages": [AIMessage(content=output)]}
+        async def node_fn(state: WorkflowState) -> dict:
+            output = await run_node(node, state["question"], state.get("handoff", ""))
+            return {"messages": [AIMessage(content=output)], "handoff": output}
 
         return node_fn
 
-    async def condition_fn(_state: MessagesState) -> dict:
+    async def condition_fn(_state: WorkflowState) -> dict:
         return {}  # a condition only routes; it does not change the conversation
 
     for nid in reachable:
@@ -129,8 +140,10 @@ def _wire_condition(
         graph.add_edge(node_id, END)
         return
 
-    def router(state: MessagesState):
-        text = latest_text(state["messages"])
+    def router(state: WorkflowState):
+        # Branch on the upstream node's output; a condition placed at the entry
+        # point has none, so it falls back to the question itself.
+        text = state.get("handoff") or state.get("question", "")
         for branch in node_branches:
             if branch_matches(branch, text):
                 return routes.get(branch.id) or END
