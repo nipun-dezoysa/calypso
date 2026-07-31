@@ -5,7 +5,12 @@ import { useSideBarStore } from '../../stores/SideBarStore'
 import type { SidebarSection } from '../../types/sidebar'
 
 function IconBar() {
-    const { activeSection, setActiveSection } = useSideBarStore()
+    const { activeSection, setActiveSection, isCollapsed, setCollapsed } = useSideBarStore()
+
+    const handleSelect = (id: SidebarSection) => {
+        setActiveSection(id)
+        if (isCollapsed) setCollapsed(false)
+    }
 
     const navItems: { id: SidebarSection; icon: React.ComponentType<any>; title: string }[] = [
         { id: 'conversations', icon: IoChatboxOutline, title: 'Conversations' },
@@ -21,7 +26,7 @@ function IconBar() {
             <IconComponent
                 key={id}
                 title={title}
-                onClick={() => setActiveSection(id)}
+                onClick={() => handleSelect(id)}
                 className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
                     isActive ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-100'
                 }`}
