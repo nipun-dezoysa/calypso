@@ -26,7 +26,8 @@ ENV/
 
 # ── uv ──
 .uv/
-uv.lock
+# uv.lock is intentionally committed: the Docker build installs from it, so
+# releases ship the dependency set that was actually tested.
 
 # ── Distribution / packaging ──
 dist/

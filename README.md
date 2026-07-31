@@ -1,2 +1,147 @@
-# calypso-
+# Calypso
+
 A self-sufficient, local AI workspace for orchestrating autonomous agents, MCP servers, and multi-model workflows.
+
+Calypso runs entirely on your own machine. You bring the model — a local Ollama instance or an API key for OpenAI, Anthropic, Google, or Azure — and Calypso gives you the workspace around it: agents with their own tools and knowledge, visual multi-agent workflows, and a chat interface to run them.
+
+---
+
+## Quick start
+
+The recommended way to run Calypso is the published image. It bundles the UI and the API in one container.
+
+```bash
+docker run -d \
+  --name calypso \
+  -p 8000:8000 \
+  -v calypso-data:/app/data \
+  --add-host=host.docker.internal:host-gateway \
+  --restart unless-stopped \
+  nipundezoysa/calypso:latest
+```
+
+Open **[http://localhost:8000](http://localhost:8000)**.
+
+Two flags matter:
+
+- **`-v calypso-data:/app/data`** — everything you create (database, agents, workflows, chat history, uploaded documents, vector index) lives here. Skip it and your work disappears when the container is removed.
+- **`--add-host=host.docker.internal:host-gateway`** — lets the container reach services on your host, which you need if you run Ollama locally. Harmless otherwise.
+
+To upgrade, pull the new image and recreate the container. The volume carries your data across:
+
+```bash
+docker pull nipundezoysa/calypso:latest
+docker rm -f calypso
+# then re-run the command above
+```
+
+Pin a version instead of `latest` if you'd rather upgrade deliberately — see the [available tags](https://hub.docker.com/r/nipundezoysa/calypso/tags).
+
+### First run
+
+1. **Add a provider** — AI Providers. For a local Ollama running on your host, use `http://host.docker.internal:11434` as the URL (not `localhost`, which points at the container itself).
+2. **Create an agent** — give it a system prompt, pick a model, optionally attach MCP servers and knowledge base collections.
+3. **Chat with it**, or wire several agents together in a workflow.
+
+---
+
+## What's inside
+
+- **Agents** — a system prompt, a model, a temperature, plus any MCP tools and knowledge collections you attach. Each agent keeps its own chat threads.
+- **Workflows** — a visual graph builder. Agent nodes run in sequence, passing output forward; condition nodes branch on the result. Every agent node carries its own per-workflow instructions, so the same underlying agent can behave differently in different workflows.
+- **MCP servers** — connect tools over `stdio`, `streamable_http`, `sse`, or `websocket`. Calypso discovers each server's tools and exposes them to the agents you attach them to.
+- **Knowledge base** — upload PDF, TXT, or Markdown files into collections. They're chunked, embedded, and retrieved as context at query time. Vector store is ChromaDB (local, default) or Qdrant; embeddings are FastEmbed (local, default) or Nomic.
+- **Providers** — OpenAI, Anthropic, Google Gemini, Azure OpenAI, Ollama, and any OpenAI-compatible endpoint via a custom base URL. Keys are stored in your local database and go nowhere but the provider.
+
+The API is self-documenting at **[http://localhost:8000/docs](http://localhost:8000/docs)**.
+
+---
+
+## Other ways to run it
+
+### Docker Compose
+
+Useful if you'd rather not remember flags. Clone the repo and:
+
+```bash
+docker compose up -d
+```
+
+This builds from source rather than pulling. To use the published image instead, replace the `build:` key in [`docker-compose.yml`](docker-compose.yml) with `image: nipundezoysa/calypso:latest`. Copy [`.env.example`](.env.example) to `.env` to change the port.
+
+### Build the image yourself
+
+```bash
+git clone https://github.com/nipun-dezoysa/calypso.git
+cd calypso
+docker build -t calypso:local .
+docker run -d -p 8000:8000 -v calypso-data:/app/data calypso:local
+```
+
+### From source, for development
+
+Frontend and backend run separately here, with vite proxying `/api/v1` to the API. Requires **Python 3.13+**, [**uv**](https://docs.astral.sh/uv/), and **Node 20+**.
+
+```bash
+# ── terminal 1: API on :8000 ──
+cd server
+uv sync
+uv run fastapi dev main.py
+
+# ── terminal 2: UI on :5173 ──
+cd client
+npm install
+npm run dev
+```
+
+Open [http://localhost:5173](http://localhost:5173). State is written to `server/calypso.db`, `server/chroma_db/`, and `server/kb_files/`.
+
+In this mode the API doesn't serve the frontend — it only mounts a bundle when a `static/` directory sits next to it, which is how the Docker image works. Nothing to configure either way.
+
+---
+
+## Configuration
+
+Every setting is optional; the defaults below are what the image uses. Providers, keys, and knowledge base settings are configured in the UI, not here.
+
+| Variable | Default (in image) | Purpose |
+| --- | --- | --- |
+| `DATABASE_URL` | `sqlite+aiosqlite:////app/data/calypso.db` | SQLAlchemy async database URL |
+| `KB_UPLOAD_DIR` | `/app/data/kb_files` | Where uploaded documents are stored |
+| `CHROMA_PERSIST_DIR` | `/app/data/chroma_db` | Local ChromaDB persistence directory |
+| `FASTEMBED_CACHE_PATH` | `/app/data/fastembed_cache` | Cache for downloaded embedding models |
+| `STATIC_DIR` | `/app/static` | Built frontend bundle; unset in local dev |
+| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated allowed origins |
+| `CORS_ORIGIN_REGEX` | localhost/127.0.0.1, any port | Regex alternative to the list above |
+
+The UI and API share an origin in the image, so CORS only matters if you call the API from somewhere else.
+
+### A note on stdio MCP servers
+
+The image ships Python only. MCP servers using the `stdio` transport need their runtime available inside the container — an `npx`-based server won't start because there's no Node. Either use an HTTP transport, or add the runtime to the [`Dockerfile`](Dockerfile) (there's a comment marking the spot) and rebuild.
+
+---
+
+## Tech stack
+
+**Backend** — FastAPI, SQLAlchemy (async, SQLite), LangChain and LangGraph, ChromaDB / Qdrant, FastEmbed.
+
+**Frontend** — React 19, TypeScript, Vite, Tailwind CSS, Zustand, React Flow.
+
+Releases are built and pushed to Docker Hub automatically by [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml) when a GitHub release is published.
+
+---
+
+## Contributing
+
+Contributions are welcome — issues, feature ideas, and pull requests alike.
+
+If you're picking something up:
+
+1. Fork the repo and branch off `main`.
+2. Follow the development setup above so you can see your change running.
+3. Keep the frontend clean with `npm run lint`, and match the style of the code around you.
+4. Confirm `docker build -t calypso:test .` still succeeds if you touched dependencies, the Dockerfile, or anything under `server/`.
+5. Open a PR describing what changed and how you verified it.
+
+Not sure where to start, or unsure whether an idea fits? Open an issue first and let's talk it through — cheaper than building the wrong thing.

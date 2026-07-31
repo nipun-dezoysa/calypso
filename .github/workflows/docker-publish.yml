@@ -35,7 +35,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ vars.DOCKERHUB_REPOSITORY || format('{0}/calypso', github.repository_owner) }}
+          images: ${{ vars.DOCKERHUB_REPOSITORY || 'nipundezoysa/calypso' }}
           tags: |
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
@@ -60,19 +60,33 @@ jobs:
         env:
           IMAGE: ${{ fromJSON(steps.meta.outputs.json).tags[0] }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           docker run -d --name calypso-smoke -p 8000:8000 "$IMAGE"
 
+          up=""
           for _ in $(seq 1 60); do
-            if curl -fsS http://localhost:8000/openapi.json > /dev/null; then
+            # A container that died won't ever answer, so stop waiting on it.
+            if [ "$(docker inspect -f '{{.State.Running}}' calypso-smoke)" != "true" ]; then
+              echo "::error::container exited before serving traffic (exit code $(docker inspect -f '{{.State.ExitCode}}' calypso-smoke))"
+              break
+            fi
+            if curl -fsS http://localhost:8000/openapi.json > /dev/null 2>&1; then
+              up=1
               echo "API is up"
               break
             fi
             sleep 2
           done
 
-          curl -fsS http://localhost:8000/openapi.json > /dev/null
-          curl -fsS http://localhost:8000/ | grep -q "<div id=\"root\">"
+          if [ -z "$up" ]; then
+            echo "::group::container logs"
+            docker logs calypso-smoke 2>&1 || true
+            echo "::endgroup::"
+            exit 1
+          fi
+
+          curl -fsS http://localhost:8000/ | grep -q '<div id="root">' \
+            || { echo "::error::frontend bundle is not being served"; exit 1; }
           echo "Frontend is served"
 
       - name: Container logs

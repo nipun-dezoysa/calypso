@@ -22,9 +22,12 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 WORKDIR /app
 
-COPY server/pyproject.toml server/uv.lock* ./
+# `--frozen` installs exactly what uv.lock pins. Without it the build resolves
+# the newest of every `>=` dependency, which is how an incompatible
+# mcp/langchain-mcp-adapters pair reached a release. Run `uv lock` to upgrade.
+COPY server/pyproject.toml server/uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-install-project
+    uv sync --frozen --no-dev --no-install-project
 
 
 FROM python:3.13-slim-bookworm AS runtime
