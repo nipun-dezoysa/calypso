@@ -40,6 +40,7 @@ class Settings:
     cors_origin_regex: str | None
     kb_upload_dir: str
     chroma_persist_dir: str
+    static_dir: str
 
 
 settings = Settings(
@@ -53,4 +54,5 @@ settings = Settings(
     ),
     kb_upload_dir=os.getenv("KB_UPLOAD_DIR", "kb_files"),
     chroma_persist_dir=os.getenv("CHROMA_PERSIST_DIR", "chroma_db"),
+    static_dir=os.getenv("STATIC_DIR", "static"),
 )

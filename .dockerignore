@@ -1,0 +1,45 @@
+.git/
+.claude/
+.github/
+
+# ── Server ──
+server/.venv/
+server/venv/
+server/__pycache__/
+server/**/__pycache__/
+**/*.py[cod]
+server/.mypy_cache/
+server/.ruff_cache/
+server/.pytest_cache/
+
+# Local state — the container keeps its own under /app/data
+server/calypso.db
+server/calypso.db-shm
+server/calypso.db-wal
+**/*.db
+**/*.sqlite
+**/*.sqlite3
+server/chroma_db/
+server/kb_files/
+server/local_cache/
+
+# ── Client ── (dist is rebuilt inside the image)
+client/node_modules/
+client/dist/
+client/dist-ssr/
+client/.vite/
+
+# ── Secrets ──
+**/.env
+**/.env.*
+!**/.env.example
+
+# ── Misc ──
+Dockerfile
+.dockerignore
+docker-compose.yml
+**/*.log
+**/*.local
+.DS_Store
+.vscode/
+.idea/

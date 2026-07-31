@@ -1,8 +1,11 @@
+import os
+
 from sqlalchemy import Connection, MetaData, event, inspect
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-DATABASE_URL = "sqlite+aiosqlite:///./calypso.db"
+# Overridable so a container can put the file on a mounted volume.
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./calypso.db")
 
 engine = create_async_engine(
     DATABASE_URL,

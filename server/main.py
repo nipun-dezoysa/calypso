@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from config import settings
 from src.database import engine, init_db
@@ -40,6 +42,10 @@ def create_app() -> FastAPI:
     app.include_router(kb_router, prefix="/api/v1")
     app.include_router(mcp_router, prefix="/api/v1")
     app.include_router(workflow_router, prefix="/api/v1")
+
+    static_dir = Path(settings.static_dir)
+    if static_dir.is_dir():
+        app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
 
     return app
 
