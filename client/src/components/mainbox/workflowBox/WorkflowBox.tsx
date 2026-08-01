@@ -37,6 +37,7 @@ import { listAIProviders, type AIProvider } from '../../../api/aiProviderApi'
 import { listCollections, type Collection } from '../../../api/kbApi'
 import { listMcpServers, type McpServer } from '../../../api/mcpApi'
 import ChatBox from '../chatbox/ChatBox'
+import CopyCurlButton from '../../common/CopyCurlButton'
 import { useChatStore } from '../../../stores/ChatStore'
 import ConditionNode from './ConditionNode'
 import AgentNode from './AgentNode'
@@ -462,6 +463,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                 >
                     {saving ? <span className="ui-spinner" /> : <IoSaveOutline />} Save
                 </button>
+                <CopyCurlButton targetId={workflowId} />
                 {savedAt && !saveError && (
                     <span className="flex items-center gap-1 text-[11px] text-emerald-400">
                         <IoCheckmarkCircle /> Saved

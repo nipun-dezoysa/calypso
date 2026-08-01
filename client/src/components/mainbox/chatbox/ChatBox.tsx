@@ -3,6 +3,7 @@ import BotMessage from './BotMessage'
 import ChatInput from './ChatInput'
 import UserMessage from './UserMessage'
 import { useChatStore } from '../../../stores/ChatStore'
+import CopyCurlButton from '../../common/CopyCurlButton'
 
 function ChatBox() {
     const targetId = useChatStore((s) => s.targetId)
@@ -73,8 +74,9 @@ function ChatBox() {
 
     return (
         <div className='relative h-full flex flex-col items-center'>
-            <div className='absolute top-0 w-full text-zinc-300 px-5 py-2 bg-zinc-900 z-10 truncate'>
-                {headerTitle}
+            <div className='absolute top-0 w-full text-zinc-300 px-5 py-2 bg-zinc-900 z-10 flex items-center gap-3'>
+                <span className='truncate'>{headerTitle}</span>
+                {targetId && <CopyCurlButton targetId={targetId} className='ml-auto' />}
             </div>
             {renderBody()}
             <ChatInput />
