@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.database import get_db
+from src.dependencies.auth import require_auth
 from src.schemas.chat_schema import (
     ChatAskRequest,
     ChatAskResponse,
@@ -17,10 +18,12 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> ChatService:
     return ChatService(db)
 
 
+# Deliberately unauthenticated: this is the endpoint other applications embed.
+# Provider secret keys are never exposed through it, only the answer text.
 @router.post(
     "/{target_id}/ask",
     response_model=ChatAskResponse,
-    summary="Ask a question to an agent or a workflow",
+    summary="Ask a question to an agent or a workflow (public)",
 )
 async def ask(
     target_id: str,
@@ -54,6 +57,7 @@ async def ask(
     "/{target_id}/threads",
     response_model=list[ThreadResponse],
     summary="List conversation threads for an agent or workflow",
+    dependencies=[Depends(require_auth)],
 )
 async def list_threads(
     target_id: str,
@@ -67,6 +71,7 @@ async def list_threads(
     "/threads/{thread_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a conversation thread and its messages",
+    dependencies=[Depends(require_auth)],
 )
 async def delete_thread(
     thread_id: str,
@@ -84,6 +89,7 @@ async def delete_thread(
     "/threads/{thread_id}/messages",
     response_model=list[MessageResponse],
     summary="List messages in a thread",
+    dependencies=[Depends(require_auth)],
 )
 async def list_messages(
     thread_id: str,

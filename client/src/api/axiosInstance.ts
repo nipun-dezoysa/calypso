@@ -7,6 +7,12 @@ import axios, {
 
 const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
 
+export const TOKEN_STORAGE_KEY = 'calypso_access_token'
+
+/** Fired when the server rejects our token, so the auth store can sign out.
+ * An event rather than a direct import, which would be circular. */
+export const UNAUTHORIZED_EVENT = 'calypso:unauthorized'
+
 const axiosInstance: AxiosInstance = axios.create({
     baseURL: BASE_URL,
     timeout: 15_000,
@@ -19,7 +25,7 @@ const axiosInstance: AxiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
-        const token = localStorage.getItem('calypso_access_token')
+        const token = localStorage.getItem(TOKEN_STORAGE_KEY)
         if (token && config.headers) {
             config.headers.Authorization = `Bearer ${token}`
         }
@@ -33,6 +39,14 @@ axiosInstance.interceptors.response.use(
     (error: AxiosError<{ detail?: string | { msg: string }[] }>) => {
         if (error.response) {
             const { status, data } = error.response
+
+            // A 401 anywhere but the login form itself means the stored token is
+            // gone or stale — drop it and let the app fall back to the login screen.
+            const isLoginAttempt = error.config?.url?.includes('/auth/login') ?? false
+            if (status === 401 && !isLoginAttempt) {
+                localStorage.removeItem(TOKEN_STORAGE_KEY)
+                window.dispatchEvent(new Event(UNAUTHORIZED_EVENT))
+            }
 
             let message = `Request failed with status ${status}`
             if (data?.detail) {

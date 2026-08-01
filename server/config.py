@@ -41,6 +41,14 @@ class Settings:
     kb_upload_dir: str
     chroma_persist_dir: str
     static_dir: str
+    # Left as None unless pinned by the environment; the app then generates a
+    # secret on first boot and keeps it in the database, so tokens issued
+    # before a restart stay valid afterwards.
+    jwt_secret: str | None
+    jwt_algorithm: str
+    jwt_expire_days: int
+    default_username: str
+    default_password: str
 
 
 settings = Settings(
@@ -55,4 +63,9 @@ settings = Settings(
     kb_upload_dir=os.getenv("KB_UPLOAD_DIR", "kb_files"),
     chroma_persist_dir=os.getenv("CHROMA_PERSIST_DIR", "chroma_db"),
     static_dir=os.getenv("STATIC_DIR", "static"),
+    jwt_secret=os.getenv("JWT_SECRET") or None,
+    jwt_algorithm=os.getenv("JWT_ALGORITHM", "HS256"),
+    jwt_expire_days=_get_int_env("JWT_EXPIRE_DAYS", 365),
+    default_username=os.getenv("DEFAULT_USERNAME", "admin"),
+    default_password=os.getenv("DEFAULT_PASSWORD", "admin"),
 )
