@@ -113,8 +113,29 @@ Every setting is optional; the defaults below are what the image uses. Providers
 | `STATIC_DIR` | `/app/static` | Built frontend bundle; unset in local dev |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated allowed origins |
 | `CORS_ORIGIN_REGEX` | localhost/127.0.0.1, any port | Regex alternative to the list above |
+| `DEFAULT_USERNAME` | `admin` | Username seeded on first boot |
+| `DEFAULT_PASSWORD` | `admin` | Password seeded on first boot |
+| `JWT_SECRET` | generated once, stored in the database | Token signing key |
+| `JWT_EXPIRE_DAYS` | `365` | Access token lifetime |
+| `JWT_ALGORITHM` | `HS256` | Token signing algorithm |
 
 The UI and API share an origin in the image, so CORS only matters if you call the API from somewhere else.
+
+### Authentication
+
+The API is behind a JWT bearer token. On first boot the server seeds a single account from `DEFAULT_USERNAME` / `DEFAULT_PASSWORD` and flags it as unchanged, so the UI sends you straight to a *choose your credentials* screen after the first sign-in. The defaults only apply to an empty database — changing those variables later does nothing.
+
+| Endpoint | Auth | Purpose |
+| --- | --- | --- |
+| `POST /api/v1/auth/login` | none | Exchange username + password for a token |
+| `GET /api/v1/auth/me` | bearer | The signed-in user, including `must_change_credentials` |
+| `PUT /api/v1/auth/credentials` | bearer | Change username and/or password; returns a fresh token |
+| `POST /api/v1/chat/{id}/ask` | **none** | Public, so other applications can call your agents |
+| everything else | bearer | |
+
+`/ask` is deliberately left open: it returns answer text only and never exposes provider secret keys, which is exactly why the rest of the API is closed.
+
+Changing a password invalidates every token issued before the change — tokens carry a fingerprint of the stored password hash. If `JWT_SECRET` is not set the server generates one on first boot and keeps it in the database, so tokens survive restarts.
 
 ### A note on stdio MCP servers
 

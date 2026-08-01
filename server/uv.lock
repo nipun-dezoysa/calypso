@@ -3034,6 +3034,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "aiosqlite" },
+    { name = "bcrypt" },
     { name = "chromadb" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastembed" },
@@ -3051,6 +3052,7 @@ dependencies = [
     { name = "langgraph" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "pyjwt" },
     { name = "pypdf" },
     { name = "qdrant-client" },
     { name = "sqlalchemy" },
@@ -3059,6 +3061,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.22.1" },
+    { name = "bcrypt", specifier = ">=5.0.0" },
     { name = "chromadb", specifier = ">=1.5.9" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.136.3" },
     { name = "fastembed", specifier = ">=0.8.0" },
@@ -3076,6 +3079,7 @@ requires-dist = [
     { name = "langgraph", specifier = ">=1.2.9" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
+    { name = "pyjwt", specifier = ">=2.13.0" },
     { name = "pypdf", specifier = ">=6.14.2" },
     { name = "qdrant-client", specifier = ">=1.18.0" },
     { name = "sqlalchemy", specifier = ">=2.0.50" },
