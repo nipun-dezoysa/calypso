@@ -13,3 +13,30 @@
 .react-flow__handle.wf-handle:hover {
     background: #38bdf8;
 }
+
+.wf-designer-reply > *:first-child {
+    margin-top: 0;
+}
+
+.wf-designer-reply > *:last-child {
+    margin-bottom: 0;
+}
+
+.wf-designer-reply p,
+.wf-designer-reply ul,
+.wf-designer-reply ol {
+    margin: 0.5em 0;
+}
+
+.wf-designer-reply ul,
+.wf-designer-reply ol {
+    padding-left: 1.1em;
+    list-style: revert;
+}
+
+.wf-designer-reply code {
+    font-size: 0.9em;
+    background: #27272a;
+    border-radius: 3px;
+    padding: 0 3px;
+}

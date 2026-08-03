@@ -22,6 +22,8 @@ import {
     IoCheckmarkCircle,
     IoChatbubbleEllipsesOutline,
     IoGitBranchOutline,
+    IoSparklesOutline,
+    IoArrowUndoOutline,
 } from 'react-icons/io5'
 import {
     getWorkflow,
@@ -30,8 +32,11 @@ import {
     type ConditionInput,
     type WorkflowAgentNode,
     type WorkflowCondition,
+    type WorkflowEdge,
     type WorkflowNode,
+    type WorkflowReplace,
 } from '../../../api/workflowApi'
+import type { ProposedWorkflow } from '../../../api/workflowDesignerApi'
 import { listAgents, type Agent } from '../../../api/agentApi'
 import { listAIProviders, type AIProvider } from '../../../api/aiProviderApi'
 import { listCollections, type Collection } from '../../../api/kbApi'
@@ -43,6 +48,7 @@ import ConditionNode from './ConditionNode'
 import AgentNode from './AgentNode'
 import BranchEditor from './BranchEditor'
 import AgentNodeEditor from './AgentNodeEditor'
+import DesignerPanel from './DesignerPanel'
 import {
     newAgentConfig,
     newBranch,
@@ -128,6 +134,79 @@ function toAgentConfig(a: WorkflowAgentNode): AgentConfig {
     }
 }
 
+interface Graph {
+    nodes: WorkflowNode[]
+    edges: WorkflowEdge[]
+    conditions: WorkflowCondition[]
+    agent_nodes: WorkflowAgentNode[]
+}
+
+function toCanvas(
+    graph: Graph,
+    agents: Agent[],
+    providers: AIProvider[],
+): { nodes: FlowNode[]; edges: Edge[] } {
+    const branchesByNode = groupBranches(graph.conditions)
+    const agentByNode = new Map(
+        graph.agent_nodes.map((a) => [a.n_id, toAgentConfig(a)] as const),
+    )
+    return {
+        nodes: graph.nodes.map((n) =>
+            toFlowNode(
+                n,
+                agentByNode.get(n.id) ?? null,
+                branchesByNode.get(n.id) ?? [],
+                agents,
+                providers,
+            ),
+        ),
+        edges: graph.edges.map((e) => ({
+            id: e.id,
+            source: e.source,
+            target: e.target,
+            sourceHandle: e.source_handle,
+            markerEnd: EDGE_MARKER,
+            style: EDGE_STYLE,
+        })),
+    }
+}
+
+function serializeGraph(name: string, nodes: FlowNode[], edges: Edge[]): WorkflowReplace {
+    return {
+        name: name.trim() || 'Untitled Workflow',
+        nodes: nodes.map((n) => ({
+            id: n.id,
+            type: n.data.kind,
+            is_start: n.data.is_start,
+            position_x: n.position.x,
+            position_y: n.position.y,
+        })),
+        edges: edges.map((e) => ({
+            source: e.source,
+            target: e.target,
+            source_handle: e.sourceHandle ?? null,
+        })),
+        conditions: nodes.flatMap<ConditionInput>((n) =>
+            n.data.kind === 'condition'
+                ? n.data.branches.map((b, i) => ({
+                      id: b.id,
+                      n_id: n.id,
+                      label: b.label.trim(),
+                      operator: b.operator,
+                      value: b.operator === 'always' ? null : b.value,
+                      case_sensitive: b.case_sensitive,
+                      order_index: i,
+                  }))
+                : [],
+        ),
+        agent_nodes: nodes.flatMap<AgentNodeInput>((n) =>
+            n.data.kind === 'agent' && n.data.agent
+                ? [{ ...n.data.agent, n_id: n.id, name: n.data.agent.name.trim() }]
+                : [],
+        ),
+    }
+}
+
 function groupBranches(conditions: WorkflowCondition[]): Map<string, Branch[]> {
     const byNode = new Map<string, Branch[]>()
     for (const c of [...conditions].sort((a, b) => a.order_index - b.order_index)) {
@@ -155,6 +234,10 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
     const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null)
     const [chatOpen, setChatOpen] = useState(false)
+    const [designerOpen, setDesignerOpen] = useState(false)
+    const [beforeDesign, setBeforeDesign] = useState<
+        { name: string; nodes: FlowNode[]; edges: Edge[] } | null
+    >(null)
 
     const selectWorkflow = useChatStore((s) => s.selectWorkflow)
 
@@ -185,34 +268,14 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
         ])
             .then(([wf, agentList, providerList, collectionList, serverList]) => {
                 if (cancelled) return
-                const branchesByNode = groupBranches(wf.conditions)
-                const agentByNode = new Map(
-                    wf.agent_nodes.map((a) => [a.n_id, toAgentConfig(a)] as const),
-                )
+                const canvas = toCanvas(wf, agentList, providerList)
                 setName(wf.name)
                 setAgents(agentList)
                 setProviders(providerList)
                 setCollections(collectionList)
                 setMcpServers(serverList)
-                setNodes(
-                    wf.nodes.map((n) =>
-                        toFlowNode(
-                            n,
-                            agentByNode.get(n.id) ?? null,
-                            branchesByNode.get(n.id) ?? [],
-                            agentList,
-                            providerList,
-                        ),
-                    ),
-                )
-                setEdges(wf.edges.map((e) => ({
-                    id: e.id,
-                    source: e.source,
-                    target: e.target,
-                    sourceHandle: e.source_handle,
-                    markerEnd: EDGE_MARKER,
-                    style: EDGE_STYLE,
-                })))
+                setNodes(canvas.nodes)
+                setEdges(canvas.edges)
             })
             .catch((err: unknown) => {
                 if (!cancelled) setSaveError(err instanceof Error ? err.message : 'Failed to load workflow')
@@ -340,47 +403,38 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
         setSaving(true)
         setSaveError(null)
         try {
-            const conditions: ConditionInput[] = nodes.flatMap((n) =>
-                n.data.kind === 'condition'
-                    ? n.data.branches.map((b, i) => ({
-                          id: b.id,
-                          n_id: n.id,
-                          label: b.label.trim(),
-                          operator: b.operator,
-                          value: b.operator === 'always' ? null : b.value,
-                          case_sensitive: b.case_sensitive,
-                          order_index: i,
-                      }))
-                    : [],
-            )
-            const agentNodes: AgentNodeInput[] = nodes.flatMap((n) =>
-                n.data.kind === 'agent' && n.data.agent
-                    ? [{ ...n.data.agent, n_id: n.id, name: n.data.agent.name.trim() }]
-                    : [],
-            )
-            await replaceWorkflow(workflowId, {
-                name: name.trim() || 'Untitled Workflow',
-                nodes: nodes.map((n) => ({
-                    id: n.id,
-                    type: n.data.kind,
-                    is_start: n.data.is_start,
-                    position_x: n.position.x,
-                    position_y: n.position.y,
-                })),
-                edges: edges.map((e) => ({
-                    source: e.source,
-                    target: e.target,
-                    source_handle: e.sourceHandle ?? null,
-                })),
-                conditions,
-                agent_nodes: agentNodes,
-            })
+            await replaceWorkflow(workflowId, serializeGraph(name, nodes, edges))
             setSavedAt(Date.now())
+            // The canvas and the database agree again, so there is nothing left
+            // to undo back to.
+            setBeforeDesign(null)
         } catch (err: unknown) {
             setSaveError(readError(err))
         } finally {
             setSaving(false)
         }
+    }
+
+    function applyProposal(proposal: ProposedWorkflow) {
+        setBeforeDesign({ name, nodes, edges })
+        const canvas = toCanvas(proposal, agents, providers)
+        setName(proposal.name)
+        setNodes(canvas.nodes)
+        setEdges(canvas.edges)
+        setSelectedNodeId(null)
+        setSelectedEdgeId(null)
+        setSavedAt(null)
+        setSaveError(null)
+    }
+
+    function undoDesign() {
+        if (!beforeDesign) return
+        setName(beforeDesign.name)
+        setNodes(beforeDesign.nodes)
+        setEdges(beforeDesign.edges)
+        setSelectedNodeId(null)
+        setSelectedEdgeId(null)
+        setBeforeDesign(null)
     }
 
     const saveRef = useRef<() => void>(() => {})
@@ -432,7 +486,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
 
     return (
         <div className="h-full w-full flex">
-            <div className={`relative h-full ${chatOpen ? 'w-1/2 border-r border-zinc-800' : 'w-full'}`}>
+            <div className="relative h-full flex-1 min-w-0">
             {/* Toolbar */}
             <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-zinc-950/90 border border-zinc-800 rounded-lg px-3 py-2">
                 <input
@@ -463,6 +517,26 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                 >
                     {saving ? <span className="ui-spinner" /> : <IoSaveOutline />} Save
                 </button>
+                <button
+                    className={`flex items-center gap-1 text-xs border rounded px-2 py-1 ${
+                        designerOpen
+                            ? 'border-amber-600 text-amber-400 bg-amber-950/30'
+                            : 'border-zinc-700 text-zinc-300 hover:text-amber-400'
+                    }`}
+                    onClick={() => setDesignerOpen((open) => !open)}
+                    title="Describe the workflow you want and have it drafted for you"
+                >
+                    <IoSparklesOutline /> Designer
+                </button>
+                {beforeDesign && (
+                    <button
+                        className="flex items-center gap-1 text-xs text-zinc-300 hover:text-amber-400 border border-zinc-700 rounded px-2 py-1"
+                        onClick={undoDesign}
+                        title="Put the canvas back the way it was before the designer changed it"
+                    >
+                        <IoArrowUndoOutline /> Undo design
+                    </button>
+                )}
                 <CopyCurlButton targetId={workflowId} />
                 {savedAt && !saveError && (
                     <span className="flex items-center gap-1 text-[11px] text-emerald-400">
@@ -571,6 +645,15 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                     <ChatBox />
                 </div>
             )}
+
+            <div className={designerOpen ? 'w-88 shrink-0 h-full border-l border-zinc-800' : 'hidden'}>
+                <DesignerPanel
+                    providers={providers}
+                    getGraph={() => serializeGraph(name, nodes, edges)}
+                    onApply={applyProposal}
+                    onClose={() => setDesignerOpen(false)}
+                />
+            </div>
         </div>
     )
 }
