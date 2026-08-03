@@ -59,16 +59,6 @@ The API is self-documenting at **[http://localhost:8000/docs](http://localhost:8
 
 ## Other ways to run it
 
-### Docker Compose
-
-Useful if you'd rather not remember flags. Clone the repo and:
-
-```bash
-docker compose up -d
-```
-
-This builds from source rather than pulling. To use the published image instead, replace the `build:` key in [`docker-compose.yml`](docker-compose.yml) with `image: nipundezoysa/calypso:latest`. Copy [`.env.example`](.env.example) to `.env` to change the port.
-
 ### Build the image yourself
 
 ```bash

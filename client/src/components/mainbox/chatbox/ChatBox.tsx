@@ -74,7 +74,7 @@ function ChatBox() {
 
     return (
         <div className='relative h-full flex flex-col items-center'>
-            <div className='absolute top-0 w-full text-zinc-300 px-5 py-2 bg-zinc-900 z-10 flex items-center gap-3'>
+            <div className='sticky top-0 w-full text-zinc-300 px-5 py-2 bg-zinc-900 z-10 flex items-center gap-3'>
                 <span className='truncate'>{headerTitle}</span>
                 {targetId && <CopyCurlButton targetId={targetId} className='ml-auto' />}
             </div>
