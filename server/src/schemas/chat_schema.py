@@ -1,27 +1,63 @@
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+class AttachmentResponse(BaseModel):
+    id: str
+    filename: str
+    content_type: str | None
+    size_bytes: int | None
+    kind: str
+    status: str
+    error_message: str | None
+    has_text: bool
+    created_at: datetime
+
+    @classmethod
+    def from_model(cls, attachment) -> "AttachmentResponse":
+        return cls(
+            id=attachment.id,
+            filename=attachment.filename,
+            content_type=attachment.content_type,
+            size_bytes=attachment.size_bytes,
+            kind=attachment.kind,
+            status=attachment.status,
+            error_message=attachment.error_message,
+            has_text=bool(attachment.extracted_text),
+            created_at=attachment.created_at,
+        )
 
 
 class ChatAskRequest(BaseModel):
     question: str = Field(
-        ...,
-        min_length=1,
-        description="The question to ask the agent",
+        default="",
+        description="The question to ask the agent. May be blank if attachments are sent.",
         examples=["What's the status of my order?"],
     )
     thread_id: str | None = Field(
         default=None,
         description="Existing thread to continue. Omit to start a new thread.",
     )
+    attachment_ids: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Ids from POST /chat/attachments, sent with this message. Each may "
+            "only be used once."
+        ),
+    )
 
     @field_validator("question")
     @classmethod
-    def question_not_blank(cls, value: str) -> str:
-        value = value.strip()
-        if not value:
-            raise ValueError("question must not be blank")
-        return value
+    def strip_question(cls, value: str) -> str:
+        return value.strip()
+
+    @model_validator(mode="after")
+    def require_question_or_attachment(self) -> Self:
+        if not self.question and not self.attachment_ids:
+            raise ValueError("send a question, an attachment, or both")
+        return self
 
 
 class ChatAskResponse(BaseModel):
@@ -35,8 +71,22 @@ class MessageResponse(BaseModel):
     is_bot: bool
     content: str
     created_at: datetime
+    attachments: list[AttachmentResponse] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
+
+    @classmethod
+    def from_model(cls, message) -> "MessageResponse":
+        return cls(
+            id=message.id,
+            thread_id=message.thread_id,
+            is_bot=message.is_bot,
+            content=message.content,
+            created_at=message.created_at,
+            attachments=[
+                AttachmentResponse.from_model(a) for a in message.attachments
+            ],
+        )
 
 
 class ThreadResponse(BaseModel):

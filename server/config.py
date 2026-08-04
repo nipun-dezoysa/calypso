@@ -39,6 +39,8 @@ class Settings:
     cors_origins: list[str]
     cors_origin_regex: str | None
     kb_upload_dir: str
+    attachment_upload_dir: str
+    max_attachment_bytes: int
     chroma_persist_dir: str
     static_dir: str
     # Left as None unless pinned by the environment; the app then generates a
@@ -61,6 +63,8 @@ settings = Settings(
         r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
     ),
     kb_upload_dir=os.getenv("KB_UPLOAD_DIR", "kb_files"),
+    attachment_upload_dir=os.getenv("ATTACHMENT_UPLOAD_DIR", "attachment_files"),
+    max_attachment_bytes=_get_int_env("MAX_ATTACHMENT_BYTES", 20 * 1024 * 1024),
     chroma_persist_dir=os.getenv("CHROMA_PERSIST_DIR", "chroma_db"),
     static_dir=os.getenv("STATIC_DIR", "static"),
     jwt_secret=os.getenv("JWT_SECRET") or None,
