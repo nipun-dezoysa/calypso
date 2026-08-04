@@ -2,9 +2,12 @@ import { create } from 'zustand'
 import type { Agent } from '../api/agentApi'
 import {
     ask,
+    deleteAttachment,
     deleteThread,
     listThreadMessages,
     listThreads,
+    uploadAttachment,
+    type ChatAttachment,
     type ChatMessage,
     type ChatThread,
 } from '../api/chatApi'
@@ -26,6 +29,11 @@ interface ChatState {
     loadingMessages: boolean
     error: string | null
 
+    // Files uploaded and extracted, waiting to go out with the next message.
+    pendingAttachments: ChatAttachment[]
+    // How many uploads are still in flight, so the composer can block sending.
+    uploadingCount: number
+
     selectAgent: (agent: Agent | null) => void
     selectWorkflow: (workflow: { id: string; name: string }) => void
     patchSelectedAgent: (agent: Agent) => void
@@ -34,13 +42,21 @@ interface ChatState {
     removeThread: (threadId: string) => Promise<void>
     sendMessage: (question: string) => Promise<void>
     refreshThreads: () => Promise<void>
+    attachFiles: (files: File[]) => Promise<void>
+    removeAttachment: (attachmentId: string) => Promise<void>
 }
 
-const resetConversation = (): Pick<ChatState, 'threadId' | 'messages' | 'threads' | 'error'> => ({
+const resetConversation = (): Pick<
+    ChatState,
+    'threadId' | 'messages' | 'threads' | 'error' | 'pendingAttachments'
+> => ({
     threadId: null,
     messages: [],
     threads: [],
     error: null,
+    // Uploads belong to the conversation they were staged in; the server
+    // sweeps whatever is left unsent.
+    pendingAttachments: [],
 })
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -54,6 +70,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
     sending: false,
     loadingMessages: false,
     error: null,
+    pendingAttachments: [],
+    uploadingCount: 0,
 
     selectAgent: (agent) => {
         if (agent === null) {
@@ -94,10 +112,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({ selectedAgent: agent, targetName: agent.name })
     },
 
-    newChat: () => set({ threadId: null, messages: [], error: null }),
+    newChat: () => set({ threadId: null, messages: [], error: null, pendingAttachments: [] }),
 
     openThread: async (threadId) => {
-        set({ threadId, messages: [], loadingMessages: true, error: null })
+        set({ threadId, messages: [], loadingMessages: true, error: null, pendingAttachments: [] })
         try {
             const messages = await listThreadMessages(threadId)
             if (get().threadId !== threadId) return
@@ -138,10 +156,42 @@ export const useChatStore = create<ChatState>((set, get) => ({
         }
     },
 
+    attachFiles: async (files) => {
+        if (files.length === 0) return
+        set((s) => ({ uploadingCount: s.uploadingCount + files.length, error: null }))
+        for (const file of files) {
+            try {
+                const attachment = await uploadAttachment(file)
+                set((s) => ({
+                    pendingAttachments: [...s.pendingAttachments, attachment],
+                    uploadingCount: s.uploadingCount - 1,
+                }))
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : 'Upload failed'
+                set((s) => ({
+                    uploadingCount: s.uploadingCount - 1,
+                    error: `${file.name}: ${message}`,
+                }))
+            }
+        }
+    },
+
+    removeAttachment: async (attachmentId) => {
+        set((s) => ({
+            pendingAttachments: s.pendingAttachments.filter((a) => a.id !== attachmentId),
+        }))
+        try {
+            await deleteAttachment(attachmentId)
+        } catch {
+            // It is off the message either way; the server sweeps it later.
+        }
+    },
+
     sendMessage: async (question) => {
         const targetId = get().targetId
         if (!targetId || get().sending) return
         const threadId = get().threadId
+        const attachments = get().pendingAttachments
 
         const optimistic: ChatMessage = {
             id: `pending-${Date.now()}`,
@@ -149,11 +199,21 @@ export const useChatStore = create<ChatState>((set, get) => ({
             is_bot: false,
             content: question,
             created_at: new Date().toISOString(),
+            attachments,
         }
-        set((s) => ({ messages: [...s.messages, optimistic], sending: true, error: null }))
+        set((s) => ({
+            messages: [...s.messages, optimistic],
+            sending: true,
+            error: null,
+            pendingAttachments: [],
+        }))
 
         try {
-            const res = await ask(targetId, { question, thread_id: threadId })
+            const res = await ask(targetId, {
+                question,
+                thread_id: threadId,
+                attachment_ids: attachments.map((a) => a.id),
+            })
             // User may have switched target or thread while waiting.
             if (get().targetId !== targetId || get().threadId !== threadId) {
                 set({ sending: false })
