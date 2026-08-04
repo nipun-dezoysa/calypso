@@ -4,6 +4,7 @@ import ChatInput from './ChatInput'
 import UserMessage from './UserMessage'
 import { useChatStore } from '../../../stores/ChatStore'
 import CopyCurlButton from '../../common/CopyCurlButton'
+import ScrollArea from '../../common/ScrollArea'
 
 function ChatBox() {
     const targetId = useChatStore((s) => s.targetId)
@@ -51,7 +52,10 @@ function ChatBox() {
         }
 
         return (
-          <div className="w-full flex-1 overflow-y-auto flex flex-col items-center">
+          <ScrollArea
+            className="w-full flex-1"
+            contentClassName="w-full flex flex-col items-center"
+          >
             <div className="w-full px-4 max-w-4xl flex flex-col gap-5 pt-15 pb-45">
               {messages.map((m) =>
                 m.is_bot ? (
@@ -68,7 +72,7 @@ function ChatBox() {
               {error && <div className="text-red-400 text-sm">{error}</div>}
               <div ref={bottomRef} />
             </div>
-          </div>
+          </ScrollArea>
         );
     }
 
