@@ -488,7 +488,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
         <div className="h-full w-full flex">
             <div className="relative h-full flex-1 min-w-0">
             {/* Toolbar */}
-            <div className="absolute top-3 left-3 z-10 flex items-center gap-2 bg-zinc-950/90 border border-zinc-800 rounded-lg px-3 py-2">
+            <div className="absolute top-3 left-3 z-10 max-w-[calc(100%-1.5rem)] flex flex-wrap items-center gap-2 bg-zinc-950/90 border border-zinc-800 rounded-lg px-3 py-2">
                 <input
                     className="bg-transparent text-zinc-200 text-sm font-medium outline-none w-40 border-b border-transparent focus:border-zinc-600"
                     value={name}

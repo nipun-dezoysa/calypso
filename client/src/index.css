@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+/* Fixed-viewport app: every scrollable region is an internal one, so the page
+   itself must never scroll — otherwise a layout shift inside a panel (a
+   growing textarea, say) pops a native scrollbar across the whole window. */
+html,
+body,
+#root {
+    height: 100%;
+    overflow: hidden;
+}

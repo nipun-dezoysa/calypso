@@ -10,6 +10,8 @@ import {
 import Markdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { AIProvider } from '../../../api/aiProviderApi'
+import AutoGrowTextarea from '../../common/AutoGrowTextarea'
+import ScrollArea from '../../common/ScrollArea'
 import {
     designWorkflow,
     type DesignerDraft,
@@ -155,7 +157,11 @@ export default function DesignerPanel({
                 </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-3">
+            <ScrollArea
+                className="flex-1"
+                viewportClassName="px-3 py-3"
+                contentClassName="flex flex-col gap-3"
+            >
                 {turns.length === 0 && (
                     <div className="flex flex-col gap-2 text-[11px] text-zinc-500">
                         <p className="leading-relaxed">
@@ -211,12 +217,13 @@ export default function DesignerPanel({
                 )}
                 {error && <div className="text-[11px] text-red-400">{error}</div>}
                 <div ref={bottomRef} />
-            </div>
+            </ScrollArea>
 
-            <div className="border-t border-zinc-800 p-2 flex flex-col gap-2">
-                <textarea
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded text-zinc-200 text-xs px-2 py-1.5 outline-none focus:border-zinc-600 resize-none placeholder:text-zinc-600"
-                    rows={3}
+            <div className="shrink-0 border-t border-zinc-800 p-2 flex flex-col gap-2">
+                <AutoGrowTextarea
+                    className="bg-zinc-900 border border-zinc-800 rounded text-zinc-200 text-xs px-2 py-1.5 outline-none focus:border-zinc-600 placeholder:text-zinc-600"
+                    minRows={3}
+                    maxHeight={180}
                     placeholder={
                         models.length === 0
                             ? 'Add an AI provider first — the designer needs a model to think with.'
