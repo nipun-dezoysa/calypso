@@ -61,7 +61,11 @@ function ChatBox() {
                 m.is_bot ? (
                   <BotMessage key={m.id} message={m.content} />
                 ) : (
-                  <UserMessage key={m.id} message={m.content} />
+                  <UserMessage
+                    key={m.id}
+                    message={m.content}
+                    attachments={m.attachments}
+                  />
                 ),
               )}
               {sending && (

@@ -8,10 +8,12 @@ from langchain_core.messages import (
     SystemMessage,
     ToolMessage,
 )
+from langchain_core.messages.content import create_image_block
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent_model import Agent
+from src.models.attachment_model import KIND_IMAGE, Attachment, AttachmentStatus
 from src.models.kb_collection_model import KbCollection
 from src.models.llm_model import LLMModel
 from src.models.mcp_server_model import McpServer
@@ -20,7 +22,8 @@ from src.models.node_model import NODE_TYPE_AGENT, Node
 from src.models.thread_model import THREAD_TYPE_AGENT, THREAD_TYPE_WORKFLOW, Thread
 from src.models.workflow_agent_model import WorkflowAgent
 from src.models.workflow_model import Workflow
-from src.services import kb_vectorstore, mcp_client, tool_schema
+from src.services import attachment_extract, kb_vectorstore, mcp_client, tool_schema
+from src.services.attachment_service import remove_file
 from src.services.kb_settings_service import KbSettingsService
 from src.services.kb_vectorstore import KbConfig
 from src.services.llm_factory import build_chat_model
@@ -30,6 +33,8 @@ RAG_TOP_K_PER_COLLECTION = 4
 RAG_MAX_CHUNKS = 8
 MCP_MAX_TOOL_ITERATIONS = 6
 DEFAULT_CREATIVITY = 50
+MAX_HISTORY_IMAGES = 4
+RETRIEVAL_QUERY_CHARS = 500
 
 
 @dataclass
@@ -54,14 +59,18 @@ class ChatService:
         target_id: str,
         question: str,
         thread_id: str | None = None,
+        attachments: list[Attachment] | None = None,
     ) -> tuple[str, str] | None:
+        attachments = attachments or []
         agent = await self.db.get(Agent, target_id)
         if agent is not None:
-            return await self._answer_agent(agent, question, thread_id)
+            return await self._answer_agent(agent, question, thread_id, attachments)
 
         workflow = await self.db.get(Workflow, target_id)
         if workflow is not None:
-            return await self._answer_workflow(workflow, question, thread_id)
+            return await self._answer_workflow(
+                workflow, question, thread_id, attachments
+            )
 
         return None
 
@@ -72,6 +81,7 @@ class ChatService:
         agent: Agent,
         question: str,
         thread_id: str | None,
+        attachments: list[Attachment],
     ) -> tuple[str, str] | None:
         thread: Thread | None = None
         history: list[AIMessage | HumanMessage] = []
@@ -81,14 +91,16 @@ class ChatService:
                 return None
             history = _history_from(thread)
 
-        answer = await self._run_turn(_config_from_agent(agent), question, history)
+        answer = await self._run_turn(
+            _config_from_agent(agent), question, history, attachments=attachments
+        )
 
         if thread is None:
             thread = Thread(type=THREAD_TYPE_AGENT, agent_id=agent.id, messages=[])
             self.db.add(thread)
             await self.db.flush()
 
-        return await self._persist_exchange(thread, question, answer)
+        return await self._persist_exchange(thread, question, answer, attachments)
 
     async def _run_turn(
         self,
@@ -96,9 +108,11 @@ class ChatService:
         question: str,
         history: list[AIMessage | HumanMessage] | None = None,
         handoff: str = "",
+        attachments: list[Attachment] | None = None,
     ) -> str:
         """Run one turn (LLM + KB context + MCP tools) and return the answer text.
         No persistence — reused by both direct chat and workflow nodes."""
+        attachments = attachments or []
         chat_model = build_chat_model(
             provider=config.llm_model.ai_provider,
             model_name=config.llm_model.model_name,
@@ -108,16 +122,36 @@ class ChatService:
         system_content = config.instructions
         if handoff:
             system_content = f"{system_content}\n\n{_handoff_block(handoff)}"
-        context = await self._retrieve_context(config.collections, question)
+        context = await self._retrieve_context(
+            config.collections, _retrieval_query(question, attachments)
+        )
         if context:
             system_content = f"{system_content}\n\n{context}"
 
-        messages = [
-            SystemMessage(content=system_content),
-            *(history or []),
-            HumanMessage(content=question),
-        ]
-        answer = await self._invoke_with_tools(chat_model, config.mcp_servers, messages)
+        images = [a for a in attachments if a.kind == KIND_IMAGE]
+
+        def build(with_images: bool) -> list:
+            # Rebuilt per attempt: _invoke_with_tools appends to the list it is
+            # given, so a retry must not reuse the first attempt's messages.
+            return [
+                SystemMessage(content=system_content),
+                *(history or []),
+                _human_message(question, attachments, images if with_images else []),
+            ]
+
+        try:
+            answer = await self._invoke_with_tools(
+                chat_model, config.mcp_servers, build(with_images=True)
+            )
+        except Exception:
+            if not images:
+                raise
+            # The model has no vision. Fall back to whatever OCR read out of the
+            # images, which _human_message puts in the text either way.
+            answer = await self._invoke_with_tools(
+                chat_model, config.mcp_servers, build(with_images=False)
+            )
+
         if not answer:
             raise RuntimeError("The LLM returned an empty response")
         return answer
@@ -129,6 +163,7 @@ class ChatService:
         workflow: Workflow,
         question: str,
         thread_id: str | None,
+        attachments: list[Attachment],
     ) -> tuple[str, str] | None:
         thread: Thread | None = None
         history: list[AIMessage | HumanMessage] = []
@@ -138,7 +173,7 @@ class ChatService:
                 return None
             history = _history_from(thread)
 
-        answer = await self._run_workflow(workflow, question, history)
+        answer = await self._run_workflow(workflow, question, history, attachments)
 
         if thread is None:
             thread = Thread(
@@ -147,20 +182,23 @@ class ChatService:
             self.db.add(thread)
             await self.db.flush()
 
-        return await self._persist_exchange(thread, question, answer)
+        return await self._persist_exchange(thread, question, answer, attachments)
 
     async def _run_workflow(
         self,
         workflow: Workflow,
         question: str,
         history: list[AIMessage | HumanMessage] | None = None,
+        attachments: list[Attachment] | None = None,
     ) -> str:
         """Execute the workflow as a LangGraph graph and return the final node's
-        output. Every node sees the user's question and the thread history; the
-        previous node's output rides along as `handoff`."""
+        output. Every node sees the user's question, the thread history and any
+        attachments; the previous node's output rides along as `handoff`."""
 
         async def run_node(node: Node, node_question: str, handoff: str) -> str:
-            return await self._run_node(node, node_question, handoff, history)
+            return await self._run_node(
+                node, node_question, handoff, history, attachments
+            )
 
         graph = build_workflow_graph(workflow, run_node)
         result = await graph.ainvoke(
@@ -179,6 +217,7 @@ class ChatService:
         question: str,
         handoff: str,
         history: list[AIMessage | HumanMessage] | None = None,
+        attachments: list[Attachment] | None = None,
     ) -> str:
         # Condition nodes route inside the graph and never reach this.
         if node.type != NODE_TYPE_AGENT:
@@ -188,16 +227,25 @@ class ChatService:
                 "a workflow node has no agent set up — open the workflow and configure it"
             )
         config = _config_from_workflow_agent(node.agent_config)
-        return await self._run_turn(config, question, history, handoff)
+        return await self._run_turn(config, question, history, handoff, attachments)
 
     # ── Shared ────────────────────────────────────────────────────────────
 
     async def _persist_exchange(
-        self, thread: Thread, question: str, answer: str
+        self,
+        thread: Thread,
+        question: str,
+        answer: str,
+        attachments: list[Attachment] | None = None,
     ) -> tuple[str, str]:
+        attachments = attachments or []
         if thread.title is None:
-            thread.title = question.strip()[:200]
-        thread.messages.append(Message(thread_id=thread.id, is_bot=False, content=question))
+            thread.title = _thread_title(question, attachments)
+
+        user_message = Message(thread_id=thread.id, is_bot=False, content=question)
+        user_message.attachments.extend(attachments)
+        thread.messages.append(user_message)
+
         thread.messages.append(Message(thread_id=thread.id, is_bot=True, content=answer))
         thread.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
@@ -291,11 +339,18 @@ class ChatService:
         return thread.messages
 
     async def delete_thread(self, thread_id: str) -> bool:
-        """Delete a thread and its messages. False if there was no such thread."""
+        """Delete a thread, its messages and their attachments. False if there
+        was no such thread."""
         thread = await self.db.get(Thread, thread_id)
         if thread is None:
             return False
-        await self.db.delete(thread) 
+
+        # The rows cascade, the files on disk do not.
+        for message in thread.messages:
+            for attachment in message.attachments:
+                remove_file(attachment.file_path)
+
+        await self.db.delete(thread)
         await self.db.commit()
         return True
 
@@ -371,10 +426,99 @@ def _merge_by_id(base: list, extra: list) -> list:
 
 
 def _history_from(thread: Thread) -> list[AIMessage | HumanMessage]:
-    return [
-        AIMessage(content=m.content) if m.is_bot else HumanMessage(content=m.content)
-        for m in thread.messages
-    ]
+    remaining_images = MAX_HISTORY_IMAGES
+    rebuilt: list[AIMessage | HumanMessage] = []
+
+    # Newest first, so the images that survive the budget are the recent ones.
+    for message in reversed(thread.messages):
+        if message.is_bot:
+            rebuilt.append(AIMessage(content=message.content))
+            continue
+
+        images = [a for a in message.attachments if a.kind == KIND_IMAGE]
+        send = images[:remaining_images]
+        remaining_images -= len(send)
+        rebuilt.append(_human_message(message.content, message.attachments, send))
+
+    rebuilt.reverse()
+    return rebuilt
+
+
+def _human_message(
+    question: str,
+    attachments: list[Attachment],
+    image_attachments: list[Attachment],
+) -> HumanMessage:
+    """The user's turn: their text, the text pulled out of their attachments,
+    and the images themselves as content blocks."""
+    text = _compose_text(question, attachments)
+
+    blocks = []
+    for attachment in image_attachments:
+        try:
+            data = attachment_extract.read_base64(attachment.file_path)
+        except OSError:
+            # The file is gone from disk — the extracted text still stands in.
+            continue
+        blocks.append(
+            create_image_block(
+                base64=data,
+                mime_type=attachment_extract.mime_type_for(
+                    attachment.filename, attachment.content_type
+                ),
+            )
+        )
+
+    if not blocks:
+        return HumanMessage(content=text)
+    return HumanMessage(content=[{"type": "text", "text": text}, *blocks])
+
+
+def _compose_text(question: str, attachments: list[Attachment]) -> str:
+    if not attachments:
+        return question
+
+    entries = []
+    for index, attachment in enumerate(attachments, start=1):
+        label = f"[{index}] {attachment.filename}"
+        if attachment.status == AttachmentStatus.FAILED.value:
+            reason = attachment.error_message or "the file could not be read"
+            entries.append(f"{label} — could not be read: {reason}")
+            continue
+
+        if attachment.extracted_text:
+            if attachment.kind == KIND_IMAGE:
+                label += " (image, text below read from it by OCR)"
+            entries.append(f"{label}\n{attachment.extracted_text}")
+        elif attachment.kind == KIND_IMAGE:
+            entries.append(f"{label} (image, no readable text in it)")
+        else:
+            entries.append(f"{label} — no text could be extracted from this file")
+
+    body = "\n\n".join(entries)
+    header = (
+        "The user attached the following file(s) to this message. Use their "
+        "contents when answering."
+    )
+    attached = f"{header}\n\n--- ATTACHMENTS ---\n{body}\n--- END ATTACHMENTS ---"
+    return f"{question}\n\n{attached}" if question else attached
+
+
+def _retrieval_query(question: str, attachments: list[Attachment]) -> str:
+    if question:
+        return question
+    for attachment in attachments:
+        if attachment.extracted_text:
+            return attachment.extracted_text[:RETRIEVAL_QUERY_CHARS]
+    return " ".join(a.filename for a in attachments)
+
+
+def _thread_title(question: str, attachments: list[Attachment]) -> str:
+    if question:
+        return question[:200]
+    if attachments:
+        return attachments[0].filename[:200]
+    return "New chat"
 
 
 def _handoff_block(handoff: str) -> str:

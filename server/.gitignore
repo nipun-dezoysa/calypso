@@ -9,6 +9,10 @@ calypso.db-wal
 # ── Knowledge base storage ──
 kb_files/
 chroma_db/
+fastembed_cache/
+
+# ── Chat attachment storage ──
+attachment_files/
 
 # ── Python ──
 __pycache__/

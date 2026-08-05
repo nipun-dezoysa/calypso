@@ -33,7 +33,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.13-slim-bookworm AS runtime
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgomp1 curl \
+    && apt-get install -y --no-install-recommends libgomp1 curl tesseract-ocr \
     && rm -rf /var/lib/apt/lists/*
 
 ENV PYTHONUNBUFFERED=1 \
@@ -49,6 +49,7 @@ COPY --from=client-builder /client/dist ./static
 ENV STATIC_DIR="/app/static" \
     DATABASE_URL="sqlite+aiosqlite:////app/data/calypso.db" \
     KB_UPLOAD_DIR="/app/data/kb_files" \
+    ATTACHMENT_UPLOAD_DIR="/app/data/attachment_files" \
     CHROMA_PERSIST_DIR="/app/data/chroma_db" \
     FASTEMBED_CACHE_PATH="/app/data/fastembed_cache"
 

@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
-import { IoArrowUp } from "react-icons/io5";
+import { useEffect, useRef, useState } from "react";
+import { IoAdd, IoArrowUp } from "react-icons/io5";
 import DropdownSelector, {
   type SelectOption,
 } from "../../common/DropdownSelector";
 import { listAgents, updateAgent, type Agent } from "../../../api/agentApi";
 import { listCollections, type Collection } from "../../../api/kbApi";
 import { listMcpServers, type McpServer } from "../../../api/mcpApi";
+import { SUPPORTED_ATTACHMENT_TYPES } from "../../../api/chatApi";
 import { useChatStore } from "../../../stores/ChatStore";
+import AttachmentChip from "./AttachmentChip";
 
 const AGENT_PLACEHOLDER: SelectOption = { id: "", name: "Select an agent" };
 
@@ -17,6 +19,9 @@ function ChatInput() {
   const [text, setText] = useState("");
   const [savingKBs, setSavingKBs] = useState(false);
   const [savingMcps, setSavingMcps] = useState(false);
+  const [draggingOver, setDraggingOver] = useState(false);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const targetId = useChatStore((s) => s.targetId);
   const targetType = useChatStore((s) => s.targetType);
@@ -26,6 +31,10 @@ function ChatInput() {
   const patchSelectedAgent = useChatStore((s) => s.patchSelectedAgent);
   const sendMessage = useChatStore((s) => s.sendMessage);
   const sending = useChatStore((s) => s.sending);
+  const pendingAttachments = useChatStore((s) => s.pendingAttachments);
+  const uploadingCount = useChatStore((s) => s.uploadingCount);
+  const attachFiles = useChatStore((s) => s.attachFiles);
+  const removeAttachment = useChatStore((s) => s.removeAttachment);
 
   useEffect(() => {
     let cancelled = false;
@@ -138,7 +147,11 @@ function ChatInput() {
     ? { id: targetId, name: targetName ?? "" }
     : AGENT_PLACEHOLDER;
 
-  const canSend = Boolean(targetId) && text.trim().length > 0 && !sending;
+  const uploading = uploadingCount > 0;
+  // An attachment on its own is a message; text is not required.
+  const hasContent = text.trim().length > 0 || pendingAttachments.length > 0;
+  const canSend = Boolean(targetId) && hasContent && !sending && !uploading;
+  const canAttach = Boolean(targetId) && !sending;
 
   function handleSend() {
     if (!canSend) return;
@@ -154,23 +167,101 @@ function ChatInput() {
     }
   }
 
+  function handleFiles(files: FileList | null) {
+    if (!files || files.length === 0 || !canAttach) return;
+    void attachFiles(Array.from(files));
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDraggingOver(false);
+    handleFiles(e.dataTransfer.files);
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    if (!canAttach) return;
+    // Only light up for files — dragging selected text should not look droppable.
+    if (!Array.from(e.dataTransfer.types).includes("Files")) return;
+    e.preventDefault();
+    setDraggingOver(true);
+  }
+
+  function handlePaste(e: React.ClipboardEvent) {
+    const files = Array.from(e.clipboardData.files);
+    if (files.length === 0) return;
+    e.preventDefault();
+    handleFiles(e.clipboardData.files);
+  }
+
   return (
     <div className="w-full bg-zinc-900 px-4 absolute left-0 bottom-0 flex items-center justify-center pb-5 flex-col">
-      <div className=" bg-zinc-950 w-full max-w-4xl rounded-2xl p-3">
+      <div
+        className={`bg-zinc-950 w-full max-w-4xl rounded-2xl p-3 border ${
+          draggingOver ? "border-amber-600" : "border-transparent"
+        }`}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onDragLeave={() => setDraggingOver(false)}
+      >
+        {(pendingAttachments.length > 0 || uploading) && (
+          <div className="flex flex-wrap gap-2 pb-2">
+            {pendingAttachments.map((a) => (
+              <AttachmentChip
+                key={a.id}
+                attachment={a}
+                onRemove={removeAttachment}
+              />
+            ))}
+            {uploading && (
+              <div className="flex items-center text-xs text-zinc-500 animate-pulse px-2">
+                Reading {uploadingCount} file{uploadingCount === 1 ? "" : "s"}…
+              </div>
+            )}
+          </div>
+        )}
+
         <textarea
           className="w-full bg-transparent focus:outline-none text-zinc-300 resize-none placeholder:text-zinc-500"
           placeholder={
             targetId
-              ? "Type your message here..."
+              ? "Type your message here, or drop in a file..."
               : "Select an agent or workflow to start chatting..."
           }
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={handleKeyDown}
+          onPaste={handlePaste}
           disabled={!targetId}
         ></textarea>
         <div className="flex justify-between text-zinc-500 items-center">
           <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept={SUPPORTED_ATTACHMENT_TYPES}
+              className="hidden"
+              onChange={(e) => {
+                handleFiles(e.target.files);
+                // Reset so picking the same file twice still fires a change.
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!canAttach}
+              className={`p-1 rounded ${
+                canAttach
+                  ? "hover:text-zinc-300 cursor-pointer"
+                  : "opacity-40 cursor-not-allowed"
+              }`}
+              title="Attach a PDF, Word document, text file or image"
+              aria-label="Attach a file"
+            >
+              <IoAdd size={18} />
+            </button>
+            <span className="text-zinc-600">·</span>
             <DropdownSelector
               options={agentOptions}
               selected={selectedOption}

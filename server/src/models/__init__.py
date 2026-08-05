@@ -3,6 +3,7 @@ from src.models.agent_mcp_server import agent_mcp_server
 from src.models.agent_model import Agent
 from src.models.ai_provide_model import AIProvider
 from src.models.app_secret_model import AppSecret
+from src.models.attachment_model import Attachment
 from src.models.condition_model import Condition
 from src.models.edge_model import Edge
 from src.models.kb_collection_model import KbCollection
@@ -25,6 +26,7 @@ __all__ = [
     "Agent",
     "AIProvider",
     "AppSecret",
+    "Attachment",
     "Condition",
     "Edge",
     "KbCollection",

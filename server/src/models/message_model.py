@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from src.database import Base
 
 if TYPE_CHECKING:
+    from src.models.attachment_model import Attachment
     from src.models.thread_model import Thread
 
 
@@ -50,11 +51,18 @@ class Message(Base):
         back_populates="messages",
     )
 
+    attachments: Mapped[list["Attachment"]] = relationship(
+        "Attachment",
+        back_populates="message",
+        cascade="all, delete-orphan",
+        order_by="Attachment.created_at",
+        lazy="selectin",
+    )
+
     @validates("content")
     def validate_content(self, _key: str, value: str) -> str:
-        if not value or not value.strip():
-            raise ValueError("content must not be empty")
-        return value.strip()
+        # Empty is allowed: a user message may be nothing but attachments.
+        return (value or "").strip()
 
     def __repr__(self) -> str:
         return f"<Message(id={self.id!r}, is_bot={self.is_bot!r})>"
