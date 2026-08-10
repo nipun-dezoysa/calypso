@@ -498,3 +498,39 @@
 
 /* ── misc ── */
 .ui-divider { border: none; border-top: 1px solid var(--c-hover); margin: 4px 0 0; }
+
+/* ── Context window rows (provider form) ─────────────────────────────── */
+
+.form-context-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.form-context-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.form-context-name {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+    color: #a1a1aa;
+}
+
+.form-context-input {
+    flex: 0 0 130px;
+    width: 130px;
+}
+
+.form-context-hint {
+    flex: 0 0 110px;
+    font-size: 11px;
+    color: #52525b;
+    text-align: right;
+}

@@ -14,6 +14,7 @@ from langchain_core.messages.content import create_image_block
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings as app_settings
 from src.models.agent_model import Agent
 from src.models.attachment_model import KIND_IMAGE, Attachment, AttachmentStatus
 from src.models.kb_collection_model import KbCollection
@@ -37,6 +38,16 @@ MCP_MAX_TOOL_ITERATIONS = 6
 DEFAULT_CREATIVITY = 50
 MAX_HISTORY_IMAGES = 4
 RETRIEVAL_QUERY_CHARS = 500
+
+CHARS_PER_TOKEN = 4
+IMAGE_TOKEN_ESTIMATE = 1000.
+HISTORY_CONTEXT_FRACTION = 0.5
+
+HISTORY_TRIMMED_NOTE = (
+    "[Earlier turns of this conversation were left out to stay within the "
+    "context window. Do not assume anything about what was said before this "
+    "point; ask if you need it.]"
+)
 STOPPED_WITH_NOTHING = "_(stopped before the model produced any output)_"
 
 Emit = Callable[[dict], Awaitable[None]]
@@ -220,13 +231,12 @@ class ChatService:
             system_content = f"{system_content}\n\n{context}"
 
         images = [a for a in attachments if a.kind == KIND_IMAGE]
+        trimmed_history = _trim_history(history or [], _history_budget(config.llm_model))
 
         def build(with_images: bool) -> list:
-            # Rebuilt per attempt: _invoke_with_tools appends to the list it is
-            # given, so a retry must not reuse the first attempt's messages.
             return [
                 SystemMessage(content=system_content),
-                *(history or []),
+                *trimmed_history,
                 _human_message(question, attachments, images if with_images else []),
             ]
 
@@ -579,7 +589,7 @@ def _history_from(thread: Thread) -> list[AIMessage | HumanMessage]:
     remaining_images = MAX_HISTORY_IMAGES
     rebuilt: list[AIMessage | HumanMessage] = []
 
-    # Newest first, so the images that survive the budget are the recent ones.
+    # Newest first, so the images that survive the cap are the recent ones.
     for message in reversed(thread.messages):
         if message.is_bot:
             rebuilt.append(AIMessage(content=message.content))
@@ -592,6 +602,72 @@ def _history_from(thread: Thread) -> list[AIMessage | HumanMessage]:
 
     rebuilt.reverse()
     return rebuilt
+
+
+def _history_budget(llm_model: LLMModel) -> int:
+    default = app_settings.history_token_budget
+    if default <= 0:
+        return 0
+    if llm_model.context_tokens:
+        return max(1, int(llm_model.context_tokens * HISTORY_CONTEXT_FRACTION))
+    return default
+
+
+def _trim_history(
+    history: list[AIMessage | HumanMessage], token_budget: int
+) -> list[AIMessage | HumanMessage]:
+
+    if token_budget <= 0:
+        return list(history)
+
+    remaining = token_budget
+    kept: list[AIMessage | HumanMessage] = []
+    trimmed = False
+
+    for message in reversed(history):
+        cost = _message_tokens(message)
+        if cost > remaining:
+            trimmed = True
+            break
+        remaining -= cost
+        kept.append(message)
+
+    kept.reverse()
+
+    while kept and isinstance(kept[0], AIMessage):
+        kept.pop(0)
+        trimmed = True
+
+    if trimmed and kept:
+        kept[0] = _with_note(kept[0], HISTORY_TRIMMED_NOTE)
+    return kept
+
+
+def _message_tokens(message: AIMessage | HumanMessage) -> int:
+    content = message.content
+    if isinstance(content, str):
+        return _estimate_tokens(content)
+
+    total = 0
+    for block in content:
+        if isinstance(block, str):
+            total += _estimate_tokens(block)
+        elif isinstance(block, dict) and "text" in block:
+            total += _estimate_tokens(block.get("text") or "")
+        else:
+            total += IMAGE_TOKEN_ESTIMATE
+    return total
+
+
+def _estimate_tokens(text: str) -> int:
+    return -(-len(text) // CHARS_PER_TOKEN)
+
+
+def _with_note(message: HumanMessage, note: str) -> HumanMessage:
+    """Prefix a note onto a human turn, whichever shape its content is in."""
+    if isinstance(message.content, str):
+        return HumanMessage(content=f"{note}\n\n{message.content}")
+    return HumanMessage(content=[{"type": "text", "text": note}, *message.content])
 
 
 def _human_message(

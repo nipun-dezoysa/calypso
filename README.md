@@ -111,6 +111,7 @@ Every setting is optional; the defaults below are what the image uses. Providers
 | `JWT_SECRET` | generated once, stored in the database | Token signing key |
 | `JWT_EXPIRE_DAYS` | `365` | Access token lifetime |
 | `JWT_ALGORITHM` | `HS256` | Token signing algorithm |
+| `HISTORY_TOKEN_BUDGET` | `6000` | History ceiling for models with no context window set; `0` sends the whole thread |
 
 The UI and API share an origin in the image, so CORS only matters if you call the API from somewhere else.
 
@@ -153,6 +154,39 @@ save; it is not tied to the connection.
 
 `/ask` is unchanged and still returns the whole answer in one response, for
 callers that would rather not parse a stream.
+
+### Conversation history
+
+Every turn replays the thread so far, which is what gives an agent its memory —
+but a thread left to grow will eventually overrun the model's context window,
+and on a metered provider it pays for the same old turns again with each new
+message. So the replay is capped: turns are kept newest first until the budget
+is used up, and what falls outside is left out, with a note telling the model the
+conversation did not start where it appears to. Attachment text and images count
+against the budget too, since a PDF costs far more than anything typed alongside
+it.
+
+**The budget comes from the model.** Each model can be given a *context window*
+when you add or edit its provider, and the history is allowed half of it, the
+rest has to hold the system prompt, the knowledge-base chunks, the question with
+its attachments, and the reply. So a 200k Claude replays far more of a
+conversation than a 4k local model, instead of both being held to one figure
+picked to be safe on the smaller one. The field suggests a size for models it
+recognises, including Ollama tags like `llama3.1:8b`, and you can override it.
+
+Models with no window set fall back to `HISTORY_TOKEN_BUDGET`, which is also the
+global off switch: set it to `0` and the whole thread is sent, whatever any model
+says. In a workflow each node is sized by its own model, so a step on a large
+model is not cut down to fit a step on a small one.
+
+Turns are dropped rather than summarised on purpose. A summary means another
+full generation before the real answer can start, which on a local model is
+minutes of waiting for something the user did not ask for.
+
+One caveat for Ollama: the sizes suggested are the *model's* limit, but Ollama
+serves a smaller `num_ctx` unless the Modelfile raises it. If answers start
+failing on a local model, lower its window here to match what Ollama actually
+serves.
 
 ### A note on stdio MCP servers
 

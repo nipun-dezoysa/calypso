@@ -19,7 +19,13 @@ class AIProviderService:
             provider_name=data.provider_name,
             url=str(data.url) if data.url else None,
             secret_key=data.secret_key,
-            models=[LLMModel(model_name=name) for name in data.model_names],
+            models=[
+                LLMModel(
+                    model_name=name,
+                    context_tokens=data.model_contexts.get(name),
+                )
+                for name in data.model_names
+            ],
         )
         self.db.add(provider)
         await self.db.commit()
@@ -61,9 +67,15 @@ class AIProviderService:
         if "url" in update_data and update_data["url"] is not None:
             update_data["url"] = str(update_data["url"])
 
+        model_contexts = update_data.pop("model_contexts", None)
         model_names = update_data.pop("model_names", None)
         if model_names is not None:
-            await self._sync_models(provider, model_names)
+            await self._sync_models(provider, model_names, model_contexts or {})
+        elif model_contexts:
+            # Resizing the models that are already there, without touching the list.
+            for model in provider.models:
+                if model.model_name in model_contexts:
+                    model.context_tokens = model_contexts[model.model_name]
 
         for field, value in update_data.items():
             setattr(provider, field, value)
@@ -72,8 +84,13 @@ class AIProviderService:
         await self.db.refresh(provider)
         return provider
 
-    async def _sync_models(self, provider: AIProvider, model_names: list[str]) -> None:
-        """Reconcile `provider.models` with the given list of model names."""
+    async def _sync_models(
+        self,
+        provider: AIProvider,
+        model_names: list[str],
+        model_contexts: dict[str, int] | None = None,
+    ) -> None:
+        model_contexts = model_contexts or {}
         current_by_name = {m.model_name: m for m in provider.models}
         new_names = set(model_names)
 
@@ -91,8 +108,13 @@ class AIProviderService:
                 provider.models.remove(m)
 
         for name in model_names:
-            if name not in current_by_name:
-                provider.models.append(LLMModel(model_name=name))
+            existing = current_by_name.get(name)
+            if existing is None:
+                provider.models.append(
+                    LLMModel(model_name=name, context_tokens=model_contexts.get(name))
+                )
+            elif name in model_contexts:
+                existing.context_tokens = model_contexts[name]
 
     async def delete(self, provider_id: str) -> bool:
         """Delete an AI provider. Returns True if deleted, False if not found."""

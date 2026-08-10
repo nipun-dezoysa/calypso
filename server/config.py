@@ -43,14 +43,12 @@ class Settings:
     max_attachment_bytes: int
     chroma_persist_dir: str
     static_dir: str
-    # Left as None unless pinned by the environment; the app then generates a
-    # secret on first boot and keeps it in the database, so tokens issued
-    # before a restart stay valid afterwards.
     jwt_secret: str | None
     jwt_algorithm: str
     jwt_expire_days: int
     default_username: str
     default_password: str
+    history_token_budget: int
 
 
 settings = Settings(
@@ -72,4 +70,5 @@ settings = Settings(
     jwt_expire_days=_get_int_env("JWT_EXPIRE_DAYS", 365),
     default_username=os.getenv("DEFAULT_USERNAME", "admin"),
     default_password=os.getenv("DEFAULT_PASSWORD", "admin"),
+    history_token_budget=_get_int_env("HISTORY_TOKEN_BUDGET", 6000),
 )

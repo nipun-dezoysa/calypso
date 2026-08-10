@@ -42,6 +42,7 @@ class Base(DeclarativeBase):
 # creates missing *tables*, so an existing database needs these added by hand.
 _ADDED_COLUMNS: dict[str, dict[str, str]] = {
     "edges": {"source_handle": "VARCHAR(36)"},
+    "llm_models": {"context_tokens": "INTEGER"},
 }
 
 

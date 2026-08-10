@@ -3,6 +3,7 @@ import axiosInstance from './axiosInstance'
 export interface AIProviderCreate {
     provider_name: string
     model_names: string[]
+    model_contexts?: Record<string, number>
     url?: string | null
     secret_key?: string | null
 }
@@ -10,6 +11,7 @@ export interface AIProviderCreate {
 export interface AIProviderUpdate {
     provider_name?: string | null
     model_names?: string[] | null
+    model_contexts?: Record<string, number> | null
     url?: string | null
     secret_key?: string | null
 }
@@ -17,6 +19,7 @@ export interface AIProviderUpdate {
 export interface LLMModelInfo {
     id: string
     model_name: string
+    context_tokens: number | null
 }
 
 export interface AIProvider {

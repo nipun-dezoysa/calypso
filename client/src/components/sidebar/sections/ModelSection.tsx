@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { formatTokens } from '../../../data/aiProviderSuggestions'
 import CollapsibleSection from '../../common/CollapsibleSection'
 import AddProviderModal, { type NewProviderPayload } from '../../common/AddProviderModal'
 import EditProviderModal from '../../common/EditProviderModal'
@@ -56,6 +57,7 @@ function ModelSection() {
         const created = await createAIProvider({
             provider_name: payload.provider_name,
             model_names: payload.model_names,
+            model_contexts: payload.model_contexts,
             url: payload.url ?? null,
             secret_key: payload.secret_key ?? null,
         })
@@ -138,18 +140,33 @@ function ModelSection() {
                         </div>
 
                         {/* Model rows */}
-                        {provider.model_names.map((model) => (
-                            <div
-                                key={model}
-                                className="sidebar-item flex items-center justify-between"
-                            >
-                                <span>{model}</span>
-                                <span
-                                    className="w-1.5 h-1.5 rounded-full bg-emerald-500"
-                                    title="Active"
-                                />
-                            </div>
-                        ))}
+                        {provider.model_names.map((model) => {
+                            const context = provider.models.find(
+                                (m) => m.model_name === model,
+                            )?.context_tokens
+                            return (
+                                <div
+                                    key={model}
+                                    className="sidebar-item flex items-center justify-between gap-2"
+                                >
+                                    <span className="truncate">{model}</span>
+                                    <span className="flex items-center gap-2 shrink-0">
+                                        {context ? (
+                                            <span
+                                                className="text-[10px] text-zinc-600"
+                                                title={`${context.toLocaleString()} token context window`}
+                                            >
+                                                {formatTokens(context)}
+                                            </span>
+                                        ) : null}
+                                        <span
+                                            className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                                            title="Active"
+                                        />
+                                    </span>
+                                </div>
+                            )
+                        })}
                     </div>
                 ))}
             </div>

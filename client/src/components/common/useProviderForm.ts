@@ -9,6 +9,7 @@ import {
 import {
     PROVIDER_SUGGESTIONS,
     findProviderSuggestion,
+    suggestContextTokens,
     type ProviderSuggestion,
 } from '../../data/aiProviderSuggestions'
 
@@ -19,6 +20,7 @@ import {
 export interface ProviderFormOptions {
     initialProviderName?: string
     initialModelTags?: string[]
+    initialModelContexts?: Record<string, number | null>
     initialUrl?: string
     initialSecretKey?: string
 }
@@ -26,6 +28,7 @@ export interface ProviderFormOptions {
 export interface ProviderFormValues {
     provider_name: string
     model_names: string[]
+    model_contexts: Record<string, number>
     url: string | null
     secret_key: string | null
 }
@@ -38,6 +41,8 @@ export interface ProviderFormHandle {
     setProviderOpen: (v: boolean) => void
     selectedProvider: ProviderSuggestion | null
     modelTags: string[]
+    modelContexts: Record<string, number | ''>
+    setModelContext: (model: string, tokens: number | '') => void
     modelInput: string
     setModelInput: (v: string) => void
     modelOpen: boolean
@@ -81,6 +86,17 @@ export function useProviderForm(options?: ProviderFormOptions): ProviderFormHand
     const providerRef = useRef<HTMLDivElement>(null)
 
     const [modelTags, setModelTags] = useState<string[]>(options?.initialModelTags ?? [])
+    // Seeded from what is already stored; a model with nothing stored gets the
+    // suggestion for its name, so an existing provider picks up sizes it never
+    // had rather than staying blank forever.
+    const [modelContexts, setModelContexts] = useState<Record<string, number | ''>>(() => {
+        const stored = options?.initialModelContexts ?? {}
+        const seeded: Record<string, number | ''> = {}
+        for (const name of options?.initialModelTags ?? []) {
+            seeded[name] = stored[name] ?? suggestContextTokens(name) ?? ''
+        }
+        return seeded
+    })
     const [modelInput, setModelInput] = useState('')
     const [modelOpen, setModelOpen] = useState(false)
     const tagInputRef = useRef<HTMLInputElement>(null)
@@ -109,13 +125,25 @@ export function useProviderForm(options?: ProviderFormOptions): ProviderFormHand
         setErrors((prev) => ({ ...prev, provider_name: '' }))
     }, [])
 
+    const setModelContext = useCallback((model: string, tokens: number | '') => {
+        setModelContexts((prev) => ({ ...prev, [model]: tokens }))
+        setErrors((prev) => ({ ...prev, model_contexts: '' }))
+    }, [])
+
+    const seedContext = useCallback((model: string) => {
+        setModelContexts((prev) =>
+            model in prev ? prev : { ...prev, [model]: suggestContextTokens(model) ?? '' },
+        )
+    }, [])
+
     const addModelTag = useCallback((value: string) => {
         const trimmed = value.trim()
         if (!trimmed) return
         setModelTags((prev) => (prev.includes(trimmed) ? prev : [...prev, trimmed]))
+        seedContext(trimmed)
         setModelInput('')
         setErrors((prev) => ({ ...prev, model_names: '' }))
-    }, [])
+    }, [seedContext])
 
     const removeModelTag = useCallback((tag: string) => {
         setModelTags((prev) => prev.filter((t) => t !== tag))
@@ -125,8 +153,9 @@ export function useProviderForm(options?: ProviderFormOptions): ProviderFormHand
         setModelTags((prev) =>
             prev.includes(model) ? prev.filter((t) => t !== model) : [...prev, model],
         )
+        seedContext(model)
         setErrors((prev) => ({ ...prev, model_names: '' }))
-    }, [])
+    }, [seedContext])
 
     const handleModelKeyDown = useCallback((e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter' || e.key === ',') {
@@ -149,15 +178,30 @@ export function useProviderForm(options?: ProviderFormOptions): ProviderFormHand
         const errs: Record<string, string> = {}
         if (!providerInput.trim()) errs.provider_name = 'Provider name is required.'
         if (modelTags.length === 0) errs.model_names = 'Add at least one model.'
+        const bad = modelTags.filter((m) => {
+            const v = modelContexts[m]
+            return v !== '' && v !== undefined && !(Number.isFinite(v) && v > 0)
+        })
+        if (bad.length > 0)
+            errs.model_contexts = `Context window must be a positive number (${bad.join(', ')}).`
         if (urlValue.trim() && !urlValue.trim().startsWith('http'))
             errs.url = 'URL must start with http:// or https://'
         setErrors(errs)
         return Object.keys(errs).length === 0
     }
 
+    // Blanks are left out rather than sent as null: an omitted model keeps
+    // whatever the server already has, which is what "leave it alone" means.
+    const model_contexts: Record<string, number> = {}
+    for (const name of modelTags) {
+        const value = modelContexts[name]
+        if (typeof value === 'number' && value > 0) model_contexts[name] = value
+    }
+
     const formValues: ProviderFormValues = {
         provider_name: providerInput.trim(),
         model_names: modelTags,
+        model_contexts,
         url: urlValue.trim() || null,
         secret_key: keyValue.trim() || null,
     }
@@ -166,7 +210,8 @@ export function useProviderForm(options?: ProviderFormOptions): ProviderFormHand
         providerInput, setProviderInput,
         providerOpen, setProviderOpen,
         selectedProvider,
-        modelTags, modelInput, setModelInput,
+        modelTags, modelContexts, setModelContext,
+        modelInput, setModelInput,
         modelOpen, setModelOpen,
         urlValue, setUrlValue,
         keyValue, setKeyValue,

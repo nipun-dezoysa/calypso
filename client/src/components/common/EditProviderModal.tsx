@@ -19,6 +19,9 @@ function EditProviderModal({ provider, onClose, onUpdated, onDeleted }: EditProv
     const form = useProviderForm({
         initialProviderName: provider.provider_name,
         initialModelTags:    provider.model_names,
+        initialModelContexts: Object.fromEntries(
+            provider.models.map((m) => [m.model_name, m.context_tokens]),
+        ),
         initialUrl:          provider.url ?? '',
         initialSecretKey:    provider.secret_key ?? '',
     })

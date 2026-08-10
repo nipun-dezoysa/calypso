@@ -7,6 +7,7 @@ import { useProviderForm } from './useProviderForm'
 export interface NewProviderPayload {
     provider_name: string
     model_names: string[]
+    model_contexts: Record<string, number>
     url?: string
     secret_key?: string
 }
@@ -27,6 +28,7 @@ function AddProviderModal({ onClose, onSubmit }: AddProviderModalProps) {
             await onSubmit({
                 provider_name: form.formValues.provider_name,
                 model_names: form.formValues.model_names,
+                model_contexts: form.formValues.model_contexts,
                 url: form.formValues.url ?? undefined,
                 secret_key: form.formValues.secret_key ?? undefined,
             })

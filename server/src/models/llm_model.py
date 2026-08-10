@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint
+from sqlalchemy import DateTime, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from src.database import Base
@@ -36,6 +36,12 @@ class LLMModel(Base):
         nullable=False,
     )
 
+    context_tokens: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        default=None,
+    )
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -62,6 +68,14 @@ class LLMModel(Base):
         if not value or not value.strip():
             raise ValueError("model_name must not be empty")
         return value.strip()
+
+    @validates("context_tokens")
+    def validate_context_tokens(self, _key: str, value: int | None) -> int | None:
+        if value is None:
+            return None
+        if value <= 0:
+            raise ValueError("context_tokens must be a positive number of tokens")
+        return value
 
     def __repr__(self) -> str:
         return f"<LLMModel(id={self.id!r}, model_name={self.model_name!r})>"

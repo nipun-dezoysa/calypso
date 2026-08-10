@@ -18,6 +18,15 @@ class AIProviderCreate(BaseModel):
         description="List of model names supported by this provider",
         examples=[["gpt-4o", "gpt-4o-mini"]],
     )
+    model_contexts: dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "Context window per model name, in tokens. Names not listed keep "
+            "whatever they had; the conversation history falls back to the "
+            "server default for models with no size set."
+        ),
+        examples=[{"gpt-4o": 128000}],
+    )
     url: HttpUrl | None = Field(
         default=None,
         description="Base URL for the provider API",
@@ -47,6 +56,21 @@ class AIProviderCreate(BaseModel):
             raise ValueError("Duplicate model names are not allowed")
         return cleaned
 
+    @field_validator("model_contexts")
+    @classmethod
+    def validate_model_contexts(cls, v: dict[str, int]) -> dict[str, int]:
+        cleaned = {}
+        for name, tokens in v.items():
+            name = name.strip()
+            if not name:
+                raise ValueError("A context window was given for a blank model name")
+            if tokens <= 0:
+                raise ValueError(
+                    f"Context window for '{name}' must be a positive number of tokens"
+                )
+            cleaned[name] = tokens
+        return cleaned
+
     @field_validator("url", mode="before")
     @classmethod
     def coerce_url(cls, v: str | None) -> str | None:
@@ -65,6 +89,10 @@ class AIProviderUpdate(BaseModel):
         max_length=100,
     )
     model_names: list[str] | None = Field(default=None, min_length=1)
+    model_contexts: dict[str, int] | None = Field(
+        default=None,
+        description="Context window per model name, in tokens. Omit to leave them as they are.",
+    )
     url: HttpUrl | None = Field(default=None)
     secret_key: str | None = Field(default=None, max_length=500)
 
@@ -90,6 +118,23 @@ class AIProviderUpdate(BaseModel):
             raise ValueError("Duplicate model names are not allowed")
         return cleaned
 
+    @field_validator("model_contexts")
+    @classmethod
+    def validate_model_contexts(cls, v: dict[str, int] | None) -> dict[str, int] | None:
+        if v is None:
+            return None
+        cleaned = {}
+        for name, tokens in v.items():
+            name = name.strip()
+            if not name:
+                raise ValueError("A context window was given for a blank model name")
+            if tokens <= 0:
+                raise ValueError(
+                    f"Context window for '{name}' must be a positive number of tokens"
+                )
+            cleaned[name] = tokens
+        return cleaned
+
     @field_validator("url", mode="before")
     @classmethod
     def coerce_url(cls, v: str | None) -> str | None:
@@ -104,6 +149,7 @@ class LLMModelInfo(BaseModel):
 
     id: str
     model_name: str
+    context_tokens: int | None = None
 
     model_config = {"from_attributes": True}
 

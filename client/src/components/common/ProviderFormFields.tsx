@@ -1,5 +1,6 @@
 import { type ReactElement } from 'react'
 import { IoClose, IoCheckmark, IoEye, IoEyeOff, IoInformationCircle } from 'react-icons/io5'
+import { formatTokens, suggestContextTokens } from '../../data/aiProviderSuggestions'
 import type { ProviderFormHandle } from './useProviderForm'
 
 // ---------------------------------------------------------------------------
@@ -39,7 +40,8 @@ function ProviderFormFields({ form, showInfoNote = true }: ProviderFormFieldsPro
         providerOpen, setProviderOpen,
         selectedProvider,
         providerRef,
-        modelTags, modelInput, setModelInput,
+        modelTags, modelContexts, setModelContext,
+        modelInput, setModelInput,
         modelOpen, setModelOpen,
         tagInputRef,
         urlValue, setUrlValue,
@@ -171,6 +173,55 @@ function ProviderFormFields({ form, showInfoNote = true }: ProviderFormFieldsPro
                 )}
                 {errors.model_names && <div className="form-error">{errors.model_names}</div>}
             </div>
+
+            {/* ── Context window per model ── */}
+            {modelTags.length > 0 && (
+                <div className="form-field">
+                    <label className="form-label">
+                        Context Window
+                        <span className="form-label-optional">optional</span>
+                    </label>
+                    <p style={{ fontSize: 11, color: '#52525b', marginBottom: 8 }}>
+                        How many tokens each model can hold at once. Calypso replays up to
+                        half of it as conversation history — a bigger model remembers more.
+                        Leave blank to use the server default.
+                    </p>
+
+                    <div className="form-context-rows">
+                        {modelTags.map((model) => {
+                            const suggested = suggestContextTokens(model)
+                            const value = modelContexts[model]
+                            return (
+                                <div key={model} className="form-context-row">
+                                    <span className="form-context-name" title={model}>{model}</span>
+                                    <input
+                                        className="form-input form-context-input"
+                                        type="number"
+                                        min={1}
+                                        step={1024}
+                                        placeholder="server default"
+                                        value={value === undefined ? '' : value}
+                                        onChange={(e) => {
+                                            const raw = e.target.value
+                                            setModelContext(model, raw === '' ? '' : Number(raw))
+                                        }}
+                                    />
+                                    <span className="form-context-hint">
+                                        {typeof value === 'number' && value > 0
+                                            ? `${formatTokens(value)} tokens`
+                                            : suggested
+                                              ? `suggested ${formatTokens(suggested)}`
+                                              : 'unknown'}
+                                    </span>
+                                </div>
+                            )
+                        })}
+                    </div>
+                    {errors.model_contexts && (
+                        <div className="form-error">{errors.model_contexts}</div>
+                    )}
+                </div>
+            )}
 
             {/* ── Base URL ── */}
             <div className="form-field">

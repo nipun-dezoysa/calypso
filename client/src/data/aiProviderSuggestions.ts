@@ -293,3 +293,135 @@ export function findProviderSuggestion(name: string): ProviderSuggestion | undef
     const lower = name.toLowerCase()
     return PROVIDER_SUGGESTIONS.find((p) => p.name.toLowerCase() === lower)
 }
+
+export const MODEL_CONTEXT_TOKENS: Record<string, number> = {
+    // OpenAI
+    'gpt-4o': 128_000,
+    'gpt-4o-mini': 128_000,
+    'gpt-4-turbo': 128_000,
+    'gpt-4': 8_192,
+    'gpt-3.5-turbo': 16_385,
+    'gpt-35-turbo': 16_385,
+    o1: 200_000,
+    'o1-mini': 128_000,
+    'o1-preview': 128_000,
+    o3: 200_000,
+    'o3-mini': 200_000,
+    'o4-mini': 200_000,
+
+    // Anthropic
+    'claude-opus-4-5': 200_000,
+    'claude-sonnet-4-5': 200_000,
+    'claude-haiku-4-5': 200_000,
+    'claude-3-5-sonnet-20241022': 200_000,
+    'claude-3-5-haiku-20241022': 200_000,
+    'claude-3-opus-20240229': 200_000,
+    'claude-3-haiku-20240307': 200_000,
+
+    // Google
+    'gemini-2.5-pro': 1_048_576,
+    'gemini-2.5-flash': 1_048_576,
+    'gemini-2.0-flash': 1_048_576,
+    'gemini-2.0-flash-lite': 1_048_576,
+    'gemini-1.5-pro': 2_097_152,
+    'gemini-1.5-flash': 1_048_576,
+    'gemini-1.5-flash-8b': 1_048_576,
+
+    // Ollama 
+    'llama3.3': 128_000,
+    'llama3.2': 128_000,
+    'llama3.1': 128_000,
+    llama3: 8_192,
+    mistral: 32_768,
+    'mistral-nemo': 128_000,
+    mixtral: 32_768,
+    phi4: 16_384,
+    'phi3.5': 128_000,
+    phi3: 128_000,
+    gemma3: 128_000,
+    gemma2: 8_192,
+    'qwen2.5': 32_768,
+    'qwen2.5-coder': 32_768,
+    'deepseek-r1': 65_536,
+    'deepseek-coder-v2': 163_840,
+    codellama: 16_384,
+
+    // Groq
+    'llama-3.3-70b-versatile': 128_000,
+    'llama-3.1-8b-instant': 128_000,
+    'llama3-70b-8192': 8_192,
+    'llama3-8b-8192': 8_192,
+    'mixtral-8x7b-32768': 32_768,
+    'gemma2-9b-it': 8_192,
+    'gemma-7b-it': 8_192,
+
+    // Mistral
+    'mistral-large-latest': 128_000,
+    'mistral-medium-latest': 128_000,
+    'mistral-small-latest': 128_000,
+    'codestral-latest': 256_000,
+    'ministral-8b-latest': 128_000,
+    'ministral-3b-latest': 128_000,
+    'open-mistral-nemo': 128_000,
+    'open-codestral-mamba': 256_000,
+
+    // Cohere
+    'command-r-plus': 128_000,
+    'command-r': 128_000,
+    command: 4_096,
+    'command-light': 4_096,
+    'command-nightly': 128_000,
+
+    // Together
+    'meta-llama/Llama-3-70b-chat-hf': 8_192,
+    'meta-llama/Llama-3-8b-chat-hf': 8_192,
+    'mistralai/Mixtral-8x7B-Instruct-v0.1': 32_768,
+    'mistralai/Mistral-7B-Instruct-v0.3': 32_768,
+    'Qwen/Qwen2.5-72B-Instruct-Turbo': 32_768,
+    'deepseek-ai/deepseek-r1': 65_536,
+    'google/gemma-2-9b-it': 8_192,
+
+    // Perplexity
+    'sonar-pro': 200_000,
+    sonar: 128_000,
+    'sonar-reasoning-pro': 128_000,
+    'sonar-reasoning': 128_000,
+    'sonar-deep-research': 128_000,
+}
+
+const CONTEXT_PATTERNS: Array<[RegExp, number]> = [
+    [/^claude-/i, 200_000],
+    [/^gemini-/i, 1_048_576],
+    [/^(gpt-4o|gpt-4\.|o[1-9])/i, 128_000],
+    [/^gpt-4/i, 8_192],
+    [/^gpt-3\.5|^gpt-35/i, 16_385],
+    [/llama-?3\.[1-9]|llama-?4/i, 128_000],
+    [/llama/i, 8_192],
+    [/qwen|mistral|mixtral|command-r/i, 32_768],
+    [/deepseek/i, 65_536],
+    [/phi-?[34]|gemma-?3/i, 128_000],
+    [/sonar/i, 128_000],
+]
+
+export function suggestContextTokens(modelName: string): number | null {
+    const name = modelName.trim()
+    if (!name) return null
+
+    const exact = MODEL_CONTEXT_TOKENS[name]
+    if (exact) return exact
+
+    const base = name.split(':')[0]
+    if (base !== name && MODEL_CONTEXT_TOKENS[base]) return MODEL_CONTEXT_TOKENS[base]
+
+    for (const [pattern, tokens] of CONTEXT_PATTERNS) {
+        if (pattern.test(name)) return tokens
+    }
+    return null
+}
+
+/** "128,000" → readable in a hint without dragging in a formatter. */
+export function formatTokens(tokens: number): string {
+    if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(tokens % 1_000_000 === 0 ? 0 : 1)}M`
+    if (tokens >= 1_000) return `${Math.round(tokens / 1_000)}k`
+    return String(tokens)
+}
