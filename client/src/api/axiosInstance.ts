@@ -5,7 +5,7 @@ import axios, {
     type AxiosResponse,
 } from 'axios'
 
-const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
+export const BASE_URL: string = import.meta.env.VITE_API_BASE_URL ?? ''
 
 export const TOKEN_STORAGE_KEY = 'calypso_access_token'
 

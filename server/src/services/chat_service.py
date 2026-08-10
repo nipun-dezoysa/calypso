@@ -1,4 +1,6 @@
 import asyncio
+import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
@@ -35,6 +37,9 @@ MCP_MAX_TOOL_ITERATIONS = 6
 DEFAULT_CREATIVITY = 50
 MAX_HISTORY_IMAGES = 4
 RETRIEVAL_QUERY_CHARS = 500
+STOPPED_WITH_NOTHING = "_(stopped before the model produced any output)_"
+
+Emit = Callable[[dict], Awaitable[None]]
 
 
 @dataclass
@@ -74,6 +79,92 @@ class ChatService:
 
         return None
 
+    async def run_streaming(
+        self,
+        target_id: str,
+        question: str,
+        thread_id: str | None,
+        attachments: list[Attachment],
+        emit: Emit,
+        stop: asyncio.Event,
+    ) -> None:
+
+        agent = await self.db.get(Agent, target_id)
+        workflow = None if agent is not None else await self.db.get(Workflow, target_id)
+        if agent is None and workflow is None:
+            await emit(
+                {
+                    "type": "error",
+                    "detail": f"No agent or workflow with id '{target_id}'",
+                }
+            )
+            return
+
+        owner_id = agent.id if agent is not None else workflow.id
+        thread: Thread | None = None
+        history: list[AIMessage | HumanMessage] = []
+        if thread_id is not None:
+            thread = await self.db.get(Thread, thread_id)
+            if thread is None or (thread.agent_id or thread.workflow_id) != owner_id:
+                await emit(
+                    {
+                        "type": "error",
+                        "detail": "that thread does not belong to this agent or workflow",
+                    }
+                )
+                return
+            history = _history_from(thread)
+
+        is_new = thread is None
+        if thread is None:
+            thread = Thread(
+                id=str(uuid.uuid4()),
+                type=THREAD_TYPE_AGENT if agent is not None else THREAD_TYPE_WORKFLOW,
+                agent_id=agent.id if agent is not None else None,
+                workflow_id=workflow.id if workflow is not None else None,
+                messages=[],
+            )
+        await emit({"type": "start", "thread_id": thread.id})
+
+        try:
+            if agent is not None:
+                answer = await self._run_turn(
+                    _config_from_agent(agent),
+                    question,
+                    history,
+                    attachments=attachments,
+                    emit=emit,
+                    stop=stop,
+                )
+            else:
+                answer = await self._run_workflow(
+                    workflow, question, history, attachments, emit=emit, stop=stop
+                )
+        except Exception as exc: 
+            await self.db.rollback()
+            await emit({"type": "error", "detail": str(exc)})
+            return
+
+        stopped = _stopped(stop)
+        if stopped and not answer:
+            answer = STOPPED_WITH_NOTHING
+
+        if is_new:
+            self.db.add(thread)
+            await self.db.flush()
+
+        saved_id, answer = await self._persist_exchange(
+            thread, question, answer, attachments
+        )
+        await emit(
+            {
+                "type": "done",
+                "thread_id": saved_id,
+                "stopped": stopped,
+                "answer": answer,
+            }
+        )
+
     # ── Agent ─────────────────────────────────────────────────────────────
 
     async def _answer_agent(
@@ -109,9 +200,9 @@ class ChatService:
         history: list[AIMessage | HumanMessage] | None = None,
         handoff: str = "",
         attachments: list[Attachment] | None = None,
+        emit: Emit | None = None,
+        stop: asyncio.Event | None = None,
     ) -> str:
-        """Run one turn (LLM + KB context + MCP tools) and return the answer text.
-        No persistence — reused by both direct chat and workflow nodes."""
         attachments = attachments or []
         chat_model = build_chat_model(
             provider=config.llm_model.ai_provider,
@@ -139,20 +230,28 @@ class ChatService:
                 _human_message(question, attachments, images if with_images else []),
             ]
 
+        streamed = 0
+
+        async def counted(event: dict) -> None:
+            nonlocal streamed
+            if event["type"] == "token":
+                streamed += 1
+            await emit(event)
+
+        sink = counted if emit is not None else None
+
         try:
             answer = await self._invoke_with_tools(
-                chat_model, config.mcp_servers, build(with_images=True)
+                chat_model, config.mcp_servers, build(with_images=True), sink, stop
             )
         except Exception:
-            if not images:
+            if not images or streamed:
                 raise
-            # The model has no vision. Fall back to whatever OCR read out of the
-            # images, which _human_message puts in the text either way.
             answer = await self._invoke_with_tools(
-                chat_model, config.mcp_servers, build(with_images=False)
+                chat_model, config.mcp_servers, build(with_images=False), sink, stop
             )
 
-        if not answer:
+        if not answer and not _stopped(stop):
             raise RuntimeError("The LLM returned an empty response")
         return answer
 
@@ -190,14 +289,20 @@ class ChatService:
         question: str,
         history: list[AIMessage | HumanMessage] | None = None,
         attachments: list[Attachment] | None = None,
+        emit: Emit | None = None,
+        stop: asyncio.Event | None = None,
     ) -> str:
         """Execute the workflow as a LangGraph graph and return the final node's
         output. Every node sees the user's question, the thread history and any
         attachments; the previous node's output rides along as `handoff`."""
 
         async def run_node(node: Node, node_question: str, handoff: str) -> str:
+            if _stopped(stop):
+                return handoff
+            if emit is not None:
+                await emit({"type": "node", "name": _node_label(node)})
             return await self._run_node(
-                node, node_question, handoff, history, attachments
+                node, node_question, handoff, history, attachments, emit, stop
             )
 
         graph = build_workflow_graph(workflow, run_node)
@@ -209,6 +314,8 @@ class ChatService:
             }
         )
         answer = latest_text(result["messages"]).strip()
+        if _stopped(stop):
+            return answer
         return answer or "The workflow produced no output."
 
     async def _run_node(
@@ -218,6 +325,8 @@ class ChatService:
         handoff: str,
         history: list[AIMessage | HumanMessage] | None = None,
         attachments: list[Attachment] | None = None,
+        emit: Emit | None = None,
+        stop: asyncio.Event | None = None,
     ) -> str:
         # Condition nodes route inside the graph and never reach this.
         if node.type != NODE_TYPE_AGENT:
@@ -227,7 +336,9 @@ class ChatService:
                 "a workflow node has no agent set up — open the workflow and configure it"
             )
         config = _config_from_workflow_agent(node.agent_config)
-        return await self._run_turn(config, question, history, handoff, attachments)
+        return await self._run_turn(
+            config, question, history, handoff, attachments, emit, stop
+        )
 
     # ── Shared ────────────────────────────────────────────────────────────
 
@@ -286,25 +397,58 @@ class ChatService:
         except Exception:  # noqa: BLE001 - degrade gracefully if a server is down
             return []
 
+    async def _generate(
+        self,
+        model,
+        messages: list,
+        emit: Emit | None,
+        stop: asyncio.Event | None,
+    ) -> tuple[AIMessage, str]:
+        if emit is None:
+            response = await model.ainvoke(messages)
+            return response, _stringify_content(response.content)
+
+        merged = None
+        spoken: list[str] = []
+        async for chunk in model.astream(messages):
+            if _stopped(stop):
+                break
+            merged = chunk if merged is None else merged + chunk
+            piece = _chunk_text(chunk.content)
+            if piece:
+                spoken.append(piece)
+                await emit({"type": "token", "text": piece})
+
+        if merged is None:
+            return AIMessage(content=""), ""
+        return merged, "".join(spoken).strip()
+
     async def _invoke_with_tools(
         self,
         chat_model,
         mcp_servers: list[McpServer],
         messages: list,
+        emit: Emit | None = None,
+        stop: asyncio.Event | None = None,
     ) -> str:
         tools = await self._load_tools(mcp_servers)
         if not tools:
-            response = await chat_model.ainvoke(messages)
-            return _stringify_content(response.content)
+            _, text = await self._generate(chat_model, messages, emit, stop)
+            return text
 
         tools_by_name = {t.name: t for t in tools}
         if type(chat_model).__name__ == "ChatGoogleGenerativeAI":
             tools = tool_schema.sanitize_for_gemini(tools)
         model = chat_model.bind_tools(tools)
 
-        response = await model.ainvoke(messages)
+        response, text = await self._generate(model, messages, emit, stop)
+        rounds = [text] if text else []
         iterations = 0
-        while getattr(response, "tool_calls", None) and iterations < MCP_MAX_TOOL_ITERATIONS:
+        while (
+            getattr(response, "tool_calls", None)
+            and iterations < MCP_MAX_TOOL_ITERATIONS
+            and not _stopped(stop)
+        ):
             messages.append(response)
             for call in response.tool_calls:
                 tool = tools_by_name.get(call["name"])
@@ -316,6 +460,8 @@ class ChatService:
                         )
                     )
                     continue
+                if emit is not None:
+                    await emit({"type": "tool", "name": call["name"]})
                 try:
                     tool_msg = await tool.ainvoke(call)
                     tool_msg.content = _stringify_content(tool_msg.content)
@@ -327,10 +473,14 @@ class ChatService:
                             tool_call_id=call["id"],
                         )
                     )
-            response = await model.ainvoke(messages)
+            response, text = await self._generate(model, messages, emit, stop)
+            if text:
+                rounds.append(text)
             iterations += 1
 
-        return _stringify_content(response.content)
+        if emit is not None:
+            return "\n\n".join(rounds).strip()
+        return text
 
     async def list_messages(self, thread_id: str) -> list[Message] | None:
         thread = await self.db.get(Thread, thread_id)
@@ -528,6 +678,39 @@ def _handoff_block(handoff: str) -> str:
         "message.\n\n"
         f"--- PREVIOUS STEP OUTPUT ---\n{handoff}\n--- END PREVIOUS STEP OUTPUT ---"
     )
+
+
+def _stopped(stop: asyncio.Event | None) -> bool:
+    return stop is not None and stop.is_set()
+
+
+def _node_label(node: Node) -> str:
+    config = node.agent_config
+    if config is None:
+        return "Agent"
+    if config.name:
+        return config.name
+    if config.agent is not None:
+        return config.agent.name
+    return "Agent"
+
+
+def _chunk_text(content) -> str:
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("type") in (
+                None,
+                "text",
+                "text_delta",
+            ):
+                parts.append(block.get("text") or "")
+        return "".join(parts)
+    return str(content)
 
 
 def _stringify_content(content) -> str:

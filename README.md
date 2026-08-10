@@ -50,6 +50,7 @@ Pin a version instead of `latest` if you'd rather upgrade deliberately — see t
 - **Agents** — a system prompt, a model, a temperature, plus any MCP tools and knowledge collections you attach. Each agent keeps its own chat threads.
 - **Workflows** — a visual graph builder. Agent nodes run in sequence, passing output forward; condition nodes branch on the result. Every agent node carries its own per-workflow instructions, so the same underlying agent can behave differently in different workflows.
 - **Workflow designer** — describe the workflow you want, in the panel behind the *Designer* button on the canvas, and it gets drafted for you: nodes, branches, per-node instructions and all. It reads whatever is on the canvas, so "add a fact-check step at the end" works as well as building from scratch, and it only ever wires in agents, models and knowledge collections you actually have. Nothing is written until you press Save, and *Undo design* puts the canvas back.
+- **Streaming** — answers arrive a word at a time rather than all at once at the end, which matters most on a local model that can sit on a reply for minutes. Workflows stream too, naming each step as it takes its turn, and tool calls are announced as they run. The stop button next to the composer ends a generation early and keeps the part already written.
 - **Attachments** — send files along with a chat message: PDF, DOCX, TXT, Markdown, PNG and JPG. Calypso extracts the text and puts it in the prompt, so the agent can read a contract or a report without you pasting it. Images are sent to the model as pictures where the model has vision, and run through OCR either way, so a screenshot of a table still works on a text-only model. Attachments stay in the thread and are re-sent with later turns, so follow-up questions about the same file work.
 - **MCP servers** — connect tools over `stdio`, `streamable_http`, `sse`, or `websocket`. Calypso discovers each server's tools and exposes them to the agents you attach them to.
 - **Knowledge base** — upload PDF, TXT, or Markdown files into collections. They're chunked, embedded, and retrieved as context at query time. Vector store is ChromaDB (local, default) or Qdrant; embeddings are FastEmbed (local, default) or Nomic.
@@ -123,11 +124,35 @@ The API is behind a JWT bearer token. On first boot the server seeds a single ac
 | `GET /api/v1/auth/me` | bearer | The signed-in user, including `must_change_credentials` |
 | `PUT /api/v1/auth/credentials` | bearer | Change username and/or password; returns a fresh token |
 | `POST /api/v1/chat/{id}/ask` | **none** | Public, so other applications can call your agents |
+| `POST /api/v1/chat/{id}/ask/stream` | **none** | The same, streamed back as server-sent events |
 | everything else | bearer | |
 
-`/ask` is deliberately left open: it returns answer text only and never exposes provider secret keys, which is exactly why the rest of the API is closed.
+`/ask` is deliberately left open: it returns answer text only and never exposes provider secret keys, which is exactly why the rest of the API is closed. `/ask/stream` is open for the same reason — it is the same capability over a different transport.
 
 Changing a password invalidates every token issued before the change — tokens carry a fingerprint of the stored password hash. If `JWT_SECRET` is not set the server generates one on first boot and keeps it in the database, so tokens survive restarts.
+
+### Streaming
+
+`POST /api/v1/chat/{id}/ask/stream` takes the same body as `/ask` and answers
+with `text/event-stream`. Each frame is one JSON object:
+
+| Event | Payload | Meaning |
+| --- | --- | --- |
+| `start` | `thread_id` | The thread this answer will be saved to, sent before the model runs |
+| `token` | `text` | A piece of the answer. Append them in order |
+| `node` | `name` | A workflow step has begun. Its tokens are its own, so clear what the previous step wrote |
+| `tool` | `name` | An MCP tool is being called |
+| `done` | `thread_id`, `answer`, `stopped` | The finished answer, as saved |
+| `error` | `detail` | The run failed. Nothing is saved |
+
+Closing the connection stops the generation. Whatever had streamed by then is
+still written to the thread, so stopping mid-answer keeps the part you got
+instead of throwing the turn away — which is what the UI's stop button does.
+The generation itself outlives the request that started it just long enough to
+save; it is not tied to the connection.
+
+`/ask` is unchanged and still returns the whole answer in one response, for
+callers that would rather not parse a stream.
 
 ### A note on stdio MCP servers
 

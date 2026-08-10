@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import type { Agent } from '../api/agentApi'
 import {
-    ask,
+    askStream,
     deleteAttachment,
     deleteThread,
     listThreadMessages,
@@ -13,6 +13,23 @@ import {
 } from '../api/chatApi'
 
 export type ChatTargetType = 'agent' | 'workflow'
+
+/** The stream in flight, so the stop button has something to pull on. */
+let activeStream: AbortController | null = null
+
+// A stopped run is still being saved server-side when the client lets go of the
+// connection. The thread list catches up a moment later.
+const SAVE_SETTLE_MS = 1500
+
+function botMessage(threadId: string, content: string): ChatMessage {
+    return {
+        id: `bot-${Date.now()}`,
+        thread_id: threadId,
+        is_bot: true,
+        content,
+        created_at: new Date().toISOString(),
+    }
+}
 
 interface ChatState {
     // The active chat target — an agent or a workflow.
@@ -29,6 +46,13 @@ interface ChatState {
     loadingMessages: boolean
     error: string | null
 
+    // The answer as it arrives. Cleared once it lands in `messages`.
+    streamingText: string
+    // For workflow targets, the node currently answering.
+    streamingStep: string | null
+    // The MCP tool currently running, if any.
+    streamingTool: string | null
+
     // Files uploaded and extracted, waiting to go out with the next message.
     pendingAttachments: ChatAttachment[]
     // How many uploads are still in flight, so the composer can block sending.
@@ -41,6 +65,7 @@ interface ChatState {
     openThread: (threadId: string) => Promise<void>
     removeThread: (threadId: string) => Promise<void>
     sendMessage: (question: string) => Promise<void>
+    stopStreaming: () => void
     refreshThreads: () => Promise<void>
     attachFiles: (files: File[]) => Promise<void>
     removeAttachment: (attachmentId: string) => Promise<void>
@@ -48,7 +73,15 @@ interface ChatState {
 
 const resetConversation = (): Pick<
     ChatState,
-    'threadId' | 'messages' | 'threads' | 'error' | 'pendingAttachments'
+    | 'threadId'
+    | 'messages'
+    | 'threads'
+    | 'error'
+    | 'pendingAttachments'
+    | 'sending'
+    | 'streamingText'
+    | 'streamingStep'
+    | 'streamingTool'
 > => ({
     threadId: null,
     messages: [],
@@ -57,6 +90,13 @@ const resetConversation = (): Pick<
     // Uploads belong to the conversation they were staged in; the server
     // sweeps whatever is left unsent.
     pendingAttachments: [],
+    // A run already under way is left alone rather than aborted — it finishes
+    // and saves in full, and its events are dropped as stale. Only the UI moves
+    // on, so the composer is usable again straight away.
+    sending: false,
+    streamingText: '',
+    streamingStep: null,
+    streamingTool: null,
 })
 
 export const useChatStore = create<ChatState>((set, get) => ({
@@ -72,6 +112,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
     error: null,
     pendingAttachments: [],
     uploadingCount: 0,
+    streamingText: '',
+    streamingStep: null,
+    streamingTool: null,
 
     selectAgent: (agent) => {
         if (agent === null) {
@@ -112,10 +155,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({ selectedAgent: agent, targetName: agent.name })
     },
 
-    newChat: () => set({ threadId: null, messages: [], error: null, pendingAttachments: [] }),
+    newChat: () =>
+        set({
+            threadId: null,
+            messages: [],
+            error: null,
+            pendingAttachments: [],
+            sending: false,
+            streamingText: '',
+            streamingStep: null,
+            streamingTool: null,
+        }),
 
     openThread: async (threadId) => {
-        set({ threadId, messages: [], loadingMessages: true, error: null, pendingAttachments: [] })
+        set({
+            threadId,
+            messages: [],
+            loadingMessages: true,
+            error: null,
+            pendingAttachments: [],
+            sending: false,
+            streamingText: '',
+            streamingStep: null,
+            streamingTool: null,
+        })
         try {
             const messages = await listThreadMessages(threadId)
             if (get().threadId !== threadId) return
@@ -199,46 +262,124 @@ export const useChatStore = create<ChatState>((set, get) => ({
             is_bot: false,
             content: question,
             created_at: new Date().toISOString(),
-            attachments,
         }
         set((s) => ({
             messages: [...s.messages, optimistic],
             sending: true,
             error: null,
             pendingAttachments: [],
+            streamingText: '',
+            streamingStep: null,
+            streamingTool: null,
         }))
 
+        // The user may switch agent or thread mid-answer. The run carries on
+        // server-side and saves in full; here its events are simply dropped.
+        // `thread` tracks the id the run is writing to, which for a new thread
+        // only becomes known once the `start` event arrives.
+        let thread = threadId
+        const stale = () =>
+            get().targetId !== targetId || get().threadId !== thread
+
+        const controller = new AbortController()
+        activeStream = controller
+
         try {
-            const res = await ask(targetId, {
-                question,
-                thread_id: threadId,
-                attachment_ids: attachments.map((a) => a.id),
-            })
-            // User may have switched target or thread while waiting.
-            if (get().targetId !== targetId || get().threadId !== threadId) {
-                set({ sending: false })
-                return
+            await askStream(
+                targetId,
+                {
+                    question,
+                    thread_id: threadId,
+                    attachment_ids: attachments.map((a) => a.id),
+                },
+                (event) => {
+                    if (stale()) return
+                    switch (event.type) {
+                        case 'start':
+                            // Not committed to the store yet: a run that fails
+                            // leaves no thread behind to point at.
+                            thread = event.thread_id
+                            break
+                        case 'token':
+                            set((s) => ({ streamingText: s.streamingText + event.text }))
+                            break
+                        case 'node':
+                            // Each workflow step answers in turn and only the
+                            // last one is the reply, so the view clears between
+                            // them instead of running them together.
+                            set({
+                                streamingStep: event.name,
+                                streamingText: '',
+                                streamingTool: null,
+                            })
+                            break
+                        case 'tool':
+                            set({ streamingTool: event.name })
+                            break
+                        case 'error':
+                            set({ error: event.detail })
+                            break
+                        case 'done':
+                            set((s) => ({
+                                messages: [
+                                    ...s.messages,
+                                    botMessage(event.thread_id, event.answer),
+                                ],
+                                threadId: event.thread_id,
+                            }))
+                            break
+                    }
+                },
+                controller.signal,
+            )
+            if (!stale()) {
+                set({
+                    sending: false,
+                    streamingText: '',
+                    streamingStep: null,
+                    streamingTool: null,
+                })
             }
-            const botMessage: ChatMessage = {
-                id: `bot-${Date.now()}`,
-                thread_id: res.thread_id,
-                is_bot: true,
-                content: res.answer,
-                created_at: new Date().toISOString(),
-            }
-            set((s) => ({
-                messages: [...s.messages, botMessage],
-                threadId: res.thread_id,
-                sending: false,
-            }))
             void get().refreshThreads()
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Failed to send message'
-            if (get().targetId !== targetId || get().threadId !== threadId) {
+            const stopped = err instanceof DOMException && err.name === 'AbortError'
+            if (stale()) {
                 set({ sending: false })
                 return
             }
-            set({ sending: false, error: message })
+            if (stopped) {
+                // The server saves the same text it just finished sending, so
+                // what is on screen is kept as the message rather than thrown
+                // away and re-fetched. Reopening the thread later replaces it
+                // with the saved copy.
+                const partial = get().streamingText
+                set((s) => ({
+                    sending: false,
+                    streamingText: '',
+                    streamingStep: null,
+                    streamingTool: null,
+                    threadId: thread ?? s.threadId,
+                    messages: partial
+                        ? [...s.messages, botMessage(thread ?? '', partial)]
+                        : s.messages,
+                }))
+                window.setTimeout(() => void get().refreshThreads(), SAVE_SETTLE_MS)
+                return
+            }
+            const message = err instanceof Error ? err.message : 'Failed to send message'
+            set({
+                sending: false,
+                error: message,
+                streamingText: '',
+                streamingStep: null,
+                streamingTool: null,
+            })
+        } finally {
+            if (activeStream === controller) activeStream = null
         }
+    },
+
+    stopStreaming: () => {
+        activeStream?.abort()
     },
 }))

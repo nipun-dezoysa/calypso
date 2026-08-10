@@ -1,4 +1,4 @@
-import axiosInstance from "./axiosInstance";
+import axiosInstance, { BASE_URL, TOKEN_STORAGE_KEY } from "./axiosInstance";
 
 export interface ChatThread {
   id: string;
@@ -62,6 +62,74 @@ export async function ask(
     { timeout: ASK_TIMEOUT_MS },
   );
   return response.data;
+}
+
+export type ChatStreamEvent =
+  | { type: "start"; thread_id: string }
+  | { type: "token"; text: string }
+  | { type: "node"; name: string }
+  | { type: "tool"; name: string }
+  | { type: "done"; thread_id: string; stopped: boolean; answer: string }
+  | { type: "error"; detail: string };
+
+async function streamError(response: Response): Promise<string> {
+  try {
+    const body = await response.json();
+    const detail = body?.detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail)) {
+      return detail.map((d: { msg: string }) => d.msg).join("; ");
+    }
+  } catch {
+    // No JSON body
+  }
+  return `Request failed with status ${response.status}`;
+}
+
+export async function askStream(
+  targetId: string,
+  data: ChatAskRequest,
+  onEvent: (event: ChatStreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const token = localStorage.getItem(TOKEN_STORAGE_KEY);
+  const response = await fetch(`${BASE_URL}${BASE}/${targetId}/ask/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Accept: "text/event-stream",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(data),
+    signal,
+  });
+
+  if (!response.ok || !response.body) {
+    throw new Error(await streamError(response));
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let end = buffer.indexOf("\n\n");
+    while (end !== -1) {
+      const frame = buffer.slice(0, end);
+      buffer = buffer.slice(end + 2);
+      const payload = frame
+        .split("\n")
+        .filter((line) => line.startsWith("data:"))
+        .map((line) => line.slice(5).trim())
+        .join("");
+      if (payload) onEvent(JSON.parse(payload) as ChatStreamEvent);
+      end = buffer.indexOf("\n\n");
+    }
+  }
 }
 
 export async function listThreads(targetId: string): Promise<ChatThread[]> {

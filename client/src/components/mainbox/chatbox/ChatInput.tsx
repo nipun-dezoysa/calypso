@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { IoAdd, IoArrowUp } from "react-icons/io5";
+import { IoAdd, IoArrowUp, IoStop } from "react-icons/io5";
 import DropdownSelector, {
   type SelectOption,
 } from "../../common/DropdownSelector";
@@ -30,6 +30,7 @@ function ChatInput() {
   const selectAgent = useChatStore((s) => s.selectAgent);
   const patchSelectedAgent = useChatStore((s) => s.patchSelectedAgent);
   const sendMessage = useChatStore((s) => s.sendMessage);
+  const stopStreaming = useChatStore((s) => s.stopStreaming);
   const sending = useChatStore((s) => s.sending);
   const pendingAttachments = useChatStore((s) => s.pendingAttachments);
   const uploadingCount = useChatStore((s) => s.uploadingCount);
@@ -298,12 +299,21 @@ function ChatInput() {
             )}
           </div>
           <button
-            className={`p-2 rounded-sm text-white ${canSend ? "bg-amber-600 cursor-pointer" : "bg-zinc-700 cursor-not-allowed"}`}
-            onClick={handleSend}
-            disabled={!canSend}
-            aria-label="Send message"
+            className={`p-2 rounded-sm text-white ${
+              sending || canSend
+                ? "bg-amber-600 cursor-pointer"
+                : "bg-zinc-700 cursor-not-allowed"
+            }`}
+            onClick={sending ? stopStreaming : handleSend}
+            disabled={!sending && !canSend}
+            aria-label={sending ? "Stop generating" : "Send message"}
+            title={
+              sending
+                ? "Stop generating — the part already written is kept"
+                : "Send message"
+            }
           >
-            <IoArrowUp />
+            {sending ? <IoStop /> : <IoArrowUp />}
           </button>
         </div>
       </div>
