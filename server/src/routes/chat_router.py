@@ -8,14 +8,17 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Request,
     UploadFile,
     status,
 )
 from fastapi.responses import FileResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from config import settings
 from src.database import async_session, get_db
 from src.dependencies.auth import require_auth
+from src.dependencies.rate_limit import limiter
 from src.schemas.chat_schema import (
     AttachmentResponse,
     ChatAskRequest,
@@ -54,7 +57,9 @@ def _get_attachment_service(db: AsyncSession = Depends(get_db)) -> AttachmentSer
     response_model=ChatAskResponse,
     summary="Ask a question to an agent or a workflow (public)",
 )
+@limiter.limit(settings.public_chat_rate_limit)
 async def ask(
+    request: Request,
     target_id: str,
     data: ChatAskRequest,
     service: ChatService = Depends(_get_service),
@@ -96,7 +101,9 @@ async def ask(
     summary="Ask an agent or a workflow, streaming the answer back (public)",
     response_class=StreamingResponse,
 )
+@limiter.limit(settings.public_chat_rate_limit)
 async def ask_stream(
+    request: Request,
     target_id: str,
     data: ChatAskRequest,
     attachment_service: AttachmentService = Depends(_get_attachment_service),

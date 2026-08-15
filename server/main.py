@@ -4,10 +4,14 @@ from pathlib import Path
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from config import settings
 from src.database import engine, init_db
 from src.dependencies.auth import require_auth
+from src.dependencies.rate_limit import limiter
 from src.routes.agent_router import router as agent_router
 from src.routes.ai_provider_router import router as ai_provider_router
 from src.routes.auth_router import router as auth_router
@@ -31,6 +35,10 @@ async def lifespan(_app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Calypso Server", version="1.0.0", lifespan=lifespan)
+
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
 
     app.add_middleware(
         CORSMiddleware,

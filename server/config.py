@@ -49,6 +49,7 @@ class Settings:
     default_username: str
     default_password: str
     history_token_budget: int
+    public_chat_rate_limit: str
 
 
 settings = Settings(
@@ -71,4 +72,5 @@ settings = Settings(
     default_username=os.getenv("DEFAULT_USERNAME", "admin"),
     default_password=os.getenv("DEFAULT_PASSWORD", "admin"),
     history_token_budget=_get_int_env("HISTORY_TOKEN_BUDGET", 6000),
+    public_chat_rate_limit=os.getenv("PUBLIC_CHAT_RATE_LIMIT", "20/minute"),
 )
