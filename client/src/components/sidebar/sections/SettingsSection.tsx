@@ -1,20 +1,17 @@
 import { useState } from 'react'
 import CollapsibleSection from '../../common/CollapsibleSection'
 import KbSettingsModal from '../../common/KbSettingsModal'
+import AccountSettingsModal from '../../common/AccountSettingsModal'
 
-type SettingsCategory = { label: string; onOpen?: () => void }
+type SettingsCategory = { label: string; onOpen: () => void }
 
 function SettingsSection() {
     const [showKbSettings, setShowKbSettings] = useState(false)
+    const [showAccountSettings, setShowAccountSettings] = useState(false)
 
     const categories: SettingsCategory[] = [
-        { label: 'General Settings' },
-        { label: 'AI Providers Configuration' },
+        { label: 'Account', onOpen: () => setShowAccountSettings(true) },
         { label: 'Knowledgebase', onOpen: () => setShowKbSettings(true) },
-        { label: 'Keyboard Shortcuts' },
-        { label: 'Theme & Appearance' },
-        { label: 'API Keys Manager' },
-        { label: 'System Diagnostics' },
     ]
 
     return (
@@ -24,11 +21,7 @@ function SettingsSection() {
                     <div
                         key={category.label}
                         className="sidebar-item"
-                        onClick={() =>
-                            category.onOpen
-                                ? category.onOpen()
-                                : console.log(`Selected settings category: ${category.label}`)
-                        }
+                        onClick={category.onOpen}
                     >
                         {category.label}
                     </div>
@@ -37,6 +30,9 @@ function SettingsSection() {
 
             {showKbSettings && (
                 <KbSettingsModal onClose={() => setShowKbSettings(false)} />
+            )}
+            {showAccountSettings && (
+                <AccountSettingsModal onClose={() => setShowAccountSettings(false)} />
             )}
         </div>
     )
