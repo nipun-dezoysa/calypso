@@ -1,8 +1,10 @@
 # Calypso
 
-A self-sufficient, local AI workspace for orchestrating autonomous agents, MCP servers, and multi-model workflows.
+A local AI workspace for running autonomous agents, MCP servers, and multi-model workflows.
 
-Calypso runs entirely on your own machine. You bring the model — a local Ollama instance or an API key for OpenAI, Anthropic, Google, or Azure — and Calypso gives you the workspace around it: agents with their own tools and knowledge, visual multi-agent workflows, and a chat interface to run them.
+Calypso runs on your own machine. You bring the model (a local Ollama instance, or an API key for OpenAI, Anthropic, Google, or Azure) and Calypso handles the rest: agents with their own tools and knowledge, multi-agent workflows you build visually, and a chat interface to run them.
+
+<img width="1152" height="550" alt="download (1)" src="https://github.com/user-attachments/assets/ee280df3-56c1-404f-9ac8-c0ecb306bae8" />
 
 ---
 
