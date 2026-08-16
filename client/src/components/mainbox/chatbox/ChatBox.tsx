@@ -49,7 +49,7 @@ function ChatBox() {
     function renderBody() {
         if (!targetId) {
             return (
-                <div className='flex-1 flex items-center justify-center text-zinc-500'>
+                <div className='flex-1 flex items-center justify-center text-(--c-text-muted)'>
                     Select an agent or workflow below to start chatting.
                 </div>
             )
@@ -57,7 +57,7 @@ function ChatBox() {
 
         if (loadingMessages) {
             return (
-                <div className='flex-1 flex items-center justify-center text-zinc-500 animate-pulse'>
+                <div className='flex-1 flex items-center justify-center text-(--c-text-muted) animate-pulse'>
                     Loading conversation…
                 </div>
             )
@@ -65,7 +65,7 @@ function ChatBox() {
 
         if (messages.length === 0 && !sending) {
             return (
-                <div className='flex-1 flex items-center justify-center text-zinc-500'>
+                <div className='flex-1 flex items-center justify-center text-(--c-text-muted)'>
                     Start a conversation with {targetName}.
                 </div>
             )
@@ -104,10 +104,10 @@ function ChatBox() {
               {sending && (
                 <div className="flex flex-col gap-2">
                   {(streamingStep || streamingTool) && (
-                    <div className="text-xs text-amber-500/80">
+                    <div className="text-xs text-(--c-accent)/80">
                       {streamingStep && <span>Step: {streamingStep}</span>}
                       {streamingStep && streamingTool && (
-                        <span className="text-zinc-600"> · </span>
+                        <span className="text-(--c-text-subtle)"> · </span>
                       )}
                       {streamingTool && (
                         <span className="animate-pulse">
@@ -119,13 +119,13 @@ function ChatBox() {
                   {streamingText ? (
                     <BotMessage message={streamingText} />
                   ) : (
-                    <div className="text-zinc-500 text-sm animate-pulse">
+                    <div className="text-(--c-text-muted) text-sm animate-pulse">
                       Thinking…
                     </div>
                   )}
                 </div>
               )}
-              {error && <div className="text-red-400 text-sm">{error}</div>}
+              {error && <div className="text-(--c-danger-text) text-sm">{error}</div>}
               <div ref={bottomRef} />
             </div>
           </ScrollArea>
@@ -133,15 +133,17 @@ function ChatBox() {
     }
 
     return (
-        <div className='relative h-full flex flex-col items-center'>
-            <div className='sticky top-0 w-full text-zinc-300 px-5 py-2 bg-zinc-900 z-10 flex items-center gap-3'>
-                <span className='truncate'>{headerTitle}</span>
-                {targetId && <CopyCurlButton targetId={targetId} className='ml-auto' />}
-            </div>
-            {renderBody()}
-            <ChatInput />
+      <div className="relative h-full flex flex-col items-center">
+        <div className="sticky top-0 w-full text-(--c-text-body) px-5 py-2 bg-(--c-surface) z-10 flex items-center gap-3">
+          <span className="truncate">{headerTitle}</span>
+          {targetId && (
+            <CopyCurlButton targetId={targetId} className="ml-auto" />
+          )}
         </div>
-    )
+        {renderBody()}
+        <ChatInput />
+      </div>
+    );
 }
 
 export default ChatBox

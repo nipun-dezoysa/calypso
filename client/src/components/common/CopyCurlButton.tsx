@@ -51,10 +51,10 @@ function CopyCurlButton({ targetId, className = '' }: CopyCurlButtonProps) {
             title={`Copy a cURL request to the public /ask endpoint\n\n${buildAskCurl(targetId)}`}
             className={`flex items-center gap-1.5 text-xs border rounded px-2 py-1 whitespace-nowrap transition-colors ${
                 state === 'copied'
-                    ? 'border-emerald-700 text-emerald-400'
+                    ? 'border-(--c-success) text-(--c-success)'
                     : state === 'failed'
-                      ? 'border-red-800 text-red-400'
-                      : 'border-zinc-700 text-zinc-300 hover:text-amber-400 hover:border-amber-600'
+                      ? 'border-(--c-danger-border-solid) text-(--c-danger-text)'
+                      : 'border-(--c-border) text-(--c-text-body) hover:text-(--c-accent-hi) hover:border-(--c-accent)'
             } ${className}`}
         >
             {state === 'copied' ? <IoCheckmark /> : <IoCodeSlashOutline />}

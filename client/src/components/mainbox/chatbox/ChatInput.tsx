@@ -195,10 +195,10 @@ function ChatInput() {
   }
 
   return (
-    <div className="w-full bg-zinc-900 px-4 absolute left-0 bottom-0 flex items-center justify-center pb-5 flex-col">
+    <div className="w-full bg-(--c-surface) px-4 absolute left-0 bottom-0 flex items-center justify-center pb-5 flex-col">
       <div
-        className={`bg-zinc-950 w-full max-w-4xl rounded-2xl p-3 border ${
-          draggingOver ? "border-amber-600" : "border-transparent"
+        className={`bg-(--c-bg) w-full max-w-4xl rounded-2xl p-3 border ${
+          draggingOver ? "border-(--c-accent)" : "border-transparent"
         }`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
@@ -214,7 +214,7 @@ function ChatInput() {
               />
             ))}
             {uploading && (
-              <div className="flex items-center text-xs text-zinc-500 animate-pulse px-2">
+              <div className="flex items-center text-xs text-(--c-text-muted) animate-pulse px-2">
                 Reading {uploadingCount} file{uploadingCount === 1 ? "" : "s"}…
               </div>
             )}
@@ -222,7 +222,7 @@ function ChatInput() {
         )}
 
         <textarea
-          className="w-full bg-transparent focus:outline-none text-zinc-300 resize-none placeholder:text-zinc-500"
+          className="w-full bg-transparent focus:outline-none text-(--c-text-body) resize-none placeholder:text-(--c-text-muted)"
           placeholder={
             targetId
               ? "Type your message here, or drop in a file..."
@@ -234,7 +234,7 @@ function ChatInput() {
           onPaste={handlePaste}
           disabled={!targetId}
         ></textarea>
-        <div className="flex justify-between text-zinc-500 items-center">
+        <div className="flex justify-between text-(--c-text-muted) items-center">
           <div className="flex items-center gap-2">
             <input
               ref={fileInputRef}
@@ -254,7 +254,7 @@ function ChatInput() {
               disabled={!canAttach}
               className={`p-1 rounded ${
                 canAttach
-                  ? "hover:text-zinc-300 cursor-pointer"
+                  ? "hover:text-(--c-text-body) cursor-pointer"
                   : "opacity-40 cursor-not-allowed"
               }`}
               title="Attach a PDF, Word document, text file or image"
@@ -262,7 +262,7 @@ function ChatInput() {
             >
               <IoAdd size={18} />
             </button>
-            <span className="text-zinc-600">·</span>
+            <span className="text-(--c-text-subtle)">·</span>
             <DropdownSelector
               options={agentOptions}
               selected={selectedOption}
@@ -273,13 +273,13 @@ function ChatInput() {
               label="Select an agent"
             />
             {targetType === "workflow" && (
-              <span className="text-[11px] text-amber-500/80 border border-amber-700/40 rounded px-1.5 py-0.5">
+              <span className="text-[11px] text-(--c-accent)/80 border border-(--c-accent-lo)/40 rounded px-1.5 py-0.5">
                 Workflow
               </span>
             )}
             {targetType === "agent" && (
               <>
-                <span className="text-zinc-600">·</span>
+                <span className="text-(--c-text-subtle)">·</span>
                 <DropdownSelector
                   options={kbOptions}
                   selected={selectedKBs}
@@ -287,7 +287,7 @@ function ChatInput() {
                   label="Knowledgebases"
                   multiple
                 />
-                <span className="text-zinc-600">·</span>
+                <span className="text-(--c-text-subtle)">·</span>
                 <DropdownSelector
                   options={mcpOptions}
                   selected={selectedMcpOptions}
@@ -301,8 +301,8 @@ function ChatInput() {
           <button
             className={`p-2 rounded-sm text-white ${
               sending || canSend
-                ? "bg-amber-600 cursor-pointer"
-                : "bg-zinc-700 cursor-not-allowed"
+                ? "bg-(--c-accent) cursor-pointer"
+                : "bg-(--c-border) cursor-not-allowed"
             }`}
             onClick={sending ? stopStreaming : handleSend}
             disabled={!sending && !canSend}
@@ -317,7 +317,7 @@ function ChatInput() {
           </button>
         </div>
       </div>
-      <div className="text-zinc-500 text-xs pt-2">
+      <div className="text-(--c-text-muted) text-xs pt-2">
         AI models can make mistakes. Check important info.
       </div>
     </div>

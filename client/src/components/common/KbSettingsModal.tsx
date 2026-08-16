@@ -142,7 +142,7 @@ function KbSettingsModal({ onClose }: KbSettingsModalProps) {
             }
         >
             {loading ? (
-                <div className="py-4 flex items-center justify-center gap-2 text-zinc-500 text-xs">
+                <div className="py-4 flex items-center justify-center gap-2 text-(--c-text-muted) text-xs">
                     <span className="ui-spinner" /> Loading settings…
                 </div>
             ) : (

@@ -92,11 +92,11 @@ function AgentSection() {
                         onClick={() => { showChat(); openThread(thread.id) }}
                         title={formatThreadTitle(thread.title, thread.updated_at)}
                     >
-                        <span className={`truncate ${thread.id === activeThreadId ? 'text-amber-400' : ''}`}>
+                        <span className={`truncate ${thread.id === activeThreadId ? 'text-(--c-accent-hi)' : ''}`}>
                             {formatThreadTitle(thread.title, thread.updated_at)}
                         </span>
                         <button
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-red-400 p-0.5 shrink-0"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-(--c-text-subtle) hover:text-(--c-danger-text) p-0.5 shrink-0"
                             onClick={(e) => { e.stopPropagation(); removeThread(thread.id) }}
                             title="Delete chat"
                             aria-label={`Delete chat ${formatThreadTitle(thread.title, thread.updated_at)}`}
@@ -112,7 +112,7 @@ function AgentSection() {
     function renderAgentList() {
         if (loadState === 'loading') {
             return (
-                <div className="py-4 flex items-center justify-center gap-2 text-zinc-500 text-xs">
+                <div className="py-4 flex items-center justify-center gap-2 text-(--c-text-muted) text-xs">
                     <span className="apm-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
                     Loading agents…
                 </div>
@@ -122,12 +122,12 @@ function AgentSection() {
         if (loadState === 'error' && agents.length === 0) {
             return (
                 <div className="py-3 px-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5 text-red-400 text-xs">
+                    <div className="flex items-center gap-1.5 text-(--c-danger-text) text-xs">
                         <IoAlertCircleOutline className="shrink-0" />
                         <span>{loadError}</span>
                     </div>
                     <button
-                        className="sidebar-item text-zinc-400 hover:text-amber-400 flex items-center gap-1"
+                        className="sidebar-item text-(--c-text-dim) hover:text-(--c-accent-hi) flex items-center gap-1"
                         onClick={fetchAll}
                     >
                         <IoRefreshOutline />
@@ -139,7 +139,7 @@ function AgentSection() {
 
         if (agents.length === 0) {
             return (
-                <div className="py-3 px-6 text-zinc-500 text-xs italic">
+                <div className="py-3 px-6 text-(--c-text-muted) text-xs italic">
                     No agents configured yet.
                 </div>
             )
@@ -154,15 +154,15 @@ function AgentSection() {
                         onClick={() => { showChat(); selectAgent(agent) }}
                     >
                         <div className="flex flex-col min-w-0">
-                            <span className={`truncate ${targetType === 'agent' && agent.id === targetId ? 'text-amber-400' : ''}`}>
+                            <span className={`truncate ${targetType === 'agent' && agent.id === targetId ? 'text-(--c-accent-hi)' : ''}`}>
                                 {agent.name}
                             </span>
-                            <span className="text-[10px] text-zinc-600 truncate">
+                            <span className="text-[10px] text-(--c-text-subtle) truncate">
                                 {agent.llm_model.provider_name} · {agent.llm_model.model_name}
                             </span>
                         </div>
                         <button
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-amber-400 p-0.5 shrink-0"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-(--c-text-subtle) hover:text-(--c-accent-hi) p-0.5 shrink-0"
                             onClick={(e) => { e.stopPropagation(); setEditingAgent(agent) }}
                             title={`Edit ${agent.name}`}
                             aria-label={`Edit ${agent.name}`}
@@ -178,7 +178,7 @@ function AgentSection() {
     function renderWorkflowList() {
         if (workflows.length === 0) {
             return (
-                <div className="py-3 px-6 text-zinc-500 text-xs italic">
+                <div className="py-3 px-6 text-(--c-text-muted) text-xs italic">
                     No workflows yet.
                 </div>
             )
@@ -191,8 +191,8 @@ function AgentSection() {
                         className="sidebar-item flex items-center gap-2"
                         onClick={() => { showChat(); selectWorkflow({ id: wf.id, name: wf.name }) }}
                     >
-                        <IoGitNetworkOutline size={13} className="shrink-0 text-zinc-600" />
-                        <span className={`truncate ${targetType === 'workflow' && wf.id === targetId ? 'text-amber-400' : ''}`}>
+                        <IoGitNetworkOutline size={13} className="shrink-0 text-(--c-text-subtle)" />
+                        <span className={`truncate ${targetType === 'workflow' && wf.id === targetId ? 'text-(--c-accent-hi)' : ''}`}>
                             {wf.name}
                         </span>
                     </div>

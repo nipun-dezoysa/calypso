@@ -156,7 +156,7 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
             )}
 
             {loadingProviders ? (
-                <div className="py-4 flex items-center justify-center gap-2 text-zinc-500 text-xs">
+                <div className="py-4 flex items-center justify-center gap-2 text-(--c-text-muted) text-xs">
                     <span className="apm-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
                     Loading providers…
                 </div>

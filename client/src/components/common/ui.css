@@ -3,19 +3,31 @@
     --c-bg:            #09090b;
     --c-surface:       #18181b;
     --c-hover:         #27272a;
+    --c-active-bg:     #2d2d30;
     --c-border:        #3f3f46;
     --c-border-focus:  #d97706;
+    --c-text-strong:   #f4f4f5;
     --c-text:          #e4e4e7;
+    --c-text-body:     #d4d4d8;
     --c-text-dim:      #a1a1aa;
     --c-text-muted:    #71717a;
     --c-text-subtle:   #52525b;
     --c-accent:        #d97706;
     --c-accent-hi:     #fbbf24;
     --c-accent-lo:     #b45309;
-    --c-danger:        #ef4444;
-    --c-danger-text:   #f87171;
-    --c-danger-dim:    rgba(239,68,68,0.08);
-    --c-danger-border: rgba(239,68,68,0.25);
+    --c-accent-contrast: #18181b;
+
+    /* Semantic status colors — fixed across every theme, never touched by
+       theme-switching code (see client/src/utils/theme.ts). */
+    --c-danger:              #ef4444;
+    --c-danger-text:         #f87171;
+    --c-danger-dim:          rgba(239,68,68,0.08);
+    --c-danger-border:       rgba(239,68,68,0.25);
+    --c-danger-border-solid: #991b1b;
+    --c-success:             #34d399;
+    --c-success-dim:         rgba(16,185,129,0.12);
+    --c-success-border:      rgba(16,185,129,0.3);
+
     --radius-sm: 6px;
     --radius:    8px;
     --radius-lg: 12px;
@@ -30,7 +42,6 @@
     position: fixed;
     inset: 0;
     background: rgba(0,0,0,.45);
-    backdrop-filter: blur(2px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -66,7 +77,7 @@
 .modal-title {
     font-size: 15px;
     font-weight: 600;
-    color: #f4f4f5;
+    color: var(--c-text-strong);
     margin: 0;
     line-height: 1.2;
     display: flex;
@@ -159,7 +170,7 @@
 .form-input::placeholder { color: var(--c-text-subtle); }
 .form-input:focus {
     border-color: var(--c-border-focus);
-    box-shadow: 0 0 0 3px rgba(217,119,6,.15);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--c-accent) 15%, transparent);
 }
 .form-input:disabled { opacity: .45; cursor: not-allowed; }
 
@@ -172,8 +183,8 @@
 .form-error--banner {
     font-size: 13px;
     padding: 8px 12px;
-    background: rgba(239,68,68,.08);
-    border: 1px solid rgba(239,68,68,.2);
+    background: var(--c-danger-dim);
+    border: 1px solid var(--c-danger-border);
     border-radius: var(--radius);
 }
 
@@ -243,7 +254,7 @@
 }
 .form-tags-container:focus-within {
     border-color: var(--c-border-focus);
-    box-shadow: 0 0 0 3px rgba(217,119,6,.15);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--c-accent) 15%, transparent);
 }
 
 .form-tag {
@@ -255,7 +266,7 @@
     border-radius: 5px;
     padding: 2px 6px 2px 8px;
     font-size: 11px;
-    color: #d4d4d8;
+    color: var(--c-text-body);
     white-space: nowrap;
     max-width: 200px;
 }
@@ -301,7 +312,7 @@
     white-space: nowrap;
 }
 .form-model-pill:hover { background: var(--c-hover); border-color: var(--c-accent); color: var(--c-accent-hi); }
-.form-model-pill--on   { background: rgba(217,119,6,.12); border-color: var(--c-accent); color: var(--c-accent-hi); }
+.form-model-pill--on   { background: color-mix(in oklab, var(--c-accent) 12%, transparent); border-color: var(--c-accent); color: var(--c-accent-hi); }
 
 /* ── Password input wrapper ── */
 .form-pw-wrapper { position: relative; }
@@ -368,8 +379,8 @@
     align-items: flex-start;
     gap: 8px;
     padding: 10px 12px;
-    background: rgba(217,119,6,.08);
-    border: 1px solid rgba(217,119,6,.2);
+    background: color-mix(in oklab, var(--c-accent) 8%, transparent);
+    border: 1px solid color-mix(in oklab, var(--c-accent) 20%, transparent);
     border-radius: var(--radius);
     font-size: 12px;
     color: var(--c-text-dim);
@@ -396,7 +407,7 @@
 }
 .btn--cancel  { background: var(--c-hover);  color: var(--c-text-dim); }
 .btn--cancel:hover { background: var(--c-border); color: var(--c-text); }
-.btn--primary { background: var(--c-accent); color: #fff; }
+.btn--primary { background: var(--c-accent); color: var(--c-accent-contrast); }
 .btn--primary:hover { background: var(--c-accent-lo); }
 .btn--primary:disabled { opacity: .4; cursor: not-allowed; }
 .btn--primary:disabled:hover { background: var(--c-accent); }
@@ -418,7 +429,7 @@
     transition: background-color .15s, border-color .15s, color .15s;
     font-family: inherit;
 }
-.btn--danger:hover  { background: rgba(239,68,68,.16); border-color: rgba(239,68,68,.5); color: #fca5a5; }
+.btn--danger:hover  { background: color-mix(in oklab, var(--c-danger) 16%, transparent); border-color: color-mix(in oklab, var(--c-danger) 50%, transparent); color: var(--c-danger-text); }
 .btn--danger:disabled { opacity: .4; cursor: not-allowed; }
 
 /* ── Spinner ── */
@@ -453,7 +464,7 @@
 .confirm-overlay {
     position: absolute;
     inset: 0;
-    background: rgba(9,9,11,.88);
+    background: color-mix(in oklab, var(--c-bg) 88%, transparent);
     backdrop-filter: blur(3px);
     border-radius: var(--radius-lg);
     display: flex;
@@ -468,12 +479,12 @@
 .confirm-overlay__icon {
     width: 48px; height: 48px;
     border-radius: 50%;
-    background: rgba(239,68,68,.12);
-    border: 1px solid rgba(239,68,68,.3);
+    background: var(--c-danger-dim);
+    border: 1px solid var(--c-danger-border);
     display: flex; align-items: center; justify-content: center;
     font-size: 22px; color: var(--c-danger-text);
 }
-.confirm-overlay__heading { font-size: 16px; font-weight: 600; color: #f4f4f5; text-align: center; margin: 0; }
+.confirm-overlay__heading { font-size: 16px; font-weight: 600; color: var(--c-text-strong); text-align: center; margin: 0; }
 .confirm-overlay__body    { font-size: 13px; color: var(--c-text-muted); text-align: center; line-height: 1.6; max-width: 300px; margin: 0; }
 .confirm-overlay__name    { color: var(--c-accent-hi); font-weight: 600; }
 .confirm-overlay__actions { display: flex; gap: 10px; }
@@ -520,7 +531,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 12px;
-    color: #a1a1aa;
+    color: var(--c-text-dim);
 }
 
 .form-context-input {
@@ -531,6 +542,6 @@
 .form-context-hint {
     flex: 0 0 110px;
     font-size: 11px;
-    color: #52525b;
+    color: var(--c-text-subtle);
     text-align: right;
 }

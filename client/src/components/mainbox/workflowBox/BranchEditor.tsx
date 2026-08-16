@@ -14,7 +14,7 @@ interface BranchEditorProps {
 }
 
 const FIELD =
-    'w-full bg-zinc-900 border border-zinc-700 rounded text-zinc-200 text-[11px] px-1.5 py-1 outline-none focus:border-zinc-500'
+    'w-full bg-(--c-surface) border border-(--c-border) rounded text-(--c-text) text-[11px] px-1.5 py-1 outline-none focus:border-(--c-text-muted)'
 
 export default function BranchEditor({ branches, onChange, onRemoved }: BranchEditorProps) {
     function patch(id: string, changes: Partial<Branch>) {
@@ -37,16 +37,16 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
     return (
         <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-                <label className="text-[11px] text-zinc-500">Branches</label>
+                <label className="text-[11px] text-(--c-text-muted)">Branches</label>
                 <button
-                    className="flex items-center gap-0.5 text-[11px] text-zinc-400 hover:text-amber-400"
+                    className="flex items-center gap-0.5 text-[11px] text-(--c-text-dim) hover:text-(--c-accent-hi)"
                     onClick={() => onChange([...branches, newBranch()])}
                 >
                     <IoAddOutline /> Add
                 </button>
             </div>
 
-            <p className="text-[10px] text-zinc-600 leading-snug">
+            <p className="text-[10px] text-(--c-text-subtle) leading-snug">
                 Checked top to bottom against the incoming text; the first match decides where the
                 run goes next. Wire each branch's dot to the node it should hand off to.
             </p>
@@ -54,10 +54,10 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
             {branches.map((branch, i) => (
                 <div
                     key={branch.id}
-                    className="flex flex-col gap-1.5 border border-zinc-800 rounded p-2 bg-zinc-900/40"
+                    className="flex flex-col gap-1.5 border border-(--c-hover) rounded p-2 bg-(--c-surface)/40"
                 >
                     <div className="flex items-center gap-1">
-                        <span className="text-[10px] text-zinc-600 font-mono w-3.5 shrink-0">
+                        <span className="text-[10px] text-(--c-text-subtle) font-mono w-3.5 shrink-0">
                             {i + 1}
                         </span>
                         <input
@@ -68,7 +68,7 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
                             spellCheck={false}
                         />
                         <button
-                            className="text-zinc-500 hover:text-zinc-200 disabled:opacity-25 shrink-0"
+                            className="text-(--c-text-muted) hover:text-(--c-text) disabled:opacity-25 shrink-0"
                             onClick={() => move(i, -1)}
                             disabled={i === 0}
                             title="Check earlier"
@@ -76,7 +76,7 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
                             <IoArrowUpOutline size={12} />
                         </button>
                         <button
-                            className="text-zinc-500 hover:text-zinc-200 disabled:opacity-25 shrink-0"
+                            className="text-(--c-text-muted) hover:text-(--c-text) disabled:opacity-25 shrink-0"
                             onClick={() => move(i, 1)}
                             disabled={i === branches.length - 1}
                             title="Check later"
@@ -84,7 +84,7 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
                             <IoArrowDownOutline size={12} />
                         </button>
                         <button
-                            className="text-red-500 hover:text-red-400 shrink-0"
+                            className="text-(--c-danger) hover:text-(--c-danger-text) shrink-0"
                             onClick={() => remove(branch.id)}
                             title="Delete branch"
                         >
@@ -117,10 +117,10 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
                                 onChange={(e) => patch(branch.id, { value: e.target.value })}
                                 spellCheck={false}
                             />
-                            <label className="flex items-center gap-1.5 text-[10px] text-zinc-500 cursor-pointer">
+                            <label className="flex items-center gap-1.5 text-[10px] text-(--c-text-muted) cursor-pointer">
                                 <input
                                     type="checkbox"
-                                    className="accent-amber-600"
+                                    className="accent-(--c-accent)"
                                     checked={branch.case_sensitive}
                                     onChange={(e) =>
                                         patch(branch.id, { case_sensitive: e.target.checked })
@@ -134,7 +134,7 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
             ))}
 
             {branches.length === 0 && (
-                <span className="text-[10px] text-red-400">
+                <span className="text-[10px] text-(--c-danger-text)">
                     A condition node needs at least one branch to save.
                 </span>
             )}

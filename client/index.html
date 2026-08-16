@@ -5,6 +5,26 @@
     <link rel="icon" type="image/png" href="/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Calypso</title>
+
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('calypso-active-theme-tokens');
+          if (!raw) return;
+          var tokens = JSON.parse(raw);
+          var map = {
+            bg: '--c-bg', surface: '--c-surface', hover: '--c-hover', activeBg: '--c-active-bg',
+            border: '--c-border', borderFocus: '--c-border-focus', textStrong: '--c-text-strong',
+            text: '--c-text', textBody: '--c-text-body', textDim: '--c-text-dim',
+            textMuted: '--c-text-muted', textSubtle: '--c-text-subtle', accent: '--c-accent',
+            accentHi: '--c-accent-hi', accentLo: '--c-accent-lo', accentContrast: '--c-accent-contrast'
+          };
+          for (var key in map) {
+            if (tokens[key]) document.documentElement.style.setProperty(map[key], tokens[key]);
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

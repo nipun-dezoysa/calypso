@@ -49,7 +49,7 @@ function KnowledgeSection() {
     function renderList() {
         if (loadState === 'loading' && collections.length === 0) {
             return (
-                <div className="py-4 flex items-center justify-center gap-2 text-zinc-500 text-xs">
+                <div className="py-4 flex items-center justify-center gap-2 text-(--c-text-muted) text-xs">
                     <span className="apm-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
                     Loading knowledgebases…
                 </div>
@@ -59,12 +59,12 @@ function KnowledgeSection() {
         if (loadState === 'error' && collections.length === 0) {
             return (
                 <div className="py-3 px-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5 text-red-400 text-xs">
+                    <div className="flex items-center gap-1.5 text-(--c-danger-text) text-xs">
                         <IoAlertCircleOutline className="shrink-0" />
                         <span>{loadError}</span>
                     </div>
                     <button
-                        className="sidebar-item text-zinc-400 hover:text-amber-400 flex items-center gap-1"
+                        className="sidebar-item text-(--c-text-dim) hover:text-(--c-accent-hi) flex items-center gap-1"
                         onClick={fetchCollections}
                     >
                         <IoRefreshOutline />
@@ -76,7 +76,7 @@ function KnowledgeSection() {
 
         if (collections.length === 0) {
             return (
-                <div className="py-3 px-6 text-zinc-500 text-xs italic">
+                <div className="py-3 px-6 text-(--c-text-muted) text-xs italic">
                     No knowledgebases yet.
                 </div>
             )
@@ -92,7 +92,7 @@ function KnowledgeSection() {
                         title={kb.description ?? kb.name}
                     >
                         <span className="truncate">{kb.name}</span>
-                        <span className="text-[10px] text-zinc-500 bg-zinc-800 px-1.5 py-0.5 rounded-full font-mono">
+                        <span className="text-[10px] text-(--c-text-muted) bg-(--c-hover) px-1.5 py-0.5 rounded-full font-mono">
                             {kb.document_count}
                         </span>
                     </div>

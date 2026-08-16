@@ -87,7 +87,7 @@ function ModelSection() {
     function renderProviderList() {
         if (loadState === 'loading') {
             return (
-                <div className="py-4 flex items-center justify-center gap-2 text-zinc-500 text-xs">
+                <div className="py-4 flex items-center justify-center gap-2 text-(--c-text-muted) text-xs">
                     <span className="apm-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
                     Loading providers…
                 </div>
@@ -97,12 +97,12 @@ function ModelSection() {
         if (loadState === 'error' && providers.length === 0) {
             return (
                 <div className="py-3 px-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5 text-red-400 text-xs">
+                    <div className="flex items-center gap-1.5 text-(--c-danger-text) text-xs">
                         <IoAlertCircleOutline className="shrink-0" />
                         <span>{loadError}</span>
                     </div>
                     <button
-                        className="sidebar-item text-zinc-400 hover:text-amber-400 flex items-center gap-1"
+                        className="sidebar-item text-(--c-text-dim) hover:text-(--c-accent-hi) flex items-center gap-1"
                         onClick={fetchProviders}
                     >
                         <IoRefreshOutline />
@@ -114,7 +114,7 @@ function ModelSection() {
 
         if (providers.length === 0) {
             return (
-                <div className="py-3 px-6 text-zinc-500 text-xs italic">
+                <div className="py-3 px-6 text-(--c-text-muted) text-xs italic">
                     No providers configured yet.
                 </div>
             )
@@ -126,11 +126,11 @@ function ModelSection() {
                     <div key={provider.id} className="mb-3">
                         {/* Provider header row — pencil opens edit modal */}
                         <div className="flex items-center justify-between px-4 mb-1 group">
-                            <span className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">
+                            <span className="text-[10px] font-semibold text-(--c-text-subtle) uppercase tracking-wider">
                                 {provider.provider_name}
                             </span>
                             <button
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-amber-400 p-0.5"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-(--c-text-subtle) hover:text-(--c-accent-hi) p-0.5"
                                 onClick={() => setEditingProvider(provider)}
                                 title={`Edit ${provider.provider_name}`}
                                 aria-label={`Edit ${provider.provider_name}`}
@@ -153,14 +153,14 @@ function ModelSection() {
                                     <span className="flex items-center gap-2 shrink-0">
                                         {context ? (
                                             <span
-                                                className="text-[10px] text-zinc-600"
+                                                className="text-[10px] text-(--c-text-subtle)"
                                                 title={`${context.toLocaleString()} token context window`}
                                             >
                                                 {formatTokens(context)}
                                             </span>
                                         ) : null}
                                         <span
-                                            className="w-1.5 h-1.5 rounded-full bg-emerald-500"
+                                            className="w-1.5 h-1.5 rounded-full bg-(--c-success)"
                                             title="Active"
                                         />
                                     </span>

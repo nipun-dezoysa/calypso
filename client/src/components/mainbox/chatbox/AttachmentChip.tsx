@@ -62,24 +62,24 @@ function AttachmentChip({ attachment, onRemove }: Props) {
         <div
             className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 max-w-56 ${
                 failed
-                    ? 'border-red-800/60 bg-red-950/30'
-                    : 'border-zinc-700 bg-zinc-900'
+                    ? 'border-(--c-danger-border-solid)/60 bg-(--c-danger)/30'
+                    : 'border-(--c-border) bg-(--c-surface)'
             }`}
             title={failed ? (attachment.error_message ?? undefined) : attachment.filename}
         >
-            <div className='shrink-0 w-8 h-8 rounded overflow-hidden bg-zinc-800 flex items-center justify-center text-zinc-400'>
+            <div className='shrink-0 w-8 h-8 rounded overflow-hidden bg-(--c-hover) flex items-center justify-center text-(--c-text-dim)'>
                 {thumbnail ? (
                     <img src={thumbnail} alt={attachment.filename} className='w-full h-full object-cover' />
                 ) : failed ? (
-                    <IoWarningOutline className='text-red-400' />
+                    <IoWarningOutline className='text-(--c-danger-text)' />
                 ) : (
                     <IoDocumentTextOutline />
                 )}
             </div>
 
             <div className='min-w-0 flex-1'>
-                <div className='truncate text-xs text-zinc-300'>{attachment.filename}</div>
-                <div className={`truncate text-[11px] ${failed ? 'text-red-400' : 'text-zinc-500'}`}>
+                <div className='truncate text-xs text-(--c-text-body)'>{attachment.filename}</div>
+                <div className={`truncate text-[11px] ${failed ? 'text-(--c-danger-text)' : 'text-(--c-text-muted)'}`}>
                     {subtitle(attachment)}
                 </div>
             </div>
@@ -88,7 +88,7 @@ function AttachmentChip({ attachment, onRemove }: Props) {
                 <button
                     type='button'
                     onClick={() => onRemove(attachment.id)}
-                    className='shrink-0 text-zinc-500 hover:text-zinc-200 cursor-pointer'
+                    className='shrink-0 text-(--c-text-muted) hover:text-(--c-text) cursor-pointer'
                     aria-label={`Remove ${attachment.filename}`}
                 >
                     <IoClose />

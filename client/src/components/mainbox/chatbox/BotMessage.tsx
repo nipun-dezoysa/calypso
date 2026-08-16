@@ -34,7 +34,7 @@ function BotMessage({ message, messageId, canRegenerate, onRegenerate, busy }: P
   }
 
   return (
-    <div className="text-zinc-300 group">
+    <div className="text-(--c-text-body) group">
       <Markdown remarkPlugins={[remarkGfm]}>{message}</Markdown>
       {messageId && (
         <div className="flex items-center gap-1 mt-1 h-5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
@@ -43,7 +43,7 @@ function BotMessage({ message, messageId, canRegenerate, onRegenerate, busy }: P
             onClick={handleCopy}
             title={copied ? "Copied" : "Copy"}
             aria-label="Copy message"
-            className="text-zinc-600 hover:text-amber-400 p-0.5"
+            className="text-(--c-text-subtle) hover:text-(--c-accent-hi) p-0.5"
           >
             {copied ? <IoCheckmark size={14} /> : <IoCopyOutline size={14} />}
           </button>
@@ -54,7 +54,7 @@ function BotMessage({ message, messageId, canRegenerate, onRegenerate, busy }: P
               disabled={busy}
               title="Regenerate response"
               aria-label="Regenerate response"
-              className="text-zinc-600 hover:text-amber-400 p-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="text-(--c-text-subtle) hover:text-(--c-accent-hi) p-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <IoRefreshOutline size={14} />
             </button>

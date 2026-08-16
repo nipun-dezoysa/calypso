@@ -31,7 +31,7 @@ function ModelSelector({ models, selectedModel, onSelect, label = 'Select a mode
     return (
         <div className='relative' ref={dropdownRef}>
             <button
-                className='flex items-center gap-1 hover:text-zinc-300 transition-colors text-sm cursor-pointer'
+                className='flex items-center gap-1 hover:text-(--c-text-body) transition-colors text-sm cursor-pointer'
                 onClick={() => setIsOpen(!isOpen)}
             >
                 <span>{selectedModel.name}</span>
@@ -39,15 +39,15 @@ function ModelSelector({ models, selectedModel, onSelect, label = 'Select a mode
             </button>
 
             {isOpen && (
-                <div className='absolute bottom-full left-0 mb-2 w-56 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden'>
-                    <div className='p-2 text-xs text-zinc-500 border-b border-zinc-800'>{label}</div>
+                <div className='absolute bottom-full left-0 mb-2 w-56 bg-(--c-surface) border border-(--c-border) rounded-lg shadow-xl overflow-hidden'>
+                    <div className='p-2 text-xs text-(--c-text-muted) border-b border-(--c-hover)'>{label}</div>
                     {models.map((model) => (
                         <button
                             key={model.id}
                             className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer
                                 ${selectedModel.id === model.id
-                                    ? 'bg-zinc-800 text-zinc-100'
-                                    : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'
+                                    ? 'bg-(--c-hover) text-(--c-text-strong)'
+                                    : 'text-(--c-text-dim) hover:bg-(--c-hover)/50 hover:text-(--c-text)'
                                 }`}
                             onClick={() => {
                                 onSelect(model)
@@ -56,9 +56,9 @@ function ModelSelector({ models, selectedModel, onSelect, label = 'Select a mode
                         >
                             <div className='flex flex-col items-start'>
                                 <span>{model.name}</span>
-                                <span className='text-xs text-zinc-500'>{model.provider}</span>
+                                <span className='text-xs text-(--c-text-muted)'>{model.provider}</span>
                             </div>
-                            {selectedModel.id === model.id && <IoCheckmark className='text-amber-500' />}
+                            {selectedModel.id === model.id && <IoCheckmark className='text-(--c-accent)' />}
                         </button>
                     ))}
                 </div>

@@ -477,7 +477,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
 
     if (loading) {
         return (
-            <div className="h-full w-full flex items-center justify-center text-zinc-500 text-sm gap-2">
+            <div className="h-full w-full flex items-center justify-center text-(--c-text-muted) text-sm gap-2">
                 <span className="apm-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
                 Loading workflow…
             </div>
@@ -488,29 +488,29 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
         <div className="h-full w-full flex">
             <div className="relative h-full flex-1 min-w-0">
             {/* Toolbar */}
-            <div className="absolute top-3 left-3 z-10 max-w-[calc(100%-1.5rem)] flex flex-wrap items-center gap-2 bg-zinc-950/90 border border-zinc-800 rounded-lg px-3 py-2">
+            <div className="absolute top-3 left-3 z-10 max-w-[calc(100%-1.5rem)] flex flex-wrap items-center gap-2 bg-(--c-bg)/90 border border-(--c-hover) rounded-lg px-3 py-2">
                 <input
-                    className="bg-transparent text-zinc-200 text-sm font-medium outline-none w-40 border-b border-transparent focus:border-zinc-600"
+                    className="bg-transparent text-(--c-text) text-sm font-medium outline-none w-40 border-b border-transparent focus:border-(--c-text-subtle)"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Workflow name"
                     spellCheck={false}
                 />
-                <span className="text-[11px] text-zinc-600 font-mono">{nodes.length} nodes</span>
+                <span className="text-[11px] text-(--c-text-subtle) font-mono">{nodes.length} nodes</span>
                 <button
-                    className="flex items-center gap-1 text-xs text-zinc-300 hover:text-amber-400 border border-zinc-700 rounded px-2 py-1"
+                    className="flex items-center gap-1 text-xs text-(--c-text-body) hover:text-(--c-accent-hi) border border-(--c-border) rounded px-2 py-1"
                     onClick={() => addNode('agent')}
                 >
                     <IoAddOutline /> Agent node
                 </button>
                 <button
-                    className="flex items-center gap-1 text-xs text-zinc-300 hover:text-sky-400 border border-zinc-700 rounded px-2 py-1"
+                    className="flex items-center gap-1 text-xs text-(--c-text-body) hover:text-sky-400 border border-(--c-border) rounded px-2 py-1"
                     onClick={() => addNode('condition')}
                 >
                     <IoGitBranchOutline /> Condition node
                 </button>
                 <button
-                    className="flex items-center gap-1 text-xs text-white bg-amber-600 hover:bg-amber-700 rounded px-2.5 py-1 disabled:opacity-50"
+                    className="flex items-center gap-1 text-xs text-white bg-(--c-accent) hover:bg-(--c-accent-lo) rounded px-2.5 py-1 disabled:opacity-50"
                     onClick={handleSave}
                     disabled={saving}
                     title="Save workflow (Ctrl+S)"
@@ -520,8 +520,8 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                 <button
                     className={`flex items-center gap-1 text-xs border rounded px-2 py-1 ${
                         designerOpen
-                            ? 'border-amber-600 text-amber-400 bg-amber-950/30'
-                            : 'border-zinc-700 text-zinc-300 hover:text-amber-400'
+                            ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30'
+                            : 'border-(--c-border) text-(--c-text-body) hover:text-(--c-accent-hi)'
                     }`}
                     onClick={() => setDesignerOpen((open) => !open)}
                     title="Describe the workflow you want and have it drafted for you"
@@ -530,7 +530,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                 </button>
                 {beforeDesign && (
                     <button
-                        className="flex items-center gap-1 text-xs text-zinc-300 hover:text-amber-400 border border-zinc-700 rounded px-2 py-1"
+                        className="flex items-center gap-1 text-xs text-(--c-text-body) hover:text-(--c-accent-hi) border border-(--c-border) rounded px-2 py-1"
                         onClick={undoDesign}
                         title="Put the canvas back the way it was before the designer changed it"
                     >
@@ -539,22 +539,22 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                 )}
                 <CopyCurlButton targetId={workflowId} />
                 {savedAt && !saveError && (
-                    <span className="flex items-center gap-1 text-[11px] text-emerald-400">
+                    <span className="flex items-center gap-1 text-[11px] text-(--c-success)">
                         <IoCheckmarkCircle /> Saved
                     </span>
                 )}
             </div>
 
             {saveError && (
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-red-950/90 border border-red-800 text-red-300 text-xs rounded-lg px-3 py-2 max-w-md">
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-(--c-danger)/90 border border-(--c-danger-border-solid) text-(--c-danger-text) text-xs rounded-lg px-3 py-2 max-w-md">
                     {saveError}
                 </div>
             )}
 
             {/* Node properties panel */}
             {selectedNode && (
-                <div className="absolute top-3 right-3 z-10 w-64 max-h-[calc(100%-1.5rem)] overflow-y-auto bg-zinc-950/95 border border-zinc-800 rounded-lg p-3 flex flex-col gap-3">
-                    <div className="text-xs font-semibold text-zinc-300">
+                <div className="absolute top-3 right-3 z-10 w-64 max-h-[calc(100%-1.5rem)] overflow-y-auto bg-(--c-bg)/95 border border-(--c-hover) rounded-lg p-3 flex flex-col gap-3">
+                    <div className="text-xs font-semibold text-(--c-text-body)">
                         {selectedNode.data.kind === 'condition' ? 'Condition' : 'Agent node'}
                     </div>
 
@@ -580,8 +580,8 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                     <button
                         className={`flex items-center gap-1.5 text-xs rounded px-2 py-1.5 border ${
                             selectedNode.data.is_start
-                                ? 'border-amber-600 text-amber-400 bg-amber-950/30'
-                                : 'border-zinc-700 text-zinc-300 hover:border-amber-600 hover:text-amber-400'
+                                ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30'
+                                : 'border-(--c-border) text-(--c-text-body) hover:border-(--c-accent) hover:text-(--c-accent-hi)'
                         }`}
                         onClick={() => makeStart(selectedNode.id)}
                         disabled={selectedNode.data.is_start}
@@ -590,7 +590,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                         {selectedNode.data.is_start ? 'Start node' : 'Set as start'}
                     </button>
                     <button
-                        className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 border border-red-900/60 rounded px-2 py-1.5"
+                        className="flex items-center gap-1.5 text-xs text-(--c-danger-text) hover:text-(--c-danger-text) border border-(--c-danger)/60 rounded px-2 py-1.5"
                         onClick={() => deleteNode(selectedNode.id)}
                     >
                         <IoTrashOutline /> Delete node
@@ -600,15 +600,15 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
 
             {/* Edge properties panel */}
             {selectedEdge && (
-                <div className="absolute top-3 right-3 z-10 w-60 bg-zinc-950/95 border border-zinc-800 rounded-lg p-3 flex flex-col gap-3">
-                    <div className="text-xs font-semibold text-zinc-300">Connection</div>
+                <div className="absolute top-3 right-3 z-10 w-60 bg-(--c-bg)/95 border border-(--c-hover) rounded-lg p-3 flex flex-col gap-3">
+                    <div className="text-xs font-semibold text-(--c-text-body)">Connection</div>
                     <button
-                        className="flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 border border-red-900/60 rounded px-2 py-1.5"
+                        className="flex items-center gap-1.5 text-xs text-(--c-danger-text) hover:text-(--c-danger-text) border border-(--c-danger)/60 rounded px-2 py-1.5"
                         onClick={() => deleteEdge(selectedEdge.id)}
                     >
                         <IoTrashOutline /> Delete edge
                     </button>
-                    <span className="text-[11px] text-zinc-600">Tip: select an edge and press Delete.</span>
+                    <span className="text-[11px] text-(--c-text-subtle)">Tip: select an edge and press Delete.</span>
                 </div>
             )}
 
@@ -632,7 +632,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
 
             {/* Bottom-center chat toggle */}
             <button
-                className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 text-sm text-white bg-amber-600 hover:bg-amber-700 rounded-full px-4 py-2 shadow-lg shadow-black/40"
+                className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 text-sm text-white bg-(--c-accent) hover:bg-(--c-accent-lo) rounded-full px-4 py-2 shadow-lg shadow-black/40"
                 onClick={toggleChat}
             >
                 <IoChatbubbleEllipsesOutline size={16} />
@@ -641,12 +641,12 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
             </div>
 
             {chatOpen && (
-                <div className="w-1/2 h-full border-l border-zinc-800">
+                <div className="w-1/2 h-full border-l border-(--c-hover)">
                     <ChatBox />
                 </div>
             )}
 
-            <div className={designerOpen ? 'w-88 shrink-0 h-full border-l border-zinc-800' : 'hidden'}>
+            <div className={designerOpen ? 'w-88 shrink-0 h-full border-l border-(--c-hover)' : 'hidden'}>
                 <DesignerPanel
                     providers={providers}
                     getGraph={() => serializeGraph(name, nodes, edges)}

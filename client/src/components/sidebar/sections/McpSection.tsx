@@ -46,7 +46,7 @@ function McpSection() {
     function renderList() {
         if (loadState === 'loading' && servers.length === 0) {
             return (
-                <div className="py-4 flex items-center justify-center gap-2 text-zinc-500 text-xs">
+                <div className="py-4 flex items-center justify-center gap-2 text-(--c-text-muted) text-xs">
                     <span className="apm-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
                     Loading servers…
                 </div>
@@ -56,12 +56,12 @@ function McpSection() {
         if (loadState === 'error' && servers.length === 0) {
             return (
                 <div className="py-3 px-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5 text-red-400 text-xs">
+                    <div className="flex items-center gap-1.5 text-(--c-danger-text) text-xs">
                         <IoAlertCircleOutline className="shrink-0" />
                         <span>{loadError}</span>
                     </div>
                     <button
-                        className="sidebar-item text-zinc-400 hover:text-amber-400 flex items-center gap-1"
+                        className="sidebar-item text-(--c-text-dim) hover:text-(--c-accent-hi) flex items-center gap-1"
                         onClick={fetchServers}
                     >
                         <IoRefreshOutline />
@@ -73,7 +73,7 @@ function McpSection() {
 
         if (servers.length === 0) {
             return (
-                <div className="py-3 px-6 text-zinc-500 text-xs italic">
+                <div className="py-3 px-6 text-(--c-text-muted) text-xs italic">
                     No MCP servers configured yet.
                 </div>
             )
@@ -90,17 +90,17 @@ function McpSection() {
                     >
                         <div className="flex flex-col min-w-0">
                             <span className="truncate">{server.name}</span>
-                            <span className="text-[10px] text-zinc-600 truncate">
+                            <span className="text-[10px] text-(--c-text-subtle) truncate">
                                 {server.transport}
                             </span>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                             <span
-                                className={`w-2 h-2 rounded-full ${server.enabled ? 'bg-emerald-500' : 'bg-zinc-600'}`}
+                                className={`w-2 h-2 rounded-full ${server.enabled ? 'bg-(--c-success)' : 'bg-(--c-text-subtle)'}`}
                                 title={server.enabled ? 'Enabled' : 'Disabled'}
                             />
                             <button
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-amber-400 p-0.5"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity text-(--c-text-subtle) hover:text-(--c-accent-hi) p-0.5"
                                 onClick={(e) => { e.stopPropagation(); setEditing(server) }}
                                 title={`Edit ${server.name}`}
                                 aria-label={`Edit ${server.name}`}

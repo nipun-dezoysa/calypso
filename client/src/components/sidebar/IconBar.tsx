@@ -31,14 +31,14 @@ function IconBar() {
                 title={title}
                 onClick={() => handleSelect(id)}
                 className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
-                    isActive ? 'text-amber-500' : 'text-zinc-400 hover:text-zinc-100'
+                    isActive ? 'text-(--c-accent)' : 'text-(--c-text-dim) hover:text-(--c-text-strong)'
                 }`}
             />
         )
     }
 
     return (
-        <div className='p-3 text-2xl border-r border-zinc-800 text-zinc-400 flex flex-col justify-between h-full select-none'>
+        <div className='p-3 text-2xl border-r border-(--c-border) text-(--c-text-dim) flex flex-col justify-between h-full select-none'>
             <div className='flex flex-col gap-5'>
                 {navItems.map((item) => renderIcon(item.id, item.icon, item.title))}
             </div>
@@ -47,7 +47,7 @@ function IconBar() {
                 <IoLogOutOutline
                     title={user ? `Sign out (${user.username})` : 'Sign out'}
                     onClick={logout}
-                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-zinc-400 hover:text-red-400'
+                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-(--c-text-dim) hover:text-(--c-danger-text)'
                 />
             </div>
         </div>

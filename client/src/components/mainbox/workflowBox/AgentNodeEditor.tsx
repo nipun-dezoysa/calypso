@@ -15,9 +15,9 @@ interface AgentNodeEditorProps {
 }
 
 const FIELD =
-    'w-full bg-zinc-900 border border-zinc-700 rounded text-zinc-200 text-[11px] px-1.5 py-1 outline-none focus:border-zinc-500'
-const LABEL = 'text-[11px] text-zinc-500'
-const HINT = 'text-[10px] text-zinc-600 leading-snug'
+    'w-full bg-(--c-surface) border border-(--c-border) rounded text-(--c-text) text-[11px] px-1.5 py-1 outline-none focus:border-(--c-text-muted)'
+const LABEL = 'text-[11px] text-(--c-text-muted)'
+const HINT = 'text-[10px] text-(--c-text-subtle) leading-snug'
 
 function toggle(list: string[], id: string): string[] {
     return list.includes(id) ? list.filter((x) => x !== id) : [...list, id]
@@ -72,7 +72,7 @@ export default function AgentNodeEditor({
             </div>
 
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>Model {base && <span className="text-zinc-600">· override</span>}</label>
+                <label className={LABEL}>Model {base && <span className="text-(--c-text-subtle)">· override</span>}</label>
                 <select
                     className={FIELD}
                     value={config.llm_model_id ?? ''}
@@ -92,7 +92,7 @@ export default function AgentNodeEditor({
                     ))}
                 </select>
                 {!base && !config.llm_model_id && (
-                    <span className="text-[10px] text-red-400">
+                    <span className="text-[10px] text-(--c-danger-text)">
                         Pick a model, or a base agent to take one from.
                     </span>
                 )}
@@ -109,7 +109,7 @@ export default function AgentNodeEditor({
                     onChange={(e) => onChange({ node_instructions: e.target.value })}
                 />
                 {!base && !config.node_instructions.trim() && (
-                    <span className="text-[10px] text-red-400">
+                    <span className="text-[10px] text-(--c-danger-text)">
                         Add instructions, or a base agent to take them from.
                     </span>
                 )}
@@ -130,7 +130,7 @@ export default function AgentNodeEditor({
             <div className="flex flex-col gap-1">
                 <label className={LABEL}>
                     Creativity
-                    <span className="ml-1 text-zinc-600">
+                    <span className="ml-1 text-(--c-text-subtle)">
                         {creativity}
                         {config.creativity === null && base ? ' · inherited' : ''}
                     </span>
@@ -140,12 +140,12 @@ export default function AgentNodeEditor({
                     min={0}
                     max={100}
                     value={creativity}
-                    className="w-full accent-amber-600"
+                    className="w-full accent-(--c-accent)"
                     onChange={(e) => onChange({ creativity: Number(e.target.value) })}
                 />
                 {config.creativity !== null && (
                     <button
-                        className="self-start text-[10px] text-zinc-500 hover:text-zinc-300"
+                        className="self-start text-[10px] text-(--c-text-muted) hover:text-(--c-text-body)"
                         onClick={() => onChange({ creativity: null })}
                     >
                         Reset to {base ? 'the base agent' : 'default'}
@@ -167,8 +167,8 @@ export default function AgentNodeEditor({
                                     key={c.id}
                                     className={`flex items-center gap-0.5 text-[10px] rounded px-1.5 py-0.5 border ${
                                         on
-                                            ? 'border-amber-600 text-amber-400 bg-amber-950/30'
-                                            : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
+                                            ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30'
+                                            : 'border-(--c-border) text-(--c-text-dim) hover:border-(--c-text-muted)'
                                     }`}
                                     onClick={() =>
                                         onChange({ collection_ids: toggle(config.collection_ids, c.id) })
@@ -177,7 +177,7 @@ export default function AgentNodeEditor({
                                 >
                                     {on && <IoCheckmark />}
                                     {c.name}
-                                    {inherited && <span className="text-zinc-600">·base</span>}
+                                    {inherited && <span className="text-(--c-text-subtle)">·base</span>}
                                 </button>
                             )
                         })}
@@ -199,8 +199,8 @@ export default function AgentNodeEditor({
                                     key={s.id}
                                     className={`flex items-center gap-0.5 text-[10px] rounded px-1.5 py-0.5 border ${
                                         on
-                                            ? 'border-amber-600 text-amber-400 bg-amber-950/30'
-                                            : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
+                                            ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30'
+                                            : 'border-(--c-border) text-(--c-text-dim) hover:border-(--c-text-muted)'
                                     }`}
                                     onClick={() =>
                                         onChange({ mcp_server_ids: toggle(config.mcp_server_ids, s.id) })
@@ -213,7 +213,7 @@ export default function AgentNodeEditor({
                                 >
                                     {on && <IoCheckmark />}
                                     {s.name}
-                                    {inherited && <span className="text-zinc-600">·base</span>}
+                                    {inherited && <span className="text-(--c-text-subtle)">·base</span>}
                                 </button>
                             )
                         })}

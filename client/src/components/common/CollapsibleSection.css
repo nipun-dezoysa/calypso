@@ -1,10 +1,10 @@
 /* ============================================
    CollapsibleSection — VS Code sidebar styling
-   Color palette: zinc-950/900/800/500/400/300, amber-600
+   Colors come from the theme tokens in ui.css (--c-*)
    ============================================ */
 
 .collapsible-section {
-    border-bottom: 1px solid #27272a; /* zinc-800 */
+    border-bottom: 1px solid var(--c-hover);
 }
 
 /* --- Header --- */
@@ -15,12 +15,12 @@
     padding: 6px 10px;
     cursor: pointer;
     user-select: none;
-    background-color: #09090b; /* zinc-950 */
+    background-color: var(--c-bg);
     transition: background-color 0.15s ease;
 }
 
 .collapsible-section__header:hover {
-    background-color: #18181b; /* zinc-900 */
+    background-color: var(--c-surface);
 }
 
 .collapsible-section__title-group {
@@ -33,7 +33,7 @@
 /* Chevron rotation */
 .collapsible-section__chevron {
     font-size: 10px;
-    color: #a1a1aa; /* zinc-400 */
+    color: var(--c-text-dim);
     flex-shrink: 0;
     transition: transform 0.2s ease;
 }
@@ -48,7 +48,7 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #d4d4d8; /* zinc-300 */
+    color: var(--c-text-body);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -60,8 +60,8 @@
     padding: 1px 8px;
     border-radius: 3px;
     border: none;
-    background-color: #d97706; /* amber-600 */
-    color: #ffffff;
+    background-color: var(--c-accent);
+    color: var(--c-accent-contrast);
     cursor: pointer;
     white-space: nowrap;
     opacity: 0;
@@ -74,7 +74,7 @@
 }
 
 .collapsible-section__action:hover {
-    background-color: #b45309; /* amber-700 */
+    background-color: var(--c-accent-lo);
 }
 
 /* --- Body (animated collapse) --- */
@@ -100,7 +100,7 @@
 .sidebar-item {
     padding: 4px 10px 4px 24px; /* indent to align with title text */
     font-size: 13px;
-    color: #a1a1aa; /* zinc-400 */
+    color: var(--c-text-dim);
     cursor: pointer;
     white-space: nowrap;
     overflow: hidden;
@@ -109,22 +109,22 @@
 }
 
 .sidebar-item:hover {
-    background-color: #27272a; /* zinc-800 */
-    color: #e4e4e7; /* zinc-200 */
+    background-color: var(--c-hover);
+    color: var(--c-text);
 }
 
 .sidebar-item--active {
-    background-color: #2d2d30;
-    color: #e4e4e7; /* zinc-200 */
+    background-color: var(--c-active-bg);
+    color: var(--c-text);
 }
 
 .sidebar-item--empty {
-    color: #52525b; /* zinc-600 */
+    color: var(--c-text-subtle);
     font-style: italic;
     cursor: default;
 }
 
 .sidebar-item--empty:hover {
     background-color: transparent;
-    color: #52525b;
+    color: var(--c-text-subtle);
 }

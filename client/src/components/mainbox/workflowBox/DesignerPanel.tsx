@@ -132,13 +132,13 @@ export default function DesignerPanel({
     }
 
     return (
-        <div className="h-full flex flex-col bg-zinc-950">
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-zinc-800">
-                <IoSparklesOutline className="text-amber-400 shrink-0" />
-                <span className="text-sm text-zinc-300">Designer</span>
+        <div className="h-full flex flex-col bg-(--c-bg)">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-(--c-hover)">
+                <IoSparklesOutline className="text-(--c-accent-hi) shrink-0" />
+                <span className="text-sm text-(--c-text-body)">Designer</span>
                 {turns.length > 0 && (
                     <button
-                        className="ml-auto flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300"
+                        className="ml-auto flex items-center gap-1 text-[11px] text-(--c-text-muted) hover:text-(--c-text-body)"
                         onClick={() => {
                             setTurns([])
                             setError(null)
@@ -149,7 +149,7 @@ export default function DesignerPanel({
                     </button>
                 )}
                 <button
-                    className={`text-zinc-500 hover:text-zinc-300 ${turns.length > 0 ? '' : 'ml-auto'}`}
+                    className={`text-(--c-text-muted) hover:text-(--c-text-body) ${turns.length > 0 ? '' : 'ml-auto'}`}
                     onClick={onClose}
                     aria-label="Close the designer"
                 >
@@ -163,7 +163,7 @@ export default function DesignerPanel({
                 contentClassName="flex flex-col gap-3"
             >
                 {turns.length === 0 && (
-                    <div className="flex flex-col gap-2 text-[11px] text-zinc-500">
+                    <div className="flex flex-col gap-2 text-[11px] text-(--c-text-muted)">
                         <p className="leading-relaxed">
                             Describe the workflow you want and it gets drafted onto the canvas.
                             Nothing is saved until you press Save, so you can keep asking for
@@ -172,7 +172,7 @@ export default function DesignerPanel({
                         {EXAMPLES.map((example) => (
                             <button
                                 key={example}
-                                className="text-left text-zinc-400 border border-zinc-800 rounded px-2 py-1.5 hover:border-zinc-600 hover:text-zinc-300 leading-snug"
+                                className="text-left text-(--c-text-dim) border border-(--c-hover) rounded px-2 py-1.5 hover:border-(--c-text-subtle) hover:text-(--c-text-body) leading-snug"
                                 onClick={() => setText(example)}
                             >
                                 {example}
@@ -183,24 +183,24 @@ export default function DesignerPanel({
 
                 {turns.map((t) =>
                     t.role === 'user' ? (
-                        <div key={t.id} className="self-end max-w-[85%] bg-zinc-800 text-zinc-200 text-xs rounded-md px-2.5 py-1.5 whitespace-pre-wrap">
+                        <div key={t.id} className="self-end max-w-[85%] bg-(--c-hover) text-(--c-text) text-xs rounded-md px-2.5 py-1.5 whitespace-pre-wrap">
                             {t.content}
                         </div>
                     ) : (
                         <div key={t.id} className="flex flex-col gap-1.5">
-                            <div className="text-xs text-zinc-300 leading-relaxed wf-designer-reply">
+                            <div className="text-xs text-(--c-text-body) leading-relaxed wf-designer-reply">
                                 <Markdown remarkPlugins={[remarkGfm]}>{t.content}</Markdown>
                             </div>
                             {t.applied && (
-                                <span className="self-start text-[10px] text-amber-400 border border-amber-700/50 bg-amber-950/30 rounded px-1.5 py-0.5">
+                                <span className="self-start text-[10px] text-(--c-accent-hi) border border-(--c-accent-lo)/50 bg-(--c-accent)/30 rounded px-1.5 py-0.5">
                                     Drafted onto the canvas — review, then Save
                                 </span>
                             )}
                             {t.notes.length > 0 && (
-                                <ul className="flex flex-col gap-1 text-[10px] text-zinc-500 border-l border-zinc-800 pl-2">
+                                <ul className="flex flex-col gap-1 text-[10px] text-(--c-text-muted) border-l border-(--c-hover) pl-2">
                                     {t.notes.map((note) => (
                                         <li key={note} className="flex gap-1 leading-snug">
-                                            <IoWarningOutline className="mt-px shrink-0 text-zinc-600" />
+                                            <IoWarningOutline className="mt-px shrink-0 text-(--c-text-subtle)" />
                                             {note}
                                         </li>
                                     ))}
@@ -211,17 +211,17 @@ export default function DesignerPanel({
                 )}
 
                 {sending && (
-                    <div className="text-[11px] text-zinc-500 animate-pulse">
+                    <div className="text-[11px] text-(--c-text-muted) animate-pulse">
                         Designing… this can take a while on a local model.
                     </div>
                 )}
-                {error && <div className="text-[11px] text-red-400">{error}</div>}
+                {error && <div className="text-[11px] text-(--c-danger-text)">{error}</div>}
                 <div ref={bottomRef} />
             </ScrollArea>
 
-            <div className="shrink-0 border-t border-zinc-800 p-2 flex flex-col gap-2">
+            <div className="shrink-0 border-t border-(--c-hover) p-2 flex flex-col gap-2">
                 <AutoGrowTextarea
-                    className="bg-zinc-900 border border-zinc-800 rounded text-zinc-200 text-xs px-2 py-1.5 outline-none focus:border-zinc-600 placeholder:text-zinc-600"
+                    className="bg-(--c-surface) border border-(--c-hover) rounded text-(--c-text) text-xs px-2 py-1.5 outline-none focus:border-(--c-text-subtle) placeholder:text-(--c-text-subtle)"
                     minRows={3}
                     maxHeight={180}
                     placeholder={
@@ -236,7 +236,7 @@ export default function DesignerPanel({
                 />
                 <div className="flex items-center gap-2">
                     <select
-                        className="flex-1 min-w-0 bg-zinc-900 border border-zinc-800 rounded text-zinc-400 text-[11px] px-1.5 py-1 outline-none focus:border-zinc-600"
+                        className="flex-1 min-w-0 bg-(--c-surface) border border-(--c-hover) rounded text-(--c-text-dim) text-[11px] px-1.5 py-1 outline-none focus:border-(--c-text-subtle)"
                         value={activeModelId}
                         onChange={(e) => setModelId(e.target.value)}
                         title="The model the designer thinks with"
@@ -256,14 +256,14 @@ export default function DesignerPanel({
                     </select>
                     {sending ? (
                         <button
-                            className="flex items-center gap-1 text-[11px] text-zinc-300 border border-zinc-700 rounded px-2 py-1 hover:border-zinc-500"
+                            className="flex items-center gap-1 text-[11px] text-(--c-text-body) border border-(--c-border) rounded px-2 py-1 hover:border-(--c-text-muted)"
                             onClick={handleStop}
                         >
                             <IoStopCircleOutline /> Stop
                         </button>
                     ) : (
                         <button
-                            className={`p-1.5 rounded text-white ${canSend ? 'bg-amber-600 hover:bg-amber-700' : 'bg-zinc-800 cursor-not-allowed'}`}
+                            className={`p-1.5 rounded text-white ${canSend ? 'bg-(--c-accent) hover:bg-(--c-accent-lo)' : 'bg-(--c-hover) cursor-not-allowed'}`}
                             onClick={() => void handleSend()}
                             disabled={!canSend}
                             aria-label="Send to the designer"

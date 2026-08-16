@@ -69,7 +69,7 @@ function WorkflowSection() {
     function renderList() {
         if (loadState === 'loading' && workflows.length === 0) {
             return (
-                <div className="py-4 flex items-center justify-center gap-2 text-zinc-500 text-xs">
+                <div className="py-4 flex items-center justify-center gap-2 text-(--c-text-muted) text-xs">
                     <span className="apm-spinner" style={{ width: 12, height: 12, borderWidth: 2 }} />
                     Loading workflows…
                 </div>
@@ -78,12 +78,12 @@ function WorkflowSection() {
         if (loadState === 'error' && workflows.length === 0) {
             return (
                 <div className="py-3 px-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-1.5 text-red-400 text-xs">
+                    <div className="flex items-center gap-1.5 text-(--c-danger-text) text-xs">
                         <IoAlertCircleOutline className="shrink-0" />
                         <span>{loadError}</span>
                     </div>
                     <button
-                        className="sidebar-item text-zinc-400 hover:text-amber-400 flex items-center gap-1"
+                        className="sidebar-item text-(--c-text-dim) hover:text-(--c-accent-hi) flex items-center gap-1"
                         onClick={fetchWorkflows}
                     >
                         <IoRefreshOutline />
@@ -94,7 +94,7 @@ function WorkflowSection() {
         }
         if (workflows.length === 0) {
             return (
-                <div className="py-3 px-6 text-zinc-500 text-xs italic">
+                <div className="py-3 px-6 text-(--c-text-muted) text-xs italic">
                     No workflows yet.
                 </div>
             )
@@ -108,15 +108,15 @@ function WorkflowSection() {
                         onClick={() => { showWorkflow(); selectWorkflow(wf.id) }}
                     >
                         <div className="flex flex-col min-w-0">
-                            <span className={`truncate ${wf.id === selectedWorkflowId ? 'text-amber-400' : ''}`}>
+                            <span className={`truncate ${wf.id === selectedWorkflowId ? 'text-(--c-accent-hi)' : ''}`}>
                                 {wf.name}
                             </span>
-                            <span className="text-[10px] text-zinc-600">
+                            <span className="text-[10px] text-(--c-text-subtle)">
                                 {wf.node_count} node{wf.node_count === 1 ? '' : 's'}
                             </span>
                         </div>
                         <button
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-600 hover:text-red-400 p-0.5 shrink-0"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity text-(--c-text-subtle) hover:text-(--c-danger-text) p-0.5 shrink-0"
                             onClick={(e) => { e.stopPropagation(); handleDelete(wf.id) }}
                             title={`Delete ${wf.name}`}
                             aria-label={`Delete ${wf.name}`}

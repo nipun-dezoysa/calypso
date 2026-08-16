@@ -27,7 +27,7 @@
     gap: 8px;
     font-size: 12.5px;
 }
-.mcp-test-result--ok  { background: rgba(16,185,129,.1);  border: 1px solid rgba(16,185,129,.3); }
+.mcp-test-result--ok  { background: var(--c-success-dim); border: 1px solid var(--c-success-border); }
 .mcp-test-result--err { background: var(--c-danger-dim);  border: 1px solid var(--c-danger-border); }
 
 .mcp-test-result__head {
@@ -36,7 +36,7 @@
     gap: 6px;
     font-weight: 600;
 }
-.mcp-test-result--ok  .mcp-test-result__head { color: #34d399; }
+.mcp-test-result--ok  .mcp-test-result__head { color: var(--c-success); }
 .mcp-test-result--err .mcp-test-result__head { color: var(--c-danger-text); }
 
 .mcp-test-result__msg {

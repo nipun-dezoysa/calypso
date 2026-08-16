@@ -29,7 +29,7 @@ function SectionBar() {
     }
 
     return (
-        <div className='w-60 text-zinc-500 select-none'>
+        <div className='w-60 text-(--c-text-muted) select-none'>
             {renderActiveSection()}
         </div>
     )

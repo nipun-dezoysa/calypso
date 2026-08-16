@@ -31,7 +31,7 @@ const BOXES: BoxDefinition[] = [
     id: "workflow-empty",
     isActive: (ctx) => ctx.view === "workflow",
     render: () => (
-      <div className="h-full w-full flex items-center justify-center text-zinc-500 text-sm">
+      <div className="h-full w-full flex items-center justify-center text-(--c-text-muted) text-sm">
         Select a workflow, or create a new one to start building.
       </div>
     ),

@@ -1,15 +1,16 @@
 .react-flow__edge.selected .react-flow__edge-path {
-    stroke: #f59e0b !important;
+    stroke: var(--c-accent) !important;
     stroke-width: 2.5;
 }
 
 .react-flow__handle.wf-handle {
     width: 8px;
     height: 8px;
-    background: #52525b;
-    border: 1px solid #18181b;
+    background: var(--c-text-subtle);
+    border: 1px solid var(--c-surface);
 }
 
+/* Deliberately fixed — a connection-point highlight, not theme chrome. */
 .react-flow__handle.wf-handle:hover {
     background: #38bdf8;
 }
@@ -36,7 +37,7 @@
 
 .wf-designer-reply code {
     font-size: 0.9em;
-    background: #27272a;
+    background: var(--c-hover);
     border-radius: 3px;
     padding: 0 3px;
 }
