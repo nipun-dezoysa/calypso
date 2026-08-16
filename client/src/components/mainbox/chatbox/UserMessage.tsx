@@ -1,25 +1,103 @@
+import { useState } from 'react'
+import { IoPencilOutline } from 'react-icons/io5'
 import type { ChatAttachment } from '../../../api/chatApi'
 import AttachmentChip from './AttachmentChip'
 
 interface Props {
     message?: string
+    /** Omitted for the in-flight streaming preview. */
+    messageId?: string
     attachments?: ChatAttachment[]
+    canEdit?: boolean
+    busy?: boolean
+    onEdit?: (content: string) => void
 }
 
-function UserMessage({ message, attachments }: Props) {
+function UserMessage({ message, messageId, attachments, canEdit, busy, onEdit }: Props) {
+    const [editing, setEditing] = useState(false)
+    const [draft, setDraft] = useState(message ?? '')
     const hasAttachments = (attachments?.length ?? 0) > 0
 
-    return (
-        <div className="text-zinc-300 flex justify-end">
-            <div className="bg-zinc-800 p-2 rounded-md max-w-[75%] flex flex-col gap-2">
-                {hasAttachments && (
-                    <div className="flex flex-wrap gap-2 justify-end">
-                        {attachments?.map((a) => (
-                            <AttachmentChip key={a.id} attachment={a} />
-                        ))}
+    function startEdit() {
+        setDraft(message ?? '')
+        setEditing(true)
+    }
+
+    function save() {
+        const trimmed = draft.trim()
+        if (!trimmed || trimmed === message) {
+            setEditing(false)
+            return
+        }
+        onEdit?.(trimmed)
+        setEditing(false)
+    }
+
+    if (editing) {
+        return (
+            <div className="text-zinc-300 flex justify-end">
+                <div className="bg-zinc-800 p-2 rounded-md max-w-[75%] w-full flex flex-col gap-2">
+                    <textarea
+                        autoFocus
+                        value={draft}
+                        onChange={(e) => setDraft(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                save()
+                            } else if (e.key === 'Escape') {
+                                setEditing(false)
+                            }
+                        }}
+                        rows={Math.min(8, Math.max(2, draft.split('\n').length))}
+                        className="w-full bg-zinc-900 text-zinc-200 rounded p-2 text-sm resize-none outline-none border border-zinc-700 focus:border-amber-600"
+                    />
+                    <div className="flex justify-end gap-2 text-xs">
+                        <button
+                            type="button"
+                            onClick={() => setEditing(false)}
+                            className="px-2 py-1 rounded text-zinc-400 hover:text-zinc-200"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={save}
+                            className="px-2 py-1 rounded bg-amber-600 text-zinc-950 hover:bg-amber-500"
+                        >
+                            Save &amp; submit
+                        </button>
                     </div>
+                </div>
+            </div>
+        )
+    }
+
+    return (
+        <div className="text-zinc-300 flex justify-end group">
+            <div className="flex items-start gap-1 max-w-[75%]">
+                {messageId && canEdit && (
+                    <button
+                        type="button"
+                        onClick={startEdit}
+                        disabled={busy}
+                        title="Edit message"
+                        aria-label="Edit message"
+                        className="mt-2.5 shrink-0 text-zinc-600 hover:text-amber-400 p-0.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity disabled:opacity-0"
+                    >
+                        <IoPencilOutline size={14} />
+                    </button>
                 )}
-                {message && <p className="whitespace-pre-wrap">{message}</p>}
+                <div className="bg-zinc-800 p-2 rounded-md flex flex-col gap-2 min-w-0">
+                    {hasAttachments && (
+                        <div className="flex flex-wrap gap-2 justify-end">
+                            {attachments?.map((a) => (
+                                <AttachmentChip key={a.id} attachment={a} />
+                            ))}
+                        </div>
+                    )}
+                    {message && <p className="whitespace-pre-wrap">{message}</p>}
+                </div>
             </div>
         </div>
     )

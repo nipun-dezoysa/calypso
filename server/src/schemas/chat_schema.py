@@ -65,6 +65,18 @@ class ChatAskResponse(BaseModel):
     answer: str
 
 
+class EditMessageRequest(BaseModel):
+    content: str = Field(description="The corrected text for this message.")
+
+    @field_validator("content")
+    @classmethod
+    def strip_and_require(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("content cannot be empty")
+        return value
+
+
 class MessageResponse(BaseModel):
     id: str
     thread_id: str

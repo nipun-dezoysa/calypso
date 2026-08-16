@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { IoCheckmark, IoCodeSlashOutline } from 'react-icons/io5'
+import { copyText } from '../../utils/clipboard'
 
 function apiOrigin(): string {
     const configured = import.meta.env.VITE_API_BASE_URL
@@ -14,24 +15,6 @@ export function buildAskCurl(targetId: string): string {
         `  -H 'Content-Type: application/json' \\`,
         `  -d '${body}'`,
     ].join('\n')
-}
-
-async function copyText(text: string): Promise<void> {
-    if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(text)
-        return
-    }
-    const area = document.createElement('textarea')
-    area.value = text
-    area.style.position = 'fixed'
-    area.style.opacity = '0'
-    document.body.appendChild(area)
-    area.select()
-    try {
-        if (!document.execCommand('copy')) throw new Error('copy command rejected')
-    } finally {
-        document.body.removeChild(area)
-    }
 }
 
 interface CopyCurlButtonProps {

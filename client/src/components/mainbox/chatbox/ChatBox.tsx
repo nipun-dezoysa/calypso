@@ -3,7 +3,7 @@ import type { ScrollAreaHandle } from '../../common/ScrollArea'
 import BotMessage from './BotMessage'
 import ChatInput from './ChatInput'
 import UserMessage from './UserMessage'
-import { useChatStore } from '../../../stores/ChatStore'
+import { isSyntheticMessageId, useChatStore } from '../../../stores/ChatStore'
 import CopyCurlButton from '../../common/CopyCurlButton'
 import ScrollArea from '../../common/ScrollArea'
 
@@ -21,6 +21,8 @@ function ChatBox() {
     const streamingText = useChatStore((s) => s.streamingText)
     const streamingStep = useChatStore((s) => s.streamingStep)
     const streamingTool = useChatStore((s) => s.streamingTool)
+    const regenerateMessage = useChatStore((s) => s.regenerateMessage)
+    const editMessage = useChatStore((s) => s.editMessage)
 
     const bottomRef = useRef<HTMLDivElement>(null)
     const scrollRef = useRef<ScrollAreaHandle>(null)
@@ -76,17 +78,29 @@ function ChatBox() {
             contentClassName="w-full flex flex-col items-center"
           >
             <div className="w-full px-4 max-w-4xl flex flex-col gap-5 pt-15 pb-45">
-              {messages.map((m) =>
-                m.is_bot ? (
-                  <BotMessage key={m.id} message={m.content} />
+              {messages.map((m, i) => {
+                const hasRealId = !isSyntheticMessageId(m.id)
+                return m.is_bot ? (
+                  <BotMessage
+                    key={m.id}
+                    message={m.content}
+                    messageId={m.id}
+                    canRegenerate={hasRealId && i === messages.length - 1 && !sending}
+                    onRegenerate={() => void regenerateMessage(m.id)}
+                    busy={sending}
+                  />
                 ) : (
                   <UserMessage
                     key={m.id}
                     message={m.content}
+                    messageId={m.id}
                     attachments={m.attachments}
+                    canEdit={hasRealId && !sending}
+                    busy={sending}
+                    onEdit={(content) => void editMessage(m.id, content)}
                   />
-                ),
-              )}
+                )
+              })}
               {sending && (
                 <div className="flex flex-col gap-2">
                   {(streamingStep || streamingTool) && (

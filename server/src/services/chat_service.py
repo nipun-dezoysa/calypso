@@ -492,6 +492,158 @@ class ChatService:
             return "\n\n".join(rounds).strip()
         return text
 
+    async def run_regenerate_streaming(
+        self, thread_id: str, emit: Emit, stop: asyncio.Event
+    ) -> None:
+        """Redo the last answer in a thread, in place, with a fresh generation
+        over the same question and everything before it."""
+        thread = await self.db.get(Thread, thread_id)
+        if thread is None:
+            await emit({"type": "error", "detail": f"No thread with id '{thread_id}'"})
+            return
+
+        messages = thread.messages
+        if len(messages) < 2 or not messages[-1].is_bot or messages[-2].is_bot:
+            await emit({"type": "error", "detail": "there is no answer to regenerate"})
+            return
+
+        last_bot = messages[-1]
+        last_user = messages[-2]
+        question = last_user.content
+        attachments = list(last_user.attachments)
+        history = _history_from_messages(messages[:-2])
+
+        agent, workflow = await self._thread_owner(thread)
+        if agent is None and workflow is None:
+            await emit(
+                {
+                    "type": "error",
+                    "detail": "the agent or workflow behind this thread no longer exists",
+                }
+            )
+            return
+
+        await emit({"type": "start", "thread_id": thread.id})
+        try:
+            if agent is not None:
+                answer = await self._run_turn(
+                    _config_from_agent(agent),
+                    question,
+                    history,
+                    attachments=attachments,
+                    emit=emit,
+                    stop=stop,
+                )
+            else:
+                answer = await self._run_workflow(
+                    workflow, question, history, attachments, emit=emit, stop=stop
+                )
+        except Exception as exc:
+            await self.db.rollback()
+            await emit({"type": "error", "detail": str(exc)})
+            return
+
+        stopped = _stopped(stop)
+        if stopped and not answer:
+            answer = STOPPED_WITH_NOTHING
+
+        last_bot.content = answer
+        thread.updated_at = datetime.now(timezone.utc)
+        await self.db.commit()
+        await emit(
+            {
+                "type": "done",
+                "thread_id": thread.id,
+                "stopped": stopped,
+                "answer": answer,
+                "message_id": last_bot.id,
+            }
+        )
+
+    async def run_edit_streaming(
+        self, message_id: str, new_content: str, emit: Emit, stop: asyncio.Event
+    ) -> None:
+        """Change a user message's text and re-answer from there, dropping
+        whatever came after it — its old answer and any later turns."""
+        message = await self.db.get(Message, message_id)
+        if message is None or message.is_bot:
+            await emit(
+                {"type": "error", "detail": f"No editable message with id '{message_id}'"}
+            )
+            return
+
+        thread = await self.db.get(Thread, message.thread_id)
+        messages = thread.messages
+        index = next((i for i, m in enumerate(messages) if m.id == message.id), None)
+        if index is None:
+            await emit({"type": "error", "detail": "message is no longer part of its thread"})
+            return
+
+        history = _history_from_messages(messages[:index])
+        trailing = messages[index + 1 :]
+
+        agent, workflow = await self._thread_owner(thread)
+        if agent is None and workflow is None:
+            await emit(
+                {
+                    "type": "error",
+                    "detail": "the agent or workflow behind this thread no longer exists",
+                }
+            )
+            return
+
+        message.content = new_content
+        attachments = list(message.attachments)
+
+        await emit({"type": "start", "thread_id": thread.id})
+        try:
+            if agent is not None:
+                answer = await self._run_turn(
+                    _config_from_agent(agent),
+                    new_content,
+                    history,
+                    attachments=attachments,
+                    emit=emit,
+                    stop=stop,
+                )
+            else:
+                answer = await self._run_workflow(
+                    workflow, new_content, history, attachments, emit=emit, stop=stop
+                )
+        except Exception as exc:
+            await self.db.rollback()
+            await emit({"type": "error", "detail": str(exc)})
+            return
+
+        stopped = _stopped(stop)
+        if stopped and not answer:
+            answer = STOPPED_WITH_NOTHING
+
+        for trailing_message in trailing:
+            for attachment in trailing_message.attachments:
+                remove_file(attachment.file_path)
+            thread.messages.remove(trailing_message)
+
+        thread.messages.append(Message(thread_id=thread.id, is_bot=True, content=answer))
+        thread.updated_at = datetime.now(timezone.utc)
+        await self.db.commit()
+        await emit(
+            {
+                "type": "done",
+                "thread_id": thread.id,
+                "stopped": stopped,
+                "answer": answer,
+                "message_id": message.id,
+            }
+        )
+
+    async def _thread_owner(self, thread: Thread) -> tuple[Agent | None, Workflow | None]:
+        agent = await self.db.get(Agent, thread.agent_id) if thread.agent_id else None
+        workflow = (
+            await self.db.get(Workflow, thread.workflow_id) if thread.workflow_id else None
+        )
+        return agent, workflow
+
     async def list_messages(self, thread_id: str) -> list[Message] | None:
         thread = await self.db.get(Thread, thread_id)
         if thread is None:
@@ -586,11 +738,15 @@ def _merge_by_id(base: list, extra: list) -> list:
 
 
 def _history_from(thread: Thread) -> list[AIMessage | HumanMessage]:
+    return _history_from_messages(thread.messages)
+
+
+def _history_from_messages(messages: list[Message]) -> list[AIMessage | HumanMessage]:
     remaining_images = MAX_HISTORY_IMAGES
     rebuilt: list[AIMessage | HumanMessage] = []
 
     # Newest first, so the images that survive the cap are the recent ones.
-    for message in reversed(thread.messages):
+    for message in reversed(messages):
         if message.is_bot:
             rebuilt.append(AIMessage(content=message.content))
             continue

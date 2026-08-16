@@ -69,7 +69,13 @@ export type ChatStreamEvent =
   | { type: "token"; text: string }
   | { type: "node"; name: string }
   | { type: "tool"; name: string }
-  | { type: "done"; thread_id: string; stopped: boolean; answer: string }
+  | {
+      type: "done";
+      thread_id: string;
+      stopped: boolean;
+      answer: string;
+      message_id?: string;
+    }
   | { type: "error"; detail: string };
 
 async function streamError(response: Response): Promise<string> {
@@ -86,29 +92,34 @@ async function streamError(response: Response): Promise<string> {
   return `Request failed with status ${response.status}`;
 }
 
-export async function askStream(
-  targetId: string,
-  data: ChatAskRequest,
-  onEvent: (event: ChatStreamEvent) => void,
+async function postForStream(
+  path: string,
+  body: unknown,
   signal?: AbortSignal,
-): Promise<void> {
+): Promise<Response> {
   const token = localStorage.getItem(TOKEN_STORAGE_KEY);
-  const response = await fetch(`${BASE_URL}${BASE}/${targetId}/ask/stream`, {
+  const response = await fetch(`${BASE_URL}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Accept: "text/event-stream",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
-    body: JSON.stringify(data),
+    body: body !== undefined ? JSON.stringify(body) : undefined,
     signal,
   });
 
   if (!response.ok || !response.body) {
     throw new Error(await streamError(response));
   }
+  return response;
+}
 
-  const reader = response.body.getReader();
+async function consumeStream(
+  response: Response,
+  onEvent: (event: ChatStreamEvent) => void,
+): Promise<void> {
+  const reader = response.body!.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
 
@@ -130,6 +141,50 @@ export async function askStream(
       end = buffer.indexOf("\n\n");
     }
   }
+}
+
+export async function askStream(
+  targetId: string,
+  data: ChatAskRequest,
+  onEvent: (event: ChatStreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const response = await postForStream(
+    `${BASE}/${targetId}/ask/stream`,
+    data,
+    signal,
+  );
+  await consumeStream(response, onEvent);
+}
+
+/** Redo the last answer in a thread. Requires the caller to be signed in. */
+export async function regenerateStream(
+  threadId: string,
+  onEvent: (event: ChatStreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const response = await postForStream(
+    `${BASE}/threads/${threadId}/regenerate/stream`,
+    undefined,
+    signal,
+  );
+  await consumeStream(response, onEvent);
+}
+
+/** Edit a user message and re-answer from there, dropping its old answer and
+ * any later turns. Requires the caller to be signed in. */
+export async function editMessageStream(
+  messageId: string,
+  content: string,
+  onEvent: (event: ChatStreamEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  const response = await postForStream(
+    `${BASE}/messages/${messageId}/edit/stream`,
+    { content },
+    signal,
+  );
+  await consumeStream(response, onEvent);
 }
 
 export async function listThreads(targetId: string): Promise<ChatThread[]> {

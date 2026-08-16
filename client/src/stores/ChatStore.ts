@@ -4,8 +4,10 @@ import {
     askStream,
     deleteAttachment,
     deleteThread,
+    editMessageStream,
     listThreadMessages,
     listThreads,
+    regenerateStream,
     uploadAttachment,
     type ChatAttachment,
     type ChatMessage,
@@ -20,6 +22,15 @@ let activeStream: AbortController | null = null
 // A stopped run is still being saved server-side when the client lets go of the
 // connection. The thread list catches up a moment later.
 const SAVE_SETTLE_MS = 1500
+
+// Ids for messages not yet round-tripped through the server. Regenerate/edit
+// need the real database id, so callers should hide those actions until a
+// message's id no longer looks like this (see `refreshMessages`).
+const SYNTHETIC_ID_PREFIXES = ['pending-', 'bot-']
+
+export function isSyntheticMessageId(id: string): boolean {
+    return SYNTHETIC_ID_PREFIXES.some((prefix) => id.startsWith(prefix))
+}
 
 function botMessage(threadId: string, content: string): ChatMessage {
     return {
@@ -38,6 +49,14 @@ interface ChatState {
     targetName: string | null
     // The full agent object when the target is an agent (drives the agent-only KB/MCP editors in the chat input); null for workflow targets.
     selectedAgent: Agent | null
+
+    // Bumped whenever the user navigates to a different conversation (new
+    // chat, another thread, another agent/workflow). `sendMessage` can't use
+    // `threadId` itself for this: a brand-new chat's `threadId` is `null`
+    // until the run's own `done` event commits it, so comparing against
+    // `threadId` would mistake that legitimate commit for the user having
+    // navigated away. This counter only moves on actual navigation.
+    conversationEpoch: number
 
     threadId: string | null
     messages: ChatMessage[]
@@ -65,8 +84,11 @@ interface ChatState {
     openThread: (threadId: string) => Promise<void>
     removeThread: (threadId: string) => Promise<void>
     sendMessage: (question: string) => Promise<void>
+    regenerateMessage: (messageId: string) => Promise<void>
+    editMessage: (messageId: string, content: string) => Promise<void>
     stopStreaming: () => void
     refreshThreads: () => Promise<void>
+    refreshMessages: (threadId: string) => Promise<void>
     attachFiles: (files: File[]) => Promise<void>
     removeAttachment: (attachmentId: string) => Promise<void>
 }
@@ -104,6 +126,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     targetType: null,
     targetName: null,
     selectedAgent: null,
+    conversationEpoch: 0,
     threadId: null,
     messages: [],
     threads: [],
@@ -118,7 +141,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
     selectAgent: (agent) => {
         if (agent === null) {
-            set({ targetId: null, targetType: null, targetName: null, selectedAgent: null, ...resetConversation() })
+            set((s) => ({
+                targetId: null,
+                targetType: null,
+                targetName: null,
+                selectedAgent: null,
+                conversationEpoch: s.conversationEpoch + 1,
+                ...resetConversation(),
+            }))
             return
         }
         if (get().targetType === 'agent' && get().targetId === agent.id) {
@@ -126,25 +156,27 @@ export const useChatStore = create<ChatState>((set, get) => ({
             set({ selectedAgent: agent })
             return
         }
-        set({
+        set((s) => ({
             targetId: agent.id,
             targetType: 'agent',
             targetName: agent.name,
             selectedAgent: agent,
+            conversationEpoch: s.conversationEpoch + 1,
             ...resetConversation(),
-        })
+        }))
         void get().refreshThreads()
     },
 
     selectWorkflow: (workflow) => {
         if (get().targetType === 'workflow' && get().targetId === workflow.id) return
-        set({
+        set((s) => ({
             targetId: workflow.id,
             targetType: 'workflow',
             targetName: workflow.name,
             selectedAgent: null,
+            conversationEpoch: s.conversationEpoch + 1,
             ...resetConversation(),
-        })
+        }))
         void get().refreshThreads()
     },
 
@@ -156,7 +188,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
     },
 
     newChat: () =>
-        set({
+        set((s) => ({
             threadId: null,
             messages: [],
             error: null,
@@ -165,10 +197,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
             streamingText: '',
             streamingStep: null,
             streamingTool: null,
-        }),
+            conversationEpoch: s.conversationEpoch + 1,
+        })),
 
     openThread: async (threadId) => {
-        set({
+        set((s) => ({
             threadId,
             messages: [],
             loadingMessages: true,
@@ -178,7 +211,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             streamingText: '',
             streamingStep: null,
             streamingTool: null,
-        })
+            conversationEpoch: s.conversationEpoch + 1,
+        }))
         try {
             const messages = await listThreadMessages(threadId)
             if (get().threadId !== threadId) return
@@ -197,7 +231,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
             threads: s.threads.filter((t) => t.id !== threadId),
             error: null,
             // Deleting the open thread leaves the chat on a fresh conversation.
-            ...(s.threadId === threadId ? { threadId: null, messages: [] } : {}),
+            ...(s.threadId === threadId
+                ? { threadId: null, messages: [], conversationEpoch: s.conversationEpoch + 1 }
+                : {}),
         }))
         try {
             await deleteThread(threadId)
@@ -216,6 +252,18 @@ export const useChatStore = create<ChatState>((set, get) => ({
             set({ threads })
         } catch {
             // Thread list is non-critical; keep whatever we had.
+        }
+    },
+
+    // Swaps client-side placeholder ids for the real ones once a turn has
+    // landed, so regenerate/edit have a database id to act on.
+    refreshMessages: async (threadId) => {
+        try {
+            const messages = await listThreadMessages(threadId)
+            if (get().threadId !== threadId) return
+            set({ messages })
+        } catch {
+            // Non-critical: ids just stay synthetic until the thread is reopened.
         }
     },
 
@@ -276,10 +324,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // The user may switch agent or thread mid-answer. The run carries on
         // server-side and saves in full; here its events are simply dropped.
         // `thread` tracks the id the run is writing to, which for a new thread
-        // only becomes known once the `start` event arrives.
+        // only becomes known once the `start` event arrives; the store's
+        // `threadId` itself is deliberately left uncommitted until `done`
+        // lands, so staleness can't be keyed off it (it changes as part of
+        // this same run, not because the user navigated away) — hence
+        // `conversationEpoch`, which only moves on actual navigation.
         let thread = threadId
+        const epoch = get().conversationEpoch
         const stale = () =>
-            get().targetId !== targetId || get().threadId !== thread
+            get().targetId !== targetId || get().conversationEpoch !== epoch
 
         const controller = new AbortController()
         activeStream = controller
@@ -341,6 +394,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 })
             }
             void get().refreshThreads()
+            if (thread) void get().refreshMessages(thread)
         } catch (err: unknown) {
             const stopped = err instanceof DOMException && err.name === 'AbortError'
             if (stale()) {
@@ -364,6 +418,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                         : s.messages,
                 }))
                 window.setTimeout(() => void get().refreshThreads(), SAVE_SETTLE_MS)
+                if (thread) window.setTimeout(() => void get().refreshMessages(thread!), SAVE_SETTLE_MS)
                 return
             }
             const message = err instanceof Error ? err.message : 'Failed to send message'
@@ -374,6 +429,167 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 streamingStep: null,
                 streamingTool: null,
             })
+        } finally {
+            if (activeStream === controller) activeStream = null
+        }
+    },
+
+    regenerateMessage: async (messageId) => {
+        const threadId = get().threadId
+        if (!threadId || get().sending) return
+        const messages = get().messages
+        const botIndex = messages.findIndex((m) => m.id === messageId)
+        if (botIndex === -1 || !messages[botIndex].is_bot) return
+
+        // Drop the old answer optimistically; a fresh one lands via `done`.
+        set({
+            messages: messages.slice(0, botIndex),
+            sending: true,
+            error: null,
+            streamingText: '',
+            streamingStep: null,
+            streamingTool: null,
+        })
+
+        const stale = () => get().threadId !== threadId
+        const controller = new AbortController()
+        activeStream = controller
+
+        try {
+            await regenerateStream(
+                threadId,
+                (event) => {
+                    if (stale()) return
+                    switch (event.type) {
+                        case 'token':
+                            set((s) => ({ streamingText: s.streamingText + event.text }))
+                            break
+                        case 'node':
+                            set({ streamingStep: event.name, streamingText: '', streamingTool: null })
+                            break
+                        case 'tool':
+                            set({ streamingTool: event.name })
+                            break
+                        case 'error':
+                            set({ error: event.detail })
+                            break
+                        case 'done':
+                            set((s) => ({
+                                messages: [...s.messages, botMessage(event.thread_id, event.answer)],
+                            }))
+                            break
+                    }
+                },
+                controller.signal,
+            )
+            if (!stale()) {
+                set({ sending: false, streamingText: '', streamingStep: null, streamingTool: null })
+            }
+            void get().refreshMessages(threadId)
+        } catch (err: unknown) {
+            const stopped = err instanceof DOMException && err.name === 'AbortError'
+            if (stale()) {
+                set({ sending: false })
+                return
+            }
+            if (stopped) {
+                const partial = get().streamingText
+                set((s) => ({
+                    sending: false,
+                    streamingText: '',
+                    streamingStep: null,
+                    streamingTool: null,
+                    messages: partial ? [...s.messages, botMessage(threadId, partial)] : s.messages,
+                }))
+                window.setTimeout(() => void get().refreshMessages(threadId), SAVE_SETTLE_MS)
+                return
+            }
+            const message = err instanceof Error ? err.message : 'Failed to regenerate the answer'
+            set({ sending: false, error: message, streamingText: '', streamingStep: null, streamingTool: null })
+        } finally {
+            if (activeStream === controller) activeStream = null
+        }
+    },
+
+    editMessage: async (messageId, content) => {
+        const trimmed = content.trim()
+        if (!trimmed) return
+        const threadId = get().threadId
+        if (!threadId || get().sending) return
+        const messages = get().messages
+        const userIndex = messages.findIndex((m) => m.id === messageId)
+        if (userIndex === -1 || messages[userIndex].is_bot) return
+
+        // Drop everything after the edited turn optimistically — its old
+        // answer and any later turns go away server-side too.
+        set({
+            messages: [
+                ...messages.slice(0, userIndex),
+                { ...messages[userIndex], content: trimmed },
+            ],
+            sending: true,
+            error: null,
+            streamingText: '',
+            streamingStep: null,
+            streamingTool: null,
+        })
+
+        const stale = () => get().threadId !== threadId
+        const controller = new AbortController()
+        activeStream = controller
+
+        try {
+            await editMessageStream(
+                messageId,
+                trimmed,
+                (event) => {
+                    if (stale()) return
+                    switch (event.type) {
+                        case 'token':
+                            set((s) => ({ streamingText: s.streamingText + event.text }))
+                            break
+                        case 'node':
+                            set({ streamingStep: event.name, streamingText: '', streamingTool: null })
+                            break
+                        case 'tool':
+                            set({ streamingTool: event.name })
+                            break
+                        case 'error':
+                            set({ error: event.detail })
+                            break
+                        case 'done':
+                            set((s) => ({
+                                messages: [...s.messages, botMessage(event.thread_id, event.answer)],
+                            }))
+                            break
+                    }
+                },
+                controller.signal,
+            )
+            if (!stale()) {
+                set({ sending: false, streamingText: '', streamingStep: null, streamingTool: null })
+            }
+            void get().refreshMessages(threadId)
+        } catch (err: unknown) {
+            const stopped = err instanceof DOMException && err.name === 'AbortError'
+            if (stale()) {
+                set({ sending: false })
+                return
+            }
+            if (stopped) {
+                const partial = get().streamingText
+                set((s) => ({
+                    sending: false,
+                    streamingText: '',
+                    streamingStep: null,
+                    streamingTool: null,
+                    messages: partial ? [...s.messages, botMessage(threadId, partial)] : s.messages,
+                }))
+                window.setTimeout(() => void get().refreshMessages(threadId), SAVE_SETTLE_MS)
+                return
+            }
+            const message = err instanceof Error ? err.message : 'Failed to save the edit'
+            set({ sending: false, error: message, streamingText: '', streamingStep: null, streamingTool: null })
         } finally {
             if (activeStream === controller) activeStream = null
         }

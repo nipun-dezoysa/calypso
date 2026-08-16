@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+from collections.abc import Awaitable, Callable
 
 from fastapi import (
     APIRouter,
@@ -23,6 +24,7 @@ from src.schemas.chat_schema import (
     AttachmentResponse,
     ChatAskRequest,
     ChatAskResponse,
+    EditMessageRequest,
     MessageResponse,
     ThreadResponse,
 )
@@ -33,13 +35,15 @@ from src.services.chat_service import ChatService
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
 # Streaming runs are detached from the request that started them (see
-# _stream_run); this keeps a reference so the loop cannot collect one mid-answer.
+# _sse_stream); this keeps a reference so the loop cannot collect one mid-answer.
 _running: set[asyncio.Task] = set()
 
 # How long to wait on the queue before sending a comment line. Time to first
 # token on a local model runs to minutes, and an idle connection is exactly what
 # a proxy in between decides to close.
 SSE_HEARTBEAT_SECONDS = 15
+
+Emit = Callable[[dict], Awaitable[None]]
 
 
 def _get_service(db: AsyncSession = Depends(get_db)) -> ChatService:
@@ -48,6 +52,53 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> ChatService:
 
 def _get_attachment_service(db: AsyncSession = Depends(get_db)) -> AttachmentService:
     return AttachmentService(db)
+
+
+def _sse_stream(run: Callable[[Emit, asyncio.Event], Awaitable[None]]) -> StreamingResponse:
+    """Drive `run` in a detached task and relay whatever it emits as SSE frames.
+
+    The task outlives the request: a client that disconnects mid-answer still
+    gets its answer generated and saved, just with nobody listening."""
+    queue: asyncio.Queue[dict | None] = asyncio.Queue()
+    stop = asyncio.Event()
+
+    async def runner() -> None:
+        try:
+            await run(queue.put, stop)
+        except Exception as exc:
+            await queue.put({"type": "error", "detail": str(exc)})
+        finally:
+            await queue.put(None)
+
+    task = asyncio.create_task(runner())
+    _running.add(task)
+    task.add_done_callback(_running.discard)
+
+    async def events():
+        try:
+            while True:
+                try:
+                    event = await asyncio.wait_for(
+                        queue.get(), timeout=SSE_HEARTBEAT_SECONDS
+                    )
+                except asyncio.TimeoutError:
+                    yield ": keep-alive\n\n"
+                    continue
+                if event is None:
+                    break
+                yield f"data: {json.dumps(event)}\n\n"
+        finally:
+            stop.set()
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 # Deliberately unauthenticated: this is the endpoint other applications embed.
@@ -116,61 +167,49 @@ async def ask_stream(
             detail="One or more attachments do not exist, or were already sent",
         )
 
-    queue: asyncio.Queue[dict | None] = asyncio.Queue()
-    stop = asyncio.Event()
-
-    task = asyncio.create_task(_stream_run(target_id, data, queue, stop))
-    _running.add(task)
-    task.add_done_callback(_running.discard)
-
-    async def events():
-        try:
-            while True:
-                try:
-                    event = await asyncio.wait_for(
-                        queue.get(), timeout=SSE_HEARTBEAT_SECONDS
-                    )
-                except asyncio.TimeoutError:
-                    yield ": keep-alive\n\n"
-                    continue
-                if event is None:
-                    break
-                yield f"data: {json.dumps(event)}\n\n"
-        finally:
-            stop.set()
-
-    return StreamingResponse(
-        events(),
-        media_type="text/event-stream",
-        headers={
-            "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
-            "X-Accel-Buffering": "no",
-        },
-    )
-
-
-async def _stream_run(
-    target_id: str,
-    data: ChatAskRequest,
-    queue: "asyncio.Queue[dict | None]",
-    stop: asyncio.Event,
-) -> None:
-    async with async_session() as db:
-        try:
-            attachments = await AttachmentService(db).get_unsent(data.attachment_ids)
+    async def run(emit: Emit, stop: asyncio.Event) -> None:
+        async with async_session() as db:
+            run_attachments = await AttachmentService(db).get_unsent(data.attachment_ids)
             await ChatService(db).run_streaming(
-                target_id,
-                data.question,
-                data.thread_id,
-                attachments,
-                queue.put,
-                stop,
+                target_id, data.question, data.thread_id, run_attachments, emit, stop
             )
-        except Exception as exc: 
-            await queue.put({"type": "error", "detail": str(exc)})
-        finally:
-            await queue.put(None)
+
+    return _sse_stream(run)
+
+
+@router.post(
+    "/threads/{thread_id}/regenerate/stream",
+    summary="Regenerate the last answer in a thread, streaming it back",
+    response_class=StreamingResponse,
+    dependencies=[Depends(require_auth)],
+)
+async def regenerate_stream(request: Request, thread_id: str) -> StreamingResponse:
+    async def run(emit: Emit, stop: asyncio.Event) -> None:
+        async with async_session() as db:
+            await ChatService(db).run_regenerate_streaming(thread_id, emit, stop)
+
+    return _sse_stream(run)
+
+
+@router.post(
+    "/messages/{message_id}/edit/stream",
+    summary=(
+        "Edit a user message and re-answer from there, streaming the new answer "
+        "back. Drops the message's old answer and any later turns."
+    ),
+    response_class=StreamingResponse,
+    dependencies=[Depends(require_auth)],
+)
+async def edit_message_stream(
+    request: Request, message_id: str, data: EditMessageRequest
+) -> StreamingResponse:
+    async def run(emit: Emit, stop: asyncio.Event) -> None:
+        async with async_session() as db:
+            await ChatService(db).run_edit_streaming(
+                message_id, data.content, emit, stop
+            )
+
+    return _sse_stream(run)
 
 
 @router.get(
