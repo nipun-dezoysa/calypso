@@ -9,6 +9,7 @@ import { listMcpServers, type McpServer } from "../../../api/mcpApi";
 import { SUPPORTED_ATTACHMENT_TYPES } from "../../../api/chatApi";
 import { useChatStore } from "../../../stores/ChatStore";
 import AttachmentChip from "./AttachmentChip";
+import AutoGrowTextarea from "../../common/AutoGrowTextarea";
 
 const AGENT_PLACEHOLDER: SelectOption = { id: "", name: "Select an agent" };
 
@@ -221,8 +222,10 @@ function ChatInput() {
           </div>
         )}
 
-        <textarea
-          className="w-full bg-transparent focus:outline-none text-(--c-text-body) resize-none placeholder:text-(--c-text-muted)"
+        <AutoGrowTextarea
+          className="bg-transparent focus:outline-none text-(--c-text-body) placeholder:text-(--c-text-muted)"
+          minRows={2}
+          maxHeight={200}
           placeholder={
             targetId
               ? "Type your message here, or drop in a file..."
@@ -233,7 +236,7 @@ function ChatInput() {
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           disabled={!targetId}
-        ></textarea>
+        />
         <div className="flex justify-between text-(--c-text-muted) items-center">
           <div className="flex items-center gap-2">
             <input
