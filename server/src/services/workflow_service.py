@@ -213,6 +213,7 @@ class _AgentRefs:
         wa.node_instructions = a.node_instructions
         wa.output_instructions = a.output_instructions
         wa.creativity = a.creativity
+        wa.markdown_enabled = a.markdown_enabled
         wa.collections = [self.collections[cid] for cid in a.collection_ids]
         wa.mcp_servers = [self.servers[sid] for sid in a.mcp_server_ids]
         return wa

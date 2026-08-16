@@ -12,6 +12,7 @@ export interface NewAgentPayload {
     llm_model_id: string
     agent_instructions: string
     creativity: number
+    markdown_enabled: boolean
     collection_ids: string[]
     mcp_server_ids: string[]
 }

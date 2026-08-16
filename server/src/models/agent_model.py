@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from src.database import Base
@@ -50,6 +50,14 @@ class Agent(Base):
         Integer,
         nullable=False,
         default=50,
+    )
+
+    # When set, predefined markdown-formatting instructions are appended to
+    # agent_instructions at runtime (see ChatService), never persisted here.
+    markdown_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(

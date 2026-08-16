@@ -22,6 +22,7 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
         initialLlmModelId: agent.llm_model_id,
         initialAgentInstructions: agent.agent_instructions,
         initialCreativity: agent.creativity,
+        initialMarkdownEnabled: agent.markdown_enabled,
         initialCollectionIds: agent.collections.map((c) => c.id),
         initialMcpServerIds: agent.mcp_servers.map((s) => s.id),
     })

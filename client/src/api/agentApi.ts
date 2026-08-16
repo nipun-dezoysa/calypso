@@ -24,6 +24,7 @@ export interface AgentCreate {
     llm_model_id: string
     agent_instructions: string
     creativity?: number
+    markdown_enabled?: boolean
     collection_ids?: string[]
     mcp_server_ids?: string[]
 }
@@ -33,6 +34,7 @@ export interface AgentUpdate {
     llm_model_id?: string | null
     agent_instructions?: string | null
     creativity?: number | null
+    markdown_enabled?: boolean | null
     collection_ids?: string[] | null
     mcp_server_ids?: string[] | null
 }
@@ -44,6 +46,7 @@ export interface Agent {
     llm_model: AgentLLMModelInfo
     agent_instructions: string
     creativity: number
+    markdown_enabled: boolean
     collections: AgentCollectionInfo[]
     mcp_servers: AgentMcpServerInfo[]
     created_at: string

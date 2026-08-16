@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from src.database import Base
@@ -70,6 +70,10 @@ class WorkflowAgent(Base):
     output_instructions: Mapped[str] = mapped_column(Text, nullable=False, default="")
 
     creativity: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+
+    # Markdown-formatting override. Null inherits the base agent's setting
+    # (false with no base agent); true/false pins it regardless of the base.
+    markdown_enabled: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=None)
 
     workflow: Mapped["Workflow"] = relationship(
         "Workflow",

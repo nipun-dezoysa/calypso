@@ -23,6 +23,7 @@ class AgentService:
             llm_model_id=data.llm_model_id,
             agent_instructions=data.agent_instructions,
             creativity=data.creativity,
+            markdown_enabled=data.markdown_enabled,
             collections=collections,
             mcp_servers=mcp_servers,
         )

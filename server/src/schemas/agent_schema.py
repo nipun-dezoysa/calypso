@@ -27,6 +27,10 @@ class AgentCreate(BaseModel):
         le=100,
         description="Creativity level (0-100), mapped to the provider's temperature range",
     )
+    markdown_enabled: bool = Field(
+        default=False,
+        description="When true, predefined markdown-formatting instructions are appended to the agent's instructions at answer time",
+    )
     collection_ids: list[str] = Field(
         default_factory=list,
         description="IDs of knowledge-base collections to attach to this agent",
@@ -64,6 +68,7 @@ class AgentUpdate(BaseModel):
     llm_model_id: str | None = Field(default=None)
     agent_instructions: str | None = Field(default=None, min_length=1)
     creativity: int | None = Field(default=None, ge=0, le=100)
+    markdown_enabled: bool | None = Field(default=None)
     collection_ids: list[str] | None = Field(
         default=None,
         description="Replace the agent's attached collections with these IDs",
@@ -134,6 +139,7 @@ class AgentResponse(BaseModel):
     llm_model: AgentLLMModelInfo
     agent_instructions: str
     creativity: int
+    markdown_enabled: bool
     collections: list[AgentCollectionInfo] = []
     mcp_servers: list[AgentMcpServerInfo] = []
     created_at: datetime

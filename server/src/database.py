@@ -43,6 +43,8 @@ class Base(DeclarativeBase):
 _ADDED_COLUMNS: dict[str, dict[str, str]] = {
     "edges": {"source_handle": "VARCHAR(36)"},
     "llm_models": {"context_tokens": "INTEGER"},
+    "agents": {"markdown_enabled": "BOOLEAN NOT NULL DEFAULT 0"},
+    "workflow_agents": {"markdown_enabled": "BOOLEAN"},
 }
 
 

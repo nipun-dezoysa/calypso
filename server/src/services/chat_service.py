@@ -50,6 +50,13 @@ HISTORY_TRIMMED_NOTE = (
 )
 STOPPED_WITH_NOTHING = "_(stopped before the model produced any output)_"
 
+MARKDOWN_INSTRUCTIONS = (
+    "Format your responses using Markdown: headings, bullet or numbered lists, "
+    "**bold**/*italic* emphasis, code blocks with language tags for code, and "
+    "tables where they aid clarity. Keep the formatting purposeful — don't "
+    "force structure onto short conversational replies."
+)
+
 Emit = Callable[[dict], Awaitable[None]]
 
 
@@ -61,6 +68,7 @@ class RunConfig:
     llm_model: LLMModel
     creativity: int
     instructions: str
+    markdown_enabled: bool
     collections: list[KbCollection]
     mcp_servers: list[McpServer]
 
@@ -224,6 +232,8 @@ class ChatService:
         system_content = config.instructions
         if handoff:
             system_content = f"{system_content}\n\n{_handoff_block(handoff)}"
+        if config.markdown_enabled:
+            system_content = f"{system_content}\n\n{MARKDOWN_INSTRUCTIONS}"
         context = await self._retrieve_context(
             config.collections, _retrieval_query(question, attachments)
         )
@@ -682,6 +692,7 @@ def _config_from_agent(agent: Agent) -> RunConfig:
         llm_model=agent.llm_model,
         creativity=agent.creativity,
         instructions=agent.agent_instructions,
+        markdown_enabled=agent.markdown_enabled,
         collections=list(agent.collections),
         mcp_servers=list(agent.mcp_servers),
     )
@@ -721,10 +732,18 @@ def _config_from_workflow_agent(wa: WorkflowAgent) -> RunConfig:
     if not instructions:
         raise ValueError(f"'{label}' has no instructions — add some and save")
 
+    if wa.markdown_enabled is not None:
+        markdown_enabled = wa.markdown_enabled
+    elif base is not None:
+        markdown_enabled = base.markdown_enabled
+    else:
+        markdown_enabled = False
+
     return RunConfig(
         llm_model=llm_model,
         creativity=creativity,
         instructions=instructions,
+        markdown_enabled=markdown_enabled,
         collections=_merge_by_id(base.collections if base else [], wa.collections),
         mcp_servers=_merge_by_id(base.mcp_servers if base else [], wa.mcp_servers),
     )

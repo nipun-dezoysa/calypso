@@ -54,6 +54,7 @@ export interface WorkflowAgentNode {
     node_instructions: string
     output_instructions: string
     creativity: number | null
+    markdown_enabled: boolean | null
     collection_ids: string[]
     mcp_server_ids: string[]
 }

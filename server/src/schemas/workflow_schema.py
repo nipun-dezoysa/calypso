@@ -31,6 +31,10 @@ class AgentNodeInput(BaseModel):
         description="How this step should shape what it hands to the next node",
     )
     creativity: int | None = Field(default=None, ge=0, le=100)
+    markdown_enabled: bool | None = Field(
+        default=None,
+        description="Markdown-formatting override; null inherits the base agent's setting",
+    )
     collection_ids: list[str] = Field(default_factory=list)
     mcp_server_ids: list[str] = Field(default_factory=list)
 
@@ -305,6 +309,7 @@ class AgentNodeResponse(BaseModel):
     node_instructions: str
     output_instructions: str
     creativity: int | None
+    markdown_enabled: bool | None
     collection_ids: list[str]
     mcp_server_ids: list[str]
 
@@ -319,6 +324,7 @@ class AgentNodeResponse(BaseModel):
             node_instructions=wa.node_instructions,
             output_instructions=wa.output_instructions,
             creativity=wa.creativity,
+            markdown_enabled=wa.markdown_enabled,
             collection_ids=[c.id for c in wa.collections],
             mcp_server_ids=[s.id for s in wa.mcp_servers],
         )

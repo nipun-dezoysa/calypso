@@ -3,6 +3,7 @@ import type { AIProvider } from '../../api/aiProviderApi'
 import type { Collection } from '../../api/kbApi'
 import type { McpServer } from '../../api/mcpApi'
 import type { AgentFormHandle } from './useAgentForm'
+import './mcp.css'
 
 interface AgentFormFieldsProps {
     form: AgentFormHandle
@@ -25,6 +26,7 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
         llmModelId, setLlmModelId,
         agentInstructions, setAgentInstructions,
         creativity, setCreativity,
+        markdownEnabled, setMarkdownEnabled,
         collectionIds, toggleCollection,
         mcpServerIds, toggleMcpServer,
         errors, setErrors,
@@ -127,6 +129,17 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
                     <span>Precise</span>
                     <span>Creative</span>
                 </div>
+            </div>
+
+            <div className="form-field">
+                <label className="mcp-toggle">
+                    <input
+                        type="checkbox"
+                        checked={markdownEnabled}
+                        onChange={(e) => setMarkdownEnabled(e.target.checked)}
+                    />
+                    <span>Format responses with Markdown</span>
+                </label>
             </div>
 
             <div className="form-field">

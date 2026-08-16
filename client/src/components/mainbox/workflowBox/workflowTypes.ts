@@ -17,6 +17,7 @@ export interface AgentConfig {
     node_instructions: string
     output_instructions: string
     creativity: number | null
+    markdown_enabled: boolean | null
     collection_ids: string[]
     mcp_server_ids: string[]
 }
@@ -40,6 +41,7 @@ export function newAgentConfig(): AgentConfig {
         node_instructions: '',
         output_instructions: '',
         creativity: null,
+        markdown_enabled: null,
         collection_ids: [],
         mcp_server_ids: [],
     }

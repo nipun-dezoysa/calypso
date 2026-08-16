@@ -39,6 +39,7 @@ export default function AgentNodeEditor({
         ? `Inherit from ${base.name} (${base.llm_model.model_name})`
         : 'Select a model…'
     const creativity = config.creativity ?? base?.creativity ?? 50
+    const markdownEnabled = config.markdown_enabled ?? base?.markdown_enabled ?? false
 
     return (
         <div className="flex flex-col gap-3">
@@ -147,6 +148,34 @@ export default function AgentNodeEditor({
                     <button
                         className="self-start text-[10px] text-(--c-text-muted) hover:text-(--c-text-body)"
                         onClick={() => onChange({ creativity: null })}
+                    >
+                        Reset to {base ? 'the base agent' : 'default'}
+                    </button>
+                )}
+            </div>
+
+            <div className="flex flex-col gap-1">
+                <label className={LABEL}>
+                    Markdown formatting
+                    {config.markdown_enabled === null && base && (
+                        <span className="ml-1 text-(--c-text-subtle)">
+                            · inherited ({base.markdown_enabled ? 'on' : 'off'})
+                        </span>
+                    )}
+                </label>
+                <label className="flex items-center gap-2 text-[11px] text-(--c-text-dim) cursor-pointer">
+                    <input
+                        type="checkbox"
+                        className="accent-(--c-accent)"
+                        checked={markdownEnabled}
+                        onChange={(e) => onChange({ markdown_enabled: e.target.checked })}
+                    />
+                    Format responses with Markdown
+                </label>
+                {config.markdown_enabled !== null && (
+                    <button
+                        className="self-start text-[10px] text-(--c-text-muted) hover:text-(--c-text-body)"
+                        onClick={() => onChange({ markdown_enabled: null })}
                     >
                         Reset to {base ? 'the base agent' : 'default'}
                     </button>
