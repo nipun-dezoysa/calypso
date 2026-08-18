@@ -73,6 +73,7 @@ class DraftAgentNode(_Lenient):
     node_instructions: str = Field(default="")
     output_instructions: str = Field(default="")
     creativity: int | None = Field(default=None)
+    markdown_enabled: bool | None = Field(default=None)
     collection_ids: list[str] = Field(default_factory=list)
     mcp_server_ids: list[str] = Field(default_factory=list)
 

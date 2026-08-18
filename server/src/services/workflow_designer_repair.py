@@ -600,6 +600,7 @@ def _to_proposal(
             node_instructions=a.node_instructions,
             output_instructions=a.output_instructions,
             creativity=a.creativity,
+            markdown_enabled=a.markdown_enabled,
             collection_ids=a.collection_ids,
             mcp_server_ids=a.mcp_server_ids,
         )
@@ -652,6 +653,7 @@ def _to_proposal(
                 node_instructions=a.node_instructions,
                 output_instructions=a.output_instructions,
                 creativity=a.creativity,
+                markdown_enabled=a.markdown_enabled,
                 collection_ids=a.collection_ids,
                 mcp_server_ids=a.mcp_server_ids,
             )

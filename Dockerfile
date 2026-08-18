@@ -36,9 +36,10 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends libgomp1 curl tesseract-ocr nodejs npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Stdio MCP servers are commonly launched via `npx`/`uvx`; the base image only
-# ships Python, so pull `uv`/`uvx` in from the `deps` stage alongside node/npm above.
-COPY --from=deps /uv /uvx /usr/local/bin/
+# Stdio MCP servers are commonly launched via `npx`/`uvx`; node/npm come from
+# apt above, and `uv`/`uvx` are installed straight from PyPI since the `deps`
+# stage's uv binaries aren't at a stable, guessable path in this image.
+RUN pip install --no-cache-dir uv
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
