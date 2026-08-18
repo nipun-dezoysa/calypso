@@ -4,7 +4,11 @@ A local AI workspace for running autonomous agents, MCP servers, and multi-model
 
 Calypso runs on your own machine. You bring the model (a local Ollama instance, or an API key for OpenAI, Anthropic, Google, or Azure) and Calypso handles the rest: agents with their own tools and knowledge, multi-agent workflows you build visually, and a chat interface to run them.
 
-<img width="100%" alt="Calypso" src="https://github.com/user-attachments/assets/ee280df3-56c1-404f-9ac8-c0ecb306bae8" />
+
+
+https://github.com/user-attachments/assets/aff0a243-7298-4c73-acc0-4e64cf9f017d
+
+
 
 ---
 
@@ -52,6 +56,13 @@ Pin a version instead of `latest` if you'd rather upgrade deliberately - see the
 - **Agents** - a system prompt, a model, a temperature, plus any MCP tools and knowledge collections you attach. Each agent keeps its own chat threads.
 - **Workflows** - a visual graph builder. Agent nodes run in sequence, passing output forward; condition nodes branch on the result. Every agent node carries its own per-workflow instructions, so the same underlying agent can behave differently in different workflows.
 - **Workflow designer** - describe the workflow you want, in the panel behind the *Designer* button on the canvas, and it gets drafted for you: nodes, branches, per-node instructions and all. It reads whatever is on the canvas, so "add a fact-check step at the end" works as well as building from scratch, and it only ever wires in agents, models and knowledge collections you actually have. Nothing is written until you press Save, and *Undo design* puts the canvas back.
+
+
+
+https://github.com/user-attachments/assets/c3adfaf1-927b-4d91-87df-d5c502822e6d
+
+
+
 - **Streaming** - answers arrive a word at a time rather than all at once at the end, which matters most on a local model that can sit on a reply for minutes. Workflows stream too, naming each step as it takes its turn, and tool calls are announced as they run. The stop button next to the composer ends a generation early and keeps the part already written.
 - **Attachments** - send files along with a chat message: PDF, DOCX, TXT, Markdown, PNG and JPG. Calypso extracts the text and puts it in the prompt, so the agent can read a contract or a report without you pasting it. Images are sent to the model as pictures where the model has vision, and run through OCR either way, so a screenshot of a table still works on a text-only model. Attachments stay in the thread and are re-sent with later turns, so follow-up questions about the same file work.
 - **MCP servers** - connect tools over `stdio`, `streamable_http`, `sse`, or `websocket`. Calypso discovers each server's tools and exposes them to the agents you attach them to.
