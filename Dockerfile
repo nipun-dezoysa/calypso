@@ -33,8 +33,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 FROM python:3.13-slim-bookworm AS runtime
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends libgomp1 curl tesseract-ocr \
+    && apt-get install -y --no-install-recommends libgomp1 curl tesseract-ocr nodejs npm \
     && rm -rf /var/lib/apt/lists/*
+
+# Stdio MCP servers are commonly launched via `npx`/`uvx`; the base image only
+# ships Python, so pull `uv`/`uvx` in from the `deps` stage alongside node/npm above.
+COPY --from=deps /uv /uvx /usr/local/bin/
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \

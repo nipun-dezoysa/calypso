@@ -4,7 +4,7 @@ A local AI workspace for running autonomous agents, MCP servers, and multi-model
 
 Calypso runs on your own machine. You bring the model (a local Ollama instance, or an API key for OpenAI, Anthropic, Google, or Azure) and Calypso handles the rest: agents with their own tools and knowledge, multi-agent workflows you build visually, and a chat interface to run them.
 
-<img width="1152" height="550" alt="download (1)" src="https://github.com/user-attachments/assets/ee280df3-56c1-404f-9ac8-c0ecb306bae8" />
+<img width="100%" alt="Calypso" src="https://github.com/user-attachments/assets/ee280df3-56c1-404f-9ac8-c0ecb306bae8" />
 
 ---
 
@@ -26,8 +26,8 @@ Open **[http://localhost:8000](http://localhost:8000)**.
 
 Two flags matter:
 
-- **`-v calypso-data:/app/data`** — everything you create (database, agents, workflows, chat history, uploaded documents, vector index) lives here. Skip it and your work disappears when the container is removed.
-- **`--add-host=host.docker.internal:host-gateway`** — lets the container reach services on your host, which you need if you run Ollama locally. Harmless otherwise.
+- **`-v calypso-data:/app/data`** - everything you create (database, agents, workflows, chat history, uploaded documents, vector index) lives here. Skip it and your work disappears when the container is removed.
+- **`--add-host=host.docker.internal:host-gateway`** - lets the container reach services on your host, which you need if you run Ollama locally. Harmless otherwise.
 
 To upgrade, pull the new image and recreate the container. The volume carries your data across:
 
@@ -37,26 +37,26 @@ docker rm -f calypso
 # then re-run the command above
 ```
 
-Pin a version instead of `latest` if you'd rather upgrade deliberately — see the [available tags](https://hub.docker.com/r/nipundezoysa/calypso/tags).
+Pin a version instead of `latest` if you'd rather upgrade deliberately - see the [available tags](https://hub.docker.com/r/nipundezoysa/calypso/tags).
 
 ### First run
 
-1. **Add a provider** — AI Providers. For a local Ollama running on your host, use `http://host.docker.internal:11434` as the URL (not `localhost`, which points at the container itself).
-2. **Create an agent** — give it a system prompt, pick a model, optionally attach MCP servers and knowledge base collections.
+1. **Add a provider** - AI Providers. For a local Ollama running on your host, use `http://host.docker.internal:11434` as the URL (not `localhost`, which points at the container itself).
+2. **Create an agent** - give it a system prompt, pick a model, optionally attach MCP servers and knowledge base collections.
 3. **Chat with it**, or wire several agents together in a workflow.
 
 ---
 
 ## What's inside
 
-- **Agents** — a system prompt, a model, a temperature, plus any MCP tools and knowledge collections you attach. Each agent keeps its own chat threads.
-- **Workflows** — a visual graph builder. Agent nodes run in sequence, passing output forward; condition nodes branch on the result. Every agent node carries its own per-workflow instructions, so the same underlying agent can behave differently in different workflows.
-- **Workflow designer** — describe the workflow you want, in the panel behind the *Designer* button on the canvas, and it gets drafted for you: nodes, branches, per-node instructions and all. It reads whatever is on the canvas, so "add a fact-check step at the end" works as well as building from scratch, and it only ever wires in agents, models and knowledge collections you actually have. Nothing is written until you press Save, and *Undo design* puts the canvas back.
-- **Streaming** — answers arrive a word at a time rather than all at once at the end, which matters most on a local model that can sit on a reply for minutes. Workflows stream too, naming each step as it takes its turn, and tool calls are announced as they run. The stop button next to the composer ends a generation early and keeps the part already written.
-- **Attachments** — send files along with a chat message: PDF, DOCX, TXT, Markdown, PNG and JPG. Calypso extracts the text and puts it in the prompt, so the agent can read a contract or a report without you pasting it. Images are sent to the model as pictures where the model has vision, and run through OCR either way, so a screenshot of a table still works on a text-only model. Attachments stay in the thread and are re-sent with later turns, so follow-up questions about the same file work.
-- **MCP servers** — connect tools over `stdio`, `streamable_http`, `sse`, or `websocket`. Calypso discovers each server's tools and exposes them to the agents you attach them to.
-- **Knowledge base** — upload PDF, TXT, or Markdown files into collections. They're chunked, embedded, and retrieved as context at query time. Vector store is ChromaDB (local, default) or Qdrant; embeddings are FastEmbed (local, default) or Nomic.
-- **Providers** — OpenAI, Anthropic, Google Gemini, Azure OpenAI, Ollama, and any OpenAI-compatible endpoint via a custom base URL. Keys are stored in your local database and go nowhere but the provider.
+- **Agents** - a system prompt, a model, a temperature, plus any MCP tools and knowledge collections you attach. Each agent keeps its own chat threads.
+- **Workflows** - a visual graph builder. Agent nodes run in sequence, passing output forward; condition nodes branch on the result. Every agent node carries its own per-workflow instructions, so the same underlying agent can behave differently in different workflows.
+- **Workflow designer** - describe the workflow you want, in the panel behind the *Designer* button on the canvas, and it gets drafted for you: nodes, branches, per-node instructions and all. It reads whatever is on the canvas, so "add a fact-check step at the end" works as well as building from scratch, and it only ever wires in agents, models and knowledge collections you actually have. Nothing is written until you press Save, and *Undo design* puts the canvas back.
+- **Streaming** - answers arrive a word at a time rather than all at once at the end, which matters most on a local model that can sit on a reply for minutes. Workflows stream too, naming each step as it takes its turn, and tool calls are announced as they run. The stop button next to the composer ends a generation early and keeps the part already written.
+- **Attachments** - send files along with a chat message: PDF, DOCX, TXT, Markdown, PNG and JPG. Calypso extracts the text and puts it in the prompt, so the agent can read a contract or a report without you pasting it. Images are sent to the model as pictures where the model has vision, and run through OCR either way, so a screenshot of a table still works on a text-only model. Attachments stay in the thread and are re-sent with later turns, so follow-up questions about the same file work.
+- **MCP servers** - connect tools over `stdio`, `streamable_http`, `sse`, or `websocket`. Calypso discovers each server's tools and exposes them to the agents you attach them to.
+- **Knowledge base** - upload PDF, TXT, or Markdown files into collections. They're chunked, embedded, and retrieved as context at query time. Vector store is ChromaDB (local, default) or Qdrant; embeddings are FastEmbed (local, default) or Nomic.
+- **Providers** - OpenAI, Anthropic, Google Gemini, Azure OpenAI, Ollama, and any OpenAI-compatible endpoint via a custom base URL. Keys are stored in your local database and go nowhere but the provider.
 
 The API is self-documenting at **[http://localhost:8000/docs](http://localhost:8000/docs)**.
 
@@ -91,7 +91,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173). State is written to `server/calypso.db`, `server/chroma_db/`, and `server/kb_files/`.
 
-In this mode the API doesn't serve the frontend — it only mounts a bundle when a `static/` directory sits next to it, which is how the Docker image works. Nothing to configure either way.
+In this mode the API doesn't serve the frontend - it only mounts a bundle when a `static/` directory sits next to it, which is how the Docker image works. Nothing to configure either way.
 
 ---
 
@@ -119,7 +119,7 @@ The UI and API share an origin in the image, so CORS only matters if you call th
 
 ### Authentication
 
-The API is behind a JWT bearer token. On first boot the server seeds a single account from `DEFAULT_USERNAME` / `DEFAULT_PASSWORD` and flags it as unchanged, so the UI sends you straight to a *choose your credentials* screen after the first sign-in. The defaults only apply to an empty database — changing those variables later does nothing.
+The API is behind a JWT bearer token. On first boot the server seeds a single account from `DEFAULT_USERNAME` / `DEFAULT_PASSWORD` and flags it as unchanged, so the UI sends you straight to a *choose your credentials* screen after the first sign-in. The defaults only apply to an empty database - changing those variables later does nothing.
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
@@ -130,9 +130,9 @@ The API is behind a JWT bearer token. On first boot the server seeds a single ac
 | `POST /api/v1/chat/{id}/ask/stream` | **none** | The same, streamed back as server-sent events |
 | everything else | bearer | |
 
-`/ask` is deliberately left open: it returns answer text only and never exposes provider secret keys, which is exactly why the rest of the API is closed. `/ask/stream` is open for the same reason — it is the same capability over a different transport.
+`/ask` is deliberately left open: it returns answer text only and never exposes provider secret keys, which is exactly why the rest of the API is closed. `/ask/stream` is open for the same reason - it is the same capability over a different transport.
 
-Changing a password invalidates every token issued before the change — tokens carry a fingerprint of the stored password hash. If `JWT_SECRET` is not set the server generates one on first boot and keeps it in the database, so tokens survive restarts.
+Changing a password invalidates every token issued before the change - tokens carry a fingerprint of the stored password hash. If `JWT_SECRET` is not set the server generates one on first boot and keeps it in the database, so tokens survive restarts.
 
 ### Streaming
 
@@ -150,7 +150,7 @@ with `text/event-stream`. Each frame is one JSON object:
 
 Closing the connection stops the generation. Whatever had streamed by then is
 still written to the thread, so stopping mid-answer keeps the part you got
-instead of throwing the turn away — which is what the UI's stop button does.
+instead of throwing the turn away - which is what the UI's stop button does.
 The generation itself outlives the request that started it just long enough to
 save; it is not tied to the connection.
 
@@ -159,7 +159,7 @@ callers that would rather not parse a stream.
 
 ### Conversation history
 
-Every turn replays the thread so far, which is what gives an agent its memory —
+Every turn replays the thread so far, which is what gives an agent its memory -
 but a thread left to grow will eventually overrun the model's context window,
 and on a metered provider it pays for the same old turns again with each new
 message. So the replay is capped: turns are kept newest first until the budget
@@ -190,17 +190,13 @@ serves a smaller `num_ctx` unless the Modelfile raises it. If answers start
 failing on a local model, lower its window here to match what Ollama actually
 serves.
 
-### A note on stdio MCP servers
-
-The image ships Python only. MCP servers using the `stdio` transport need their runtime available inside the container — an `npx`-based server won't start because there's no Node. Either use an HTTP transport, or add the runtime to the [`Dockerfile`](Dockerfile) (there's a comment marking the spot) and rebuild.
-
 ---
 
 ## Tech stack
 
-**Backend** — FastAPI, SQLAlchemy (async, SQLite), LangChain and LangGraph, ChromaDB / Qdrant, FastEmbed.
+**Backend** - FastAPI, SQLAlchemy (async, SQLite), LangChain and LangGraph, ChromaDB / Qdrant, FastEmbed.
 
-**Frontend** — React 19, TypeScript, Vite, Tailwind CSS, Zustand, React Flow.
+**Frontend** - React 19, TypeScript, Vite, Tailwind CSS, Zustand, React Flow.
 
 Releases are built and pushed to Docker Hub automatically by [`.github/workflows/docker-publish.yml`](.github/workflows/docker-publish.yml) when a GitHub release is published.
 
@@ -208,7 +204,7 @@ Releases are built and pushed to Docker Hub automatically by [`.github/workflows
 
 ## Contributing
 
-Contributions are welcome — issues, feature ideas, and pull requests alike.
+Contributions are welcome - issues, feature ideas, and pull requests alike.
 
 If you're picking something up:
 
@@ -218,4 +214,4 @@ If you're picking something up:
 4. Confirm `docker build -t calypso:test .` still succeeds if you touched dependencies, the Dockerfile, or anything under `server/`.
 5. Open a PR describing what changed and how you verified it.
 
-Not sure where to start, or unsure whether an idea fits? Open an issue first and let's talk it through — cheaper than building the wrong thing.
+Not sure where to start, or unsure whether an idea fits? Open an issue first and let's talk it through - cheaper than building the wrong thing.
