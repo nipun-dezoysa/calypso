@@ -47,9 +47,13 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-COPY --from=deps /app/.venv /app/.venv
-COPY server/ ./
-COPY --from=client-builder /client/dist ./static
+RUN useradd --create-home --uid 1000 calypso \
+    && mkdir -p /app/data \
+    && chown calypso:calypso /app/data
+
+COPY --from=deps --chown=calypso:calypso /app/.venv /app/.venv
+COPY --chown=calypso:calypso server/ ./
+COPY --from=client-builder --chown=calypso:calypso /client/dist ./static
 
 ENV STATIC_DIR="/app/static" \
     DATABASE_URL="sqlite+aiosqlite:////app/data/calypso.db" \
@@ -57,10 +61,6 @@ ENV STATIC_DIR="/app/static" \
     ATTACHMENT_UPLOAD_DIR="/app/data/attachment_files" \
     CHROMA_PERSIST_DIR="/app/data/chroma_db" \
     FASTEMBED_CACHE_PATH="/app/data/fastembed_cache"
-
-RUN useradd --create-home --uid 1000 calypso \
-    && mkdir -p /app/data \
-    && chown -R calypso:calypso /app
 
 VOLUME ["/app/data"]
 
