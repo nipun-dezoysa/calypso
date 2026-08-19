@@ -22,6 +22,18 @@
           for (var key in map) {
             if (tokens[key]) document.documentElement.style.setProperty(map[key], tokens[key]);
           }
+          // Mirrors utils/theme.ts's isDark() luminance check, so native form
+          // controls (input/select/scrollbars) paint correctly before React
+          // (and that module) has loaded.
+          if (tokens.bg) {
+            var hex = tokens.bg.replace('#', '');
+            if (hex.length === 3) hex = hex.split('').map(function (c) { return c + c; }).join('');
+            var num = parseInt(hex, 16);
+            var r = (num >> 16) & 255, g = (num >> 8) & 255, b = num & 255;
+            var lin = function (c) { c = c / 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+            var luminance = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+            document.documentElement.style.colorScheme = luminance < 0.5 ? 'dark' : 'light';
+          }
         } catch (e) {}
       })();
     </script>

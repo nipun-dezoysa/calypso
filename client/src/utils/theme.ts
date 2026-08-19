@@ -207,6 +207,11 @@ export function applyThemeTokens(tokens: ThemeTokens): void {
     for (const [key, cssVar] of CSS_VAR_MAP) {
         root.setProperty(cssVar, tokens[key])
     }
+    // Native form controls (input/select/textarea, scrollbars, the built-in
+    // color picker) don't inherit color from the page — without this they
+    // default to the browser's light UA styling regardless of our own CSS
+    // variables, which is why input text was reading as black on dark themes.
+    root.colorScheme = isDark(tokens.bg) ? 'dark' : 'light'
     try {
         localStorage.setItem(ACTIVE_THEME_SNAPSHOT_KEY, JSON.stringify(tokens))
     } catch {

@@ -41,7 +41,7 @@ interface MultiSelectProps {
 type DropdownSelectorProps = SingleSelectProps | MultiSelectProps
 
 const triggerClassName =
-    'h-auto w-fit gap-1 rounded-none border-0 bg-transparent p-0 text-sm shadow-none hover:bg-transparent hover:text-(--c-text-body) focus-visible:ring-0 data-[size=default]:h-auto data-[size=sm]:h-auto [&_svg]:opacity-70'
+    'h-auto w-fit gap-1 rounded-none border-0 bg-transparent p-0 text-sm text-(--c-text-muted) shadow-none hover:bg-transparent hover:text-(--c-text-body) focus-visible:ring-0 data-[size=default]:h-auto data-[size=sm]:h-auto [&_svg]:opacity-70'
 
 function DropdownSelector(props: DropdownSelectorProps) {
     const { options, label = 'Select an option', multiple } = props

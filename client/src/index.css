@@ -9,6 +9,12 @@
    per-component overrides, now and when this rolls out past the workflows
    page. */
 :root {
+    /* Default theme is dark; applyThemeTokens() in utils/theme.ts overrides
+       this at runtime to match whichever theme is actually active (it also
+       covers native form controls, which don't otherwise pick up our CSS
+       variables — see that function for why this matters). */
+    color-scheme: dark;
+
     --background: var(--c-bg);
     --foreground: var(--c-text);
 

@@ -22,7 +22,7 @@ function SideBar() {
                     aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     className='text-2xl text-(--c-text-dim) hover:text-(--c-text-strong) transition-all duration-200 hover:scale-105'
                 >
-                    {isCollapsed ? <TbLayoutSidebarLeftExpand /> : <TbLayoutSidebarLeftCollapse />}
+                    {isCollapsed ? <TbLayoutSidebarLeftExpand className="size-6" /> : <TbLayoutSidebarLeftCollapse className="size-6" />}
                 </Button>
             </div>
             <div className='h-full flex border-t border-(--c-border) overflow-hidden'>

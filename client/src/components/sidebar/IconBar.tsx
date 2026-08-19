@@ -39,7 +39,7 @@ function IconBar() {
                     isActive ? 'text-(--c-accent)' : 'text-(--c-text-dim) hover:text-(--c-text-strong)'
                 }`}
             >
-                <IconComponent />
+                <IconComponent className="size-6" />
             </Button>
         )
     }
@@ -60,7 +60,7 @@ function IconBar() {
                     onClick={logout}
                     className='text-2xl transition-all duration-200 hover:scale-105 text-(--c-text-dim) hover:text-(--c-danger-text)'
                 >
-                    <IoLogOutOutline />
+                    <IoLogOutOutline className="size-6" />
                 </Button>
             </div>
         </div>
