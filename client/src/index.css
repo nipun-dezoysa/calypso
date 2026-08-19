@@ -1,4 +1,64 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "./components/common/ui.css";
+
+/* shadcn/ui token bridge — every shadcn/Radix component reads these standard
+   variable names. Instead of accepting shadcn's own default palette, alias
+   them to this app's existing --c-* theme (see components/common/ui.css and
+   utils/theme.ts) so components pick up the current theme with zero
+   per-component overrides, now and when this rolls out past the workflows
+   page. */
+:root {
+    --background: var(--c-bg);
+    --foreground: var(--c-text);
+
+    --card: var(--c-surface);
+    --card-foreground: var(--c-text);
+
+    --popover: var(--c-surface);
+    --popover-foreground: var(--c-text);
+
+    --primary: var(--c-accent);
+    --primary-foreground: var(--c-accent-contrast);
+
+    --secondary: var(--c-hover);
+    --secondary-foreground: var(--c-text);
+
+    --muted: var(--c-hover);
+    --muted-foreground: var(--c-text-muted);
+
+    --accent: var(--c-hover);
+    --accent-foreground: var(--c-text);
+
+    --destructive: var(--c-danger);
+    --destructive-foreground: #fff;
+
+    --border: var(--c-border);
+    --input: var(--c-border);
+    --ring: var(--c-border-focus);
+}
+
+@theme inline {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+}
 
 /* Fixed-viewport app: every scrollable region is an internal one, so the page
    itself must never scroll — otherwise a layout shift inside a panel (a

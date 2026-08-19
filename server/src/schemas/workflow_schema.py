@@ -268,6 +268,21 @@ class WorkflowReplace(BaseModel):
         return self
 
 
+class WorkflowRename(BaseModel):
+    """Name-only update — the sidebar's rename action, which shouldn't have
+    to round-trip the whole graph just to change a label."""
+
+    name: str = Field(..., min_length=1, max_length=100)
+
+    @field_validator("name")
+    @classmethod
+    def strip_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("name must not be empty or whitespace")
+        return v
+
+
 class NodeResponse(BaseModel):
     id: str
     type: str
