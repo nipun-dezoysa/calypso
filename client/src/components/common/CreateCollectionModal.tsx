@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { IoAdd } from 'react-icons/io5'
 import Modal from './Modal'
+import { Input } from '../ui/input'
+import { Textarea } from '../ui/textarea'
 import { createCollection, type Collection } from '../../api/kbApi'
 import './ui.css'
 
@@ -70,9 +72,8 @@ function CreateCollectionModal({ onClose, onCreated }: CreateCollectionModalProp
                     Name
                     <span className="form-label-required">* required</span>
                 </label>
-                <input
+                <Input
                     id="cc-name"
-                    className="form-input"
                     placeholder="e.g. Product Docs"
                     value={name}
                     onChange={(e) => { setName(e.target.value); setErrors({}) }}
@@ -87,9 +88,8 @@ function CreateCollectionModal({ onClose, onCreated }: CreateCollectionModalProp
                     Description
                     <span className="form-label-optional">optional</span>
                 </label>
-                <textarea
+                <Textarea
                     id="cc-desc"
-                    className="form-input"
                     placeholder="What lives in this knowledgebase?"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}

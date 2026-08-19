@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useAuthStore } from '../../stores/AuthStore'
 import PasswordField from './PasswordField'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
 import './auth.css'
 
 const MIN_PASSWORD_LENGTH = 8
@@ -72,9 +74,8 @@ function UpdateCredentialsPage() {
                             Username
                             <span className="form-label-required">* required</span>
                         </label>
-                        <input
+                        <Input
                             id="creds-username"
-                            className="form-input"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             autoComplete="username"
@@ -114,28 +115,26 @@ function UpdateCredentialsPage() {
                         disabled={submitting}
                     />
 
-                    <button
+                    <Button
                         type="submit"
-                        className="btn btn--primary auth-submit"
+                        className="auth-submit"
                         disabled={submitting}
                     >
                         {submitting && <span className="ui-spinner" />}
                         {submitting ? 'Saving…' : 'Save and continue'}
-                    </button>
+                    </Button>
                 </form>
 
                 <p className="auth-note">
                     Signed in as <code>{user?.username}</code> —{' '}
-                    <a
-                        href="#"
-                        onClick={(e) => {
-                            e.preventDefault()
-                            logout()
-                        }}
-                        style={{ color: 'var(--c-accent)' }}
+                    <Button
+                        type="button"
+                        variant="link"
+                        className="h-auto p-0 text-(--c-accent)"
+                        onClick={logout}
                     >
                         sign out
-                    </a>
+                    </Button>
                 </p>
             </div>
         </div>

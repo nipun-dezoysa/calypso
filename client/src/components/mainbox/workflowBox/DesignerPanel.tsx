@@ -12,6 +12,16 @@ import remarkGfm from 'remark-gfm'
 import type { AIProvider } from '../../../api/aiProviderApi'
 import AutoGrowTextarea from '../../common/AutoGrowTextarea'
 import ScrollArea from '../../common/ScrollArea'
+import { Button } from '../../ui/button'
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '../../ui/select'
 import {
     designWorkflow,
     type DesignerDraft,
@@ -137,8 +147,11 @@ export default function DesignerPanel({
                 <IoSparklesOutline className="text-(--c-accent-hi) shrink-0" />
                 <span className="text-sm text-(--c-text-body)">Designer</span>
                 {turns.length > 0 && (
-                    <button
-                        className="ml-auto flex items-center gap-1 text-[11px] text-(--c-text-muted) hover:text-(--c-text-body)"
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="ml-auto h-auto gap-1 px-1.5 py-1 text-[11px] font-normal text-(--c-text-muted) hover:text-(--c-text-body)"
                         onClick={() => {
                             setTurns([])
                             setError(null)
@@ -146,15 +159,18 @@ export default function DesignerPanel({
                         title="Start a new designer conversation"
                     >
                         <IoRefreshOutline /> New
-                    </button>
+                    </Button>
                 )}
-                <button
-                    className={`text-(--c-text-muted) hover:text-(--c-text-body) ${turns.length > 0 ? '' : 'ml-auto'}`}
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={`h-7 w-7 text-(--c-text-muted) hover:text-(--c-text-body) ${turns.length > 0 ? '' : 'ml-auto'}`}
                     onClick={onClose}
                     aria-label="Close the designer"
                 >
                     <IoCloseOutline size={18} />
-                </button>
+                </Button>
             </div>
 
             <ScrollArea
@@ -170,13 +186,16 @@ export default function DesignerPanel({
                             changes or edit the result by hand.
                         </p>
                         {EXAMPLES.map((example) => (
-                            <button
+                            <Button
                                 key={example}
-                                className="text-left text-(--c-text-dim) border border-(--c-hover) rounded px-2 py-1.5 hover:border-(--c-text-subtle) hover:text-(--c-text-body) leading-snug"
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-auto justify-start whitespace-normal text-left text-[11px] font-normal text-(--c-text-dim) px-2 py-1.5 hover:border-(--c-text-subtle) hover:text-(--c-text-body) leading-snug"
                                 onClick={() => setText(example)}
                             >
                                 {example}
-                            </button>
+                            </Button>
                         ))}
                     </div>
                 )}
@@ -235,41 +254,53 @@ export default function DesignerPanel({
                     disabled={models.length === 0}
                 />
                 <div className="flex items-center gap-2">
-                    <select
-                        className="flex-1 min-w-0 bg-(--c-surface) border border-(--c-hover) rounded text-(--c-text-dim) text-[11px] px-1.5 py-1 outline-none focus:border-(--c-text-subtle)"
-                        value={activeModelId}
-                        onChange={(e) => setModelId(e.target.value)}
-                        title="The model the designer thinks with"
+                    <Select
+                        value={activeModelId || undefined}
+                        onValueChange={(value) => setModelId(value)}
+                        disabled={models.length === 0}
                     >
-                        {models.length === 0 && <option value="">No models available</option>}
-                        {providers
-                            .filter((p) => p.models.length > 0)
-                            .map((p) => (
-                                <optgroup key={p.id} label={p.provider_name}>
-                                    {p.models.map((m) => (
-                                        <option key={m.id} value={m.id}>
-                                            {m.model_name}
-                                        </option>
-                                    ))}
-                                </optgroup>
-                            ))}
-                    </select>
+                        <SelectTrigger
+                            className="flex-1 min-w-0 h-7 text-[11px] px-1.5 text-(--c-text-dim)"
+                            title="The model the designer thinks with"
+                        >
+                            <SelectValue placeholder="No models available" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {providers
+                                .filter((p) => p.models.length > 0)
+                                .map((p) => (
+                                    <SelectGroup key={p.id}>
+                                        <SelectLabel>{p.provider_name}</SelectLabel>
+                                        {p.models.map((m) => (
+                                            <SelectItem key={m.id} value={m.id}>
+                                                {m.model_name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                ))}
+                        </SelectContent>
+                    </Select>
                     {sending ? (
-                        <button
-                            className="flex items-center gap-1 text-[11px] text-(--c-text-body) border border-(--c-border) rounded px-2 py-1 hover:border-(--c-text-muted)"
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="text-[11px] text-(--c-text-body) hover:border-(--c-text-muted)"
                             onClick={handleStop}
                         >
                             <IoStopCircleOutline /> Stop
-                        </button>
+                        </Button>
                     ) : (
-                        <button
-                            className={`p-1.5 rounded text-white ${canSend ? 'bg-(--c-accent) hover:bg-(--c-accent-lo)' : 'bg-(--c-hover) cursor-not-allowed'}`}
+                        <Button
+                            type="button"
+                            size="icon"
+                            className={`h-8 w-8 rounded text-white ${canSend ? 'bg-(--c-accent) hover:bg-(--c-accent-lo)' : 'bg-(--c-hover) text-(--c-text-muted) cursor-not-allowed hover:bg-(--c-hover)'}`}
                             onClick={() => void handleSend()}
                             disabled={!canSend}
                             aria-label="Send to the designer"
                         >
                             <IoArrowUp />
-                        </button>
+                        </Button>
                     )}
                 </div>
             </div>

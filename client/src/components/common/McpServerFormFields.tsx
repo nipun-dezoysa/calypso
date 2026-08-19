@@ -1,5 +1,16 @@
 import type { McpTransport } from '../../api/mcpApi'
 import type { McpServerFormHandle } from './useMcpServerForm'
+import { Input } from '../ui/input'
+import { Textarea } from '../ui/textarea'
+import { Checkbox } from '../ui/checkbox'
+import { Label } from '../ui/label'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../ui/select'
 
 const TRANSPORTS: { value: McpTransport; label: string }[] = [
     { value: 'stdio', label: 'stdio (local process)' },
@@ -31,13 +42,12 @@ function McpServerFormFields({ form }: McpServerFormFieldsProps) {
     return (
         <>
             <div className="form-field">
-                <label className="form-label" htmlFor="mcp-name">
+                <Label className="form-label" htmlFor="mcp-name">
                     Server Name
                     <span className="form-label-required">* required</span>
-                </label>
-                <input
+                </Label>
+                <Input
                     id="mcp-name"
-                    className="form-input"
                     placeholder="e.g. filesystem"
                     value={name}
                     onChange={(e) => { setName(e.target.value); setErrors((p) => ({ ...p, name: '' })) }}
@@ -48,29 +58,31 @@ function McpServerFormFields({ form }: McpServerFormFieldsProps) {
             </div>
 
             <div className="form-field">
-                <label className="form-label" htmlFor="mcp-transport">Transport</label>
-                <select
-                    id="mcp-transport"
-                    className="form-input"
+                <Label className="form-label" htmlFor="mcp-transport">Transport</Label>
+                <Select
                     value={transport}
-                    onChange={(e) => setTransport(e.target.value as McpTransport)}
+                    onValueChange={(value) => setTransport(value as McpTransport)}
                 >
-                    {TRANSPORTS.map((t) => (
-                        <option key={t.value} value={t.value}>{t.label}</option>
-                    ))}
-                </select>
+                    <SelectTrigger id="mcp-transport" className="w-full">
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {TRANSPORTS.map((t) => (
+                            <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
             </div>
 
             {!isUrlTransport ? (
                 <>
                     <div className="form-field">
-                        <label className="form-label" htmlFor="mcp-command">
+                        <Label className="form-label" htmlFor="mcp-command">
                             Command
                             <span className="form-label-required">* required</span>
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                             id="mcp-command"
-                            className="form-input"
                             placeholder="e.g. npx"
                             value={command}
                             onChange={(e) => { setCommand(e.target.value); setErrors((p) => ({ ...p, command: '' })) }}
@@ -80,13 +92,12 @@ function McpServerFormFields({ form }: McpServerFormFieldsProps) {
                     </div>
 
                     <div className="form-field">
-                        <label className="form-label" htmlFor="mcp-args">
+                        <Label className="form-label" htmlFor="mcp-args">
                             Arguments
                             <span className="form-label-optional">one per line</span>
-                        </label>
-                        <textarea
+                        </Label>
+                        <Textarea
                             id="mcp-args"
-                            className="form-input"
                             rows={3}
                             placeholder={'-y\n@modelcontextprotocol/server-filesystem\n/path/to/dir'}
                             value={argsText}
@@ -97,13 +108,12 @@ function McpServerFormFields({ form }: McpServerFormFieldsProps) {
                     </div>
 
                     <div className="form-field">
-                        <label className="form-label" htmlFor="mcp-env">
+                        <Label className="form-label" htmlFor="mcp-env">
                             Environment
                             <span className="form-label-optional">KEY=value per line</span>
-                        </label>
-                        <textarea
+                        </Label>
+                        <Textarea
                             id="mcp-env"
-                            className="form-input"
                             rows={2}
                             placeholder={'API_KEY=sk-...\nDEBUG=1'}
                             value={envText}
@@ -114,13 +124,12 @@ function McpServerFormFields({ form }: McpServerFormFieldsProps) {
                     </div>
 
                     <div className="form-field">
-                        <label className="form-label" htmlFor="mcp-cwd">
+                        <Label className="form-label" htmlFor="mcp-cwd">
                             Working Directory
                             <span className="form-label-optional">optional</span>
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                             id="mcp-cwd"
-                            className="form-input"
                             placeholder="/path/to/working/dir"
                             value={cwd}
                             onChange={(e) => setCwd(e.target.value)}
@@ -131,13 +140,12 @@ function McpServerFormFields({ form }: McpServerFormFieldsProps) {
             ) : (
                 <>
                     <div className="form-field">
-                        <label className="form-label" htmlFor="mcp-url">
+                        <Label className="form-label" htmlFor="mcp-url">
                             URL
                             <span className="form-label-required">* required</span>
-                        </label>
-                        <input
+                        </Label>
+                        <Input
                             id="mcp-url"
-                            className="form-input"
                             placeholder="http://localhost:8000/mcp/"
                             value={url}
                             onChange={(e) => { setUrl(e.target.value); setErrors((p) => ({ ...p, url: '' })) }}
@@ -148,13 +156,12 @@ function McpServerFormFields({ form }: McpServerFormFieldsProps) {
 
                     {transport !== 'websocket' && (
                         <div className="form-field">
-                            <label className="form-label" htmlFor="mcp-headers">
+                            <Label className="form-label" htmlFor="mcp-headers">
                                 Headers
                                 <span className="form-label-optional">Key: value per line</span>
-                            </label>
-                            <textarea
+                            </Label>
+                            <Textarea
                                 id="mcp-headers"
-                                className="form-input"
                                 rows={2}
                                 placeholder={'Authorization: Bearer token'}
                                 value={headersText}
@@ -168,27 +175,25 @@ function McpServerFormFields({ form }: McpServerFormFieldsProps) {
             )}
 
             <div className="form-field">
-                <label className="form-label" htmlFor="mcp-desc">
+                <Label className="form-label" htmlFor="mcp-desc">
                     Description
                     <span className="form-label-optional">optional</span>
-                </label>
-                <input
+                </Label>
+                <Input
                     id="mcp-desc"
-                    className="form-input"
                     placeholder="What this server provides"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                 />
             </div>
 
-            <label className="mcp-toggle">
-                <input
-                    type="checkbox"
+            <Label className="mcp-toggle">
+                <Checkbox
                     checked={enabled}
-                    onChange={(e) => setEnabled(e.target.checked)}
+                    onCheckedChange={(checked) => setEnabled(checked === true)}
                 />
                 <span>Enabled</span>
-            </label>
+            </Label>
         </>
     )
 }

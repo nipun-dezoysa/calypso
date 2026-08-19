@@ -3,6 +3,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { IoCheckmark, IoCopyOutline, IoRefreshOutline } from "react-icons/io5";
 import { copyText } from "../../../utils/clipboard";
+import { Button } from "../../ui/button";
 
 interface Props {
   message?: string;
@@ -38,26 +39,30 @@ function BotMessage({ message, messageId, canRegenerate, onRegenerate, busy }: P
       <Markdown remarkPlugins={[remarkGfm]}>{message}</Markdown>
       {messageId && (
         <div className="flex items-center gap-1 mt-1 h-5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             onClick={handleCopy}
             title={copied ? "Copied" : "Copy"}
             aria-label="Copy message"
-            className="text-(--c-text-subtle) hover:text-(--c-accent-hi) p-0.5"
+            className="size-6 text-(--c-text-subtle) hover:text-(--c-accent-hi)"
           >
             {copied ? <IoCheckmark size={14} /> : <IoCopyOutline size={14} />}
-          </button>
+          </Button>
           {canRegenerate && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={onRegenerate}
               disabled={busy}
               title="Regenerate response"
               aria-label="Regenerate response"
-              className="text-(--c-text-subtle) hover:text-(--c-accent-hi) p-0.5 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="size-6 text-(--c-text-subtle) hover:text-(--c-accent-hi) disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <IoRefreshOutline size={14} />
-            </button>
+            </Button>
           )}
         </div>
       )}

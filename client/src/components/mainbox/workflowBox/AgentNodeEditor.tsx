@@ -4,6 +4,21 @@ import type { Agent } from '../../../api/agentApi'
 import type { Collection } from '../../../api/kbApi'
 import type { McpServer } from '../../../api/mcpApi'
 import type { AgentConfig } from './workflowTypes'
+import { Input } from '../../ui/input'
+import { Textarea } from '../../ui/textarea'
+import { Slider } from '../../ui/slider'
+import { Checkbox } from '../../ui/checkbox'
+import { Label } from '../../ui/label'
+import { Button } from '../../ui/button'
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '../../ui/select'
 
 interface AgentNodeEditorProps {
     config: AgentConfig
@@ -14,8 +29,10 @@ interface AgentNodeEditorProps {
     mcpServers: McpServer[]
 }
 
-const FIELD =
-    'w-full bg-(--c-surface) border border-(--c-border) rounded text-(--c-text) text-[11px] px-1.5 py-1 outline-none focus:border-(--c-text-muted)'
+const NO_AGENT = '__none__'
+const NO_MODEL = '__none__'
+
+const SELECT_TRIGGER = 'w-full h-7 text-[11px] px-2'
 const LABEL = 'text-[11px] text-(--c-text-muted)'
 const HINT = 'text-[10px] text-(--c-text-subtle) leading-snug'
 
@@ -44,9 +61,9 @@ export default function AgentNodeEditor({
     return (
         <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>Node name</label>
-                <input
-                    className={FIELD}
+                <Label className={LABEL}>Node name</Label>
+                <Input
+                    className="h-7 text-[11px] px-2"
                     value={config.name}
                     placeholder="e.g. Triage"
                     onChange={(e) => onChange({ name: e.target.value })}
@@ -55,17 +72,21 @@ export default function AgentNodeEditor({
             </div>
 
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>Base agent</label>
-                <select
-                    className={FIELD}
-                    value={config.agent_id ?? ''}
-                    onChange={(e) => onChange({ agent_id: e.target.value || null })}
+                <Label className={LABEL}>Base agent</Label>
+                <Select
+                    value={config.agent_id ?? NO_AGENT}
+                    onValueChange={(value) => onChange({ agent_id: value === NO_AGENT ? null : value })}
                 >
-                    <option value="">None — configure below</option>
-                    {agents.map((a) => (
-                        <option key={a.id} value={a.id}>{a.name}</option>
-                    ))}
-                </select>
+                    <SelectTrigger className={SELECT_TRIGGER}>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={NO_AGENT}>None — configure below</SelectItem>
+                        {agents.map((a) => (
+                            <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                 <p className={HINT}>
                     Optional. Its model, instructions, knowledgebases and MCP servers become this
                     node's starting point; anything you set below layers on top.
@@ -73,25 +94,30 @@ export default function AgentNodeEditor({
             </div>
 
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>Model {base && <span className="text-(--c-text-subtle)">· override</span>}</label>
-                <select
-                    className={FIELD}
-                    value={config.llm_model_id ?? ''}
-                    onChange={(e) => onChange({ llm_model_id: e.target.value || null })}
+                <Label className={LABEL}>Model {base && <span className="text-(--c-text-subtle)">· override</span>}</Label>
+                <Select
+                    value={config.llm_model_id ?? NO_MODEL}
+                    onValueChange={(value) => onChange({ llm_model_id: value === NO_MODEL ? null : value })}
                 >
-                    <option value="">
-                        {providersWithModels.length === 0
-                            ? 'No models — add a provider first'
-                            : modelPlaceholder}
-                    </option>
-                    {providersWithModels.map((p) => (
-                        <optgroup key={p.id} label={p.provider_name}>
-                            {p.models.map((m) => (
-                                <option key={m.id} value={m.id}>{m.model_name}</option>
-                            ))}
-                        </optgroup>
-                    ))}
-                </select>
+                    <SelectTrigger className={SELECT_TRIGGER}>
+                        <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={NO_MODEL}>
+                            {providersWithModels.length === 0
+                                ? 'No models — add a provider first'
+                                : modelPlaceholder}
+                        </SelectItem>
+                        {providersWithModels.map((p) => (
+                            <SelectGroup key={p.id}>
+                                <SelectLabel>{p.provider_name}</SelectLabel>
+                                {p.models.map((m) => (
+                                    <SelectItem key={m.id} value={m.id}>{m.model_name}</SelectItem>
+                                ))}
+                            </SelectGroup>
+                        ))}
+                    </SelectContent>
+                </Select>
                 {!base && !config.llm_model_id && (
                     <span className="text-[10px] text-(--c-danger-text)">
                         Pick a model, or a base agent to take one from.
@@ -100,9 +126,9 @@ export default function AgentNodeEditor({
             </div>
 
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>Node instructions</label>
-                <textarea
-                    className={FIELD}
+                <Label className={LABEL}>Node instructions</Label>
+                <Textarea
+                    className="text-[11px] px-2 py-1.5 min-h-0"
                     rows={4}
                     style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
                     value={config.node_instructions}
@@ -117,9 +143,9 @@ export default function AgentNodeEditor({
             </div>
 
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>Output instructions</label>
-                <textarea
-                    className={FIELD}
+                <Label className={LABEL}>Output instructions</Label>
+                <Textarea
+                    className="text-[11px] px-2 py-1.5 min-h-0"
                     rows={3}
                     style={{ resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }}
                     value={config.output_instructions}
@@ -129,61 +155,63 @@ export default function AgentNodeEditor({
             </div>
 
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>
+                <Label className={LABEL}>
                     Creativity
                     <span className="ml-1 text-(--c-text-subtle)">
                         {creativity}
                         {config.creativity === null && base ? ' · inherited' : ''}
                     </span>
-                </label>
-                <input
-                    type="range"
+                </Label>
+                <Slider
                     min={0}
                     max={100}
-                    value={creativity}
-                    className="w-full accent-(--c-accent)"
-                    onChange={(e) => onChange({ creativity: Number(e.target.value) })}
+                    value={[creativity]}
+                    onValueChange={([v]) => onChange({ creativity: v })}
                 />
                 {config.creativity !== null && (
-                    <button
-                        className="self-start text-[10px] text-(--c-text-muted) hover:text-(--c-text-body)"
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="self-start h-auto p-0 text-[10px] font-normal text-(--c-text-muted) hover:text-(--c-text-body) hover:bg-transparent"
                         onClick={() => onChange({ creativity: null })}
                     >
                         Reset to {base ? 'the base agent' : 'default'}
-                    </button>
+                    </Button>
                 )}
             </div>
 
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>
+                <Label className={LABEL}>
                     Markdown formatting
                     {config.markdown_enabled === null && base && (
                         <span className="ml-1 text-(--c-text-subtle)">
                             · inherited ({base.markdown_enabled ? 'on' : 'off'})
                         </span>
                     )}
-                </label>
-                <label className="flex items-center gap-2 text-[11px] text-(--c-text-dim) cursor-pointer">
-                    <input
-                        type="checkbox"
-                        className="accent-(--c-accent)"
+                </Label>
+                <Label className="flex items-center gap-2 text-[11px] font-normal text-(--c-text-dim) cursor-pointer">
+                    <Checkbox
                         checked={markdownEnabled}
-                        onChange={(e) => onChange({ markdown_enabled: e.target.checked })}
+                        onCheckedChange={(checked) => onChange({ markdown_enabled: checked === true })}
                     />
                     Format responses with Markdown
-                </label>
+                </Label>
                 {config.markdown_enabled !== null && (
-                    <button
-                        className="self-start text-[10px] text-(--c-text-muted) hover:text-(--c-text-body)"
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="self-start h-auto p-0 text-[10px] font-normal text-(--c-text-muted) hover:text-(--c-text-body) hover:bg-transparent"
                         onClick={() => onChange({ markdown_enabled: null })}
                     >
                         Reset to {base ? 'the base agent' : 'default'}
-                    </button>
+                    </Button>
                 )}
             </div>
 
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>Knowledgebases</label>
+                <Label className={LABEL}>Knowledgebases</Label>
                 {collections.length === 0 ? (
                     <p className={HINT}>None yet — create one in the Knowledgebases panel.</p>
                 ) : (
@@ -192,13 +220,12 @@ export default function AgentNodeEditor({
                             const on = config.collection_ids.includes(c.id)
                             const inherited = base?.collections.some((x) => x.id === c.id)
                             return (
-                                <button
+                                <Button
                                     key={c.id}
-                                    className={`flex items-center gap-0.5 text-[10px] rounded px-1.5 py-0.5 border ${
-                                        on
-                                            ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30'
-                                            : 'border-(--c-border) text-(--c-text-dim) hover:border-(--c-text-muted)'
-                                    }`}
+                                    type="button"
+                                    variant={on ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="h-auto py-0.5 px-1.5 text-[10px] gap-0.5"
                                     onClick={() =>
                                         onChange({ collection_ids: toggle(config.collection_ids, c.id) })
                                     }
@@ -207,7 +234,7 @@ export default function AgentNodeEditor({
                                     {on && <IoCheckmark />}
                                     {c.name}
                                     {inherited && <span className="text-(--c-text-subtle)">·base</span>}
-                                </button>
+                                </Button>
                             )
                         })}
                     </div>
@@ -215,7 +242,7 @@ export default function AgentNodeEditor({
             </div>
 
             <div className="flex flex-col gap-1">
-                <label className={LABEL}>MCP servers</label>
+                <Label className={LABEL}>MCP servers</Label>
                 {mcpServers.length === 0 ? (
                     <p className={HINT}>None yet — add one in the MCPs panel.</p>
                 ) : (
@@ -224,13 +251,12 @@ export default function AgentNodeEditor({
                             const on = config.mcp_server_ids.includes(s.id)
                             const inherited = base?.mcp_servers.some((x) => x.id === s.id)
                             return (
-                                <button
+                                <Button
                                     key={s.id}
-                                    className={`flex items-center gap-0.5 text-[10px] rounded px-1.5 py-0.5 border ${
-                                        on
-                                            ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30'
-                                            : 'border-(--c-border) text-(--c-text-dim) hover:border-(--c-text-muted)'
-                                    }`}
+                                    type="button"
+                                    variant={on ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="h-auto py-0.5 px-1.5 text-[10px] gap-0.5"
                                     onClick={() =>
                                         onChange({ mcp_server_ids: toggle(config.mcp_server_ids, s.id) })
                                     }
@@ -243,7 +269,7 @@ export default function AgentNodeEditor({
                                     {on && <IoCheckmark />}
                                     {s.name}
                                     {inherited && <span className="text-(--c-text-subtle)">·base</span>}
-                                </button>
+                                </Button>
                             )
                         })}
                     </div>

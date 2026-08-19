@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { IoSaveOutline } from 'react-icons/io5'
 import Modal from './Modal'
 import PasswordField from '../auth/PasswordField'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
 import { useAuthStore } from '../../stores/AuthStore'
 import './ui.css'
 
@@ -73,11 +75,10 @@ function AccountSettingsModal({ onClose }: AccountSettingsModalProps) {
             onClose={onClose}
             footer={
                 <>
-                    <button className="btn btn--cancel" onClick={onClose} type="button">
+                    <Button variant="secondary" onClick={onClose} type="button">
                         Cancel
-                    </button>
-                    <button
-                        className="btn btn--primary"
+                    </Button>
+                    <Button
                         onClick={handleSave}
                         disabled={saving}
                         type="button"
@@ -87,7 +88,7 @@ function AccountSettingsModal({ onClose }: AccountSettingsModalProps) {
                         ) : (
                             <><IoSaveOutline style={{ fontSize: 15 }} /> Save</>
                         )}
-                    </button>
+                    </Button>
                 </>
             }
         >
@@ -97,9 +98,8 @@ function AccountSettingsModal({ onClose }: AccountSettingsModalProps) {
                 <label className="form-label" htmlFor="acct-username">
                     Username
                 </label>
-                <input
+                <Input
                     id="acct-username"
-                    className="form-input"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     autoComplete="username"

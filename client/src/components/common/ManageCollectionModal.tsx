@@ -2,12 +2,16 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import {
     IoCloudUploadOutline,
     IoTrashOutline,
-    IoWarningOutline,
     IoDocumentTextOutline,
     IoRefreshOutline,
     IoSaveOutline,
 } from 'react-icons/io5'
 import Modal from './Modal'
+import ConfirmDeleteDialog from './ConfirmDeleteDialog'
+import { Input } from '../ui/input'
+import { Textarea } from '../ui/textarea'
+import { Button } from '../ui/button'
+import { Badge } from '../ui/badge'
 import {
     listDocuments,
     uploadDocument,
@@ -43,16 +47,19 @@ function StatusBadge({ doc }: { doc: KbDocument }) {
         doc.status === 'completed'
             ? `${doc.chunk_count} chunk${doc.chunk_count === 1 ? '' : 's'}`
             : doc.status
+    const variant =
+        doc.status === 'completed'
+            ? 'success'
+            : doc.status === 'failed'
+                ? 'destructive'
+                : 'secondary'
     return (
-        <span
-            className={`kb-status kb-status--${doc.status}`}
-            title={doc.error_message ?? undefined}
-        >
+        <Badge variant={variant} title={doc.error_message ?? undefined}>
             {(doc.status === 'pending' || doc.status === 'processing') && (
                 <span className="ui-spinner kb-status-spinner" />
             )}
             {label}
-        </span>
+        </Badge>
     )
 }
 
@@ -181,7 +188,6 @@ function ManageCollectionModal({
             title="Manage Knowledgebase"
             subtitle={collection.name}
             onClose={onClose}
-            onEscape={() => (confirmingDelete ? setConfirmingDelete(false) : onClose())}
             maxWidth={620}
             footer={
                 <button className="btn btn--cancel" onClick={onClose} type="button">
@@ -189,46 +195,23 @@ function ManageCollectionModal({
                 </button>
             }
         >
-            {confirmingDelete && (
-                <div className="confirm-overlay">
-                    <div className="confirm-overlay__icon"><IoWarningOutline /></div>
-                    <p className="confirm-overlay__heading">Delete Knowledgebase?</p>
-                    <p className="confirm-overlay__body">
-                        This permanently removes{' '}
-                        <span className="confirm-overlay__name">{collection.name}</span>,
-                        all its documents, and their embeddings. This cannot be undone.
-                    </p>
-                    <div className="confirm-overlay__actions">
-                        <button
-                            className="btn btn--cancel"
-                            onClick={() => setConfirmingDelete(false)}
-                            disabled={deleting}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            className="btn--confirm-delete"
-                            onClick={handleConfirmDelete}
-                            disabled={deleting}
-                        >
-                            {deleting ? (
-                                <><span className="ui-spinner" /> Deleting…</>
-                            ) : (
-                                <><IoTrashOutline /> Yes, Delete</>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            )}
+            <ConfirmDeleteDialog
+                open={confirmingDelete}
+                onOpenChange={setConfirmingDelete}
+                title="Delete Knowledgebase?"
+                description={<>This permanently removes <strong>{collection.name}</strong>, all its documents, and their embeddings. This cannot be undone.</>}
+                onConfirm={handleConfirmDelete}
+                deleting={deleting}
+                confirmLabel="Yes, Delete"
+            />
 
             {metaError && <div className="form-error form-error--banner">{metaError}</div>}
 
             {/* ── Name / description ── */}
             <div className="form-field">
                 <label className="form-label" htmlFor="mc-name">Name</label>
-                <input
+                <Input
                     id="mc-name"
-                    className="form-input"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     spellCheck={false}
@@ -239,9 +222,8 @@ function ManageCollectionModal({
                     Description
                     <span className="form-label-optional">optional</span>
                 </label>
-                <textarea
+                <Textarea
                     id="mc-desc"
-                    className="form-input"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={2}
@@ -250,8 +232,7 @@ function ManageCollectionModal({
             </div>
             {metaDirty && (
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                        className="btn btn--primary"
+                    <Button
                         onClick={handleSaveMeta}
                         disabled={savingMeta}
                         type="button"
@@ -261,7 +242,7 @@ function ManageCollectionModal({
                         ) : (
                             <><IoSaveOutline style={{ fontSize: 15 }} /> Save Changes</>
                         )}
-                    </button>
+                    </Button>
                 </div>
             )}
 
@@ -274,17 +255,17 @@ function ManageCollectionModal({
                     <span className="kb-count-pill">{documents.length}</span>
                 </span>
                 <div style={{ display: 'flex', gap: 8 }}>
-                    <button
-                        className="btn--ghost"
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={fetchDocuments}
                         type="button"
                         title="Refresh"
                         aria-label="Refresh documents"
                     >
                         <IoRefreshOutline />
-                    </button>
-                    <button
-                        className="btn btn--primary"
+                    </Button>
+                    <Button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
                         type="button"
@@ -294,7 +275,7 @@ function ManageCollectionModal({
                         ) : (
                             <><IoCloudUploadOutline style={{ fontSize: 16 }} /> Upload</>
                         )}
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -328,14 +309,15 @@ function ManageCollectionModal({
                                 </span>
                             </div>
                             <StatusBadge doc={doc} />
-                            <button
-                                className="kb-doc-delete"
+                            <Button
+                                variant="ghost"
+                                size="icon"
                                 onClick={() => handleDeleteDocument(doc.id)}
                                 title={`Delete ${doc.filename}`}
                                 aria-label={`Delete ${doc.filename}`}
                             >
                                 <IoTrashOutline size={14} />
-                            </button>
+                            </Button>
                         </div>
                     ))}
                 </div>

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { IoEye, IoEyeOff } from 'react-icons/io5'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
 
 interface PasswordFieldProps {
     id: string
@@ -32,10 +34,9 @@ function PasswordField({
                 {label}
                 {hint && <span className="form-label-optional">{hint}</span>}
             </label>
-            <div className="form-pw-wrapper">
-                <input
+            <div className="relative">
+                <Input
                     id={id}
-                    className="form-input"
                     type={visible ? 'text' : 'password'}
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
@@ -44,16 +45,19 @@ function PasswordField({
                     autoFocus={autoFocus}
                     disabled={disabled}
                     spellCheck={false}
+                    className="pr-10 font-mono tracking-wide"
                 />
-                <button
+                <Button
                     type="button"
-                    className="form-pw-toggle"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0.5 top-1/2 -translate-y-1/2 size-8 text-muted-foreground hover:text-foreground hover:bg-transparent"
                     onClick={() => setVisible((v) => !v)}
                     aria-label={visible ? 'Hide password' : 'Show password'}
                     tabIndex={-1}
                 >
                     {visible ? <IoEyeOff /> : <IoEye />}
-                </button>
+                </Button>
             </div>
         </div>
     )

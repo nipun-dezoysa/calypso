@@ -1,10 +1,25 @@
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import CollapsibleSection from '../../common/CollapsibleSection'
 import AddAgentModal, { type NewAgentPayload } from '../../common/AddAgentModal'
 import EditAgentModal from '../../common/EditAgentModal'
+import ConfirmDeleteDialog from '../../common/ConfirmDeleteDialog'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '../../ui/dropdown-menu'
 import { listAgents, createAgent, type Agent } from '../../../api/agentApi'
 import { listWorkflows, type WorkflowSummary } from '../../../api/workflowApi'
-import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline, IoGitNetworkOutline, IoTrashOutline } from 'react-icons/io5'
+import type { ChatThread } from '../../../api/chatApi'
+import {
+    IoRefreshOutline,
+    IoAlertCircleOutline,
+    IoGitNetworkOutline,
+    IoTrashOutline,
+    IoEllipsisVertical,
+} from 'react-icons/io5'
 import { useChatStore } from '../../../stores/ChatStore'
 import { useMainViewStore } from '../../../stores/MainViewStore'
 
@@ -17,6 +32,8 @@ function AgentSection() {
     const [loadError, setLoadError] = useState<string | null>(null)
     const [showAddModal, setShowAddModal] = useState(false)
     const [editingAgent, setEditingAgent] = useState<Agent | null>(null)
+    const [deleteThreadTarget, setDeleteThreadTarget] = useState<ChatThread | null>(null)
+    const [deletingThread, setDeletingThread] = useState(false)
 
     const targetId = useChatStore((s) => s.targetId)
     const targetType = useChatStore((s) => s.targetType)
@@ -51,8 +68,13 @@ function AgentSection() {
     }, [fetchAll])
 
     async function handleAddAgent(payload: NewAgentPayload): Promise<void> {
-        const created = await createAgent(payload)
-        setAgents((prev) => [created, ...prev])
+        try {
+            const created = await createAgent(payload)
+            setAgents((prev) => [created, ...prev])
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Failed to add agent')
+            throw err
+        }
     }
 
     function handleAgentUpdated(updated: Agent) {
@@ -66,6 +88,19 @@ function AgentSection() {
 
     function formatThreadTitle(title: string | null, updatedAt: string): string {
         return title ?? new Date(updatedAt).toLocaleString()
+    }
+
+    async function confirmDeleteThread() {
+        if (!deleteThreadTarget) return
+        const thread = deleteThreadTarget
+        setDeletingThread(true)
+        await removeThread(thread.id)
+        const failure = useChatStore.getState().error
+        setDeletingThread(false)
+        setDeleteThreadTarget(null)
+        if (failure) {
+            toast.error(failure)
+        }
     }
 
     function renderThreadList() {
@@ -97,7 +132,7 @@ function AgentSection() {
                         </span>
                         <button
                             className="opacity-0 group-hover:opacity-100 transition-opacity text-(--c-text-subtle) hover:text-(--c-danger-text) p-0.5 shrink-0"
-                            onClick={(e) => { e.stopPropagation(); removeThread(thread.id) }}
+                            onClick={(e) => { e.stopPropagation(); setDeleteThreadTarget(thread) }}
                             title="Delete chat"
                             aria-label={`Delete chat ${formatThreadTitle(thread.title, thread.updated_at)}`}
                         >
@@ -161,14 +196,23 @@ function AgentSection() {
                                 {agent.llm_model.provider_name} · {agent.llm_model.model_name}
                             </span>
                         </div>
-                        <button
-                            className="opacity-0 group-hover:opacity-100 transition-opacity text-(--c-text-subtle) hover:text-(--c-accent-hi) p-0.5 shrink-0"
-                            onClick={(e) => { e.stopPropagation(); setEditingAgent(agent) }}
-                            title={`Edit ${agent.name}`}
-                            aria-label={`Edit ${agent.name}`}
-                        >
-                            <IoPencilOutline size={12} />
-                        </button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <button
+                                    className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity text-(--c-text-subtle) hover:text-(--c-text) p-0.5 shrink-0 outline-none"
+                                    onClick={(e) => e.stopPropagation()}
+                                    title={`${agent.name} actions`}
+                                    aria-label={`${agent.name} actions`}
+                                >
+                                    <IoEllipsisVertical size={13} />
+                                </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenuItem onSelect={() => setEditingAgent(agent)}>
+                                    Edit
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 ))}
             </div>
@@ -236,6 +280,19 @@ function AgentSection() {
                     onDeleted={handleAgentDeleted}
                 />
             )}
+
+            <ConfirmDeleteDialog
+                open={!!deleteThreadTarget}
+                onOpenChange={(open) => !open && setDeleteThreadTarget(null)}
+                title="Delete chat?"
+                description={
+                    deleteThreadTarget && (
+                        <>"{formatThreadTitle(deleteThreadTarget.title, deleteThreadTarget.updated_at)}" will be permanently deleted. This can't be undone.</>
+                    )
+                }
+                onConfirm={confirmDeleteThread}
+                deleting={deletingThread}
+            />
         </div>
     )
 }

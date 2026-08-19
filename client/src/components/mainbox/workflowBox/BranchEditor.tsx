@@ -6,15 +6,23 @@ import {
 } from 'react-icons/io5'
 import type { ConditionOperator } from '../../../api/workflowApi'
 import { OPERATORS, newBranch, type Branch } from './workflowTypes'
+import { Input } from '../../ui/input'
+import { Checkbox } from '../../ui/checkbox'
+import { Label } from '../../ui/label'
+import { Button } from '../../ui/button'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../../ui/select'
 
 interface BranchEditorProps {
     branches: Branch[]
     onChange: (branches: Branch[]) => void
     onRemoved: (branchId: string) => void
 }
-
-const FIELD =
-    'w-full bg-(--c-surface) border border-(--c-border) rounded text-(--c-text) text-[11px] px-1.5 py-1 outline-none focus:border-(--c-text-muted)'
 
 export default function BranchEditor({ branches, onChange, onRemoved }: BranchEditorProps) {
     function patch(id: string, changes: Partial<Branch>) {
@@ -37,13 +45,16 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
     return (
         <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
-                <label className="text-[11px] text-(--c-text-muted)">Branches</label>
-                <button
-                    className="flex items-center gap-0.5 text-[11px] text-(--c-text-dim) hover:text-(--c-accent-hi)"
+                <Label className="text-[11px] text-(--c-text-muted)">Branches</Label>
+                <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto p-0 gap-0.5 text-[11px] font-normal text-(--c-text-dim) hover:text-(--c-accent-hi) hover:bg-transparent"
                     onClick={() => onChange([...branches, newBranch()])}
                 >
                     <IoAddOutline /> Add
-                </button>
+                </Button>
             </div>
 
             <p className="text-[10px] text-(--c-text-subtle) leading-snug">
@@ -60,56 +71,69 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
                         <span className="text-[10px] text-(--c-text-subtle) font-mono w-3.5 shrink-0">
                             {i + 1}
                         </span>
-                        <input
-                            className={FIELD}
+                        <Input
+                            className="h-7 text-[11px] px-2"
                             value={branch.label}
                             placeholder={`Branch ${i + 1}`}
                             onChange={(e) => patch(branch.id, { label: e.target.value })}
                             spellCheck={false}
                         />
-                        <button
-                            className="text-(--c-text-muted) hover:text-(--c-text) disabled:opacity-25 shrink-0"
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-(--c-text-muted) hover:text-(--c-text) disabled:opacity-25 shrink-0"
                             onClick={() => move(i, -1)}
                             disabled={i === 0}
                             title="Check earlier"
                         >
                             <IoArrowUpOutline size={12} />
-                        </button>
-                        <button
-                            className="text-(--c-text-muted) hover:text-(--c-text) disabled:opacity-25 shrink-0"
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-(--c-text-muted) hover:text-(--c-text) disabled:opacity-25 shrink-0"
                             onClick={() => move(i, 1)}
                             disabled={i === branches.length - 1}
                             title="Check later"
                         >
                             <IoArrowDownOutline size={12} />
-                        </button>
-                        <button
-                            className="text-(--c-danger) hover:text-(--c-danger-text) shrink-0"
+                        </Button>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-(--c-danger) hover:text-(--c-danger-text) shrink-0"
                             onClick={() => remove(branch.id)}
                             title="Delete branch"
                         >
                             <IoTrashOutline size={12} />
-                        </button>
+                        </Button>
                     </div>
 
-                    <select
-                        className={FIELD}
+                    <Select
                         value={branch.operator}
-                        onChange={(e) =>
-                            patch(branch.id, { operator: e.target.value as ConditionOperator })
+                        onValueChange={(value) =>
+                            patch(branch.id, { operator: value as ConditionOperator })
                         }
                     >
-                        {OPERATORS.map((o) => (
-                            <option key={o.value} value={o.value}>
-                                {o.label}
-                            </option>
-                        ))}
-                    </select>
+                        <SelectTrigger className="w-full h-7 text-[11px] px-2">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {OPERATORS.map((o) => (
+                                <SelectItem key={o.value} value={o.value}>
+                                    {o.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
 
                     {branch.operator !== 'always' && (
                         <>
-                            <input
-                                className={FIELD}
+                            <Input
+                                className="h-7 text-[11px] px-2"
                                 value={branch.value}
                                 placeholder={
                                     branch.operator === 'regex' ? '\\b(refund|invoice)\\b' : 'text to match'
@@ -117,17 +141,15 @@ export default function BranchEditor({ branches, onChange, onRemoved }: BranchEd
                                 onChange={(e) => patch(branch.id, { value: e.target.value })}
                                 spellCheck={false}
                             />
-                            <label className="flex items-center gap-1.5 text-[10px] text-(--c-text-muted) cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    className="accent-(--c-accent)"
+                            <Label className="flex items-center gap-1.5 text-[10px] font-normal text-(--c-text-muted) cursor-pointer">
+                                <Checkbox
                                     checked={branch.case_sensitive}
-                                    onChange={(e) =>
-                                        patch(branch.id, { case_sensitive: e.target.checked })
+                                    onCheckedChange={(checked) =>
+                                        patch(branch.id, { case_sensitive: checked === true })
                                     }
                                 />
                                 Match case
-                            </label>
+                            </Label>
                         </>
                     )}
                 </div>

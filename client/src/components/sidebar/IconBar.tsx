@@ -4,6 +4,7 @@ import { TbBrain } from 'react-icons/tb'
 import { useSideBarStore } from '../../stores/SideBarStore'
 import { useAuthStore } from '../../stores/AuthStore'
 import type { SidebarSection } from '../../types/sidebar'
+import { Button } from '../ui/button'
 
 function IconBar() {
     const { activeSection, setActiveSection, isCollapsed, setCollapsed } = useSideBarStore()
@@ -26,14 +27,20 @@ function IconBar() {
     const renderIcon = (id: SidebarSection, IconComponent: React.ComponentType<any>, title: string) => {
         const isActive = activeSection === id
         return (
-            <IconComponent
+            <Button
                 key={id}
+                type='button'
+                variant='ghost'
+                size='icon'
                 title={title}
+                aria-label={title}
                 onClick={() => handleSelect(id)}
-                className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
+                className={`text-2xl transition-all duration-200 hover:scale-105 ${
                     isActive ? 'text-(--c-accent)' : 'text-(--c-text-dim) hover:text-(--c-text-strong)'
                 }`}
-            />
+            >
+                <IconComponent />
+            </Button>
         )
     }
 
@@ -44,11 +51,17 @@ function IconBar() {
             </div>
             <div className='flex flex-col gap-5'>
                 {renderIcon('settings', IoSettingsOutline, 'Settings')}
-                <IoLogOutOutline
+                <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
                     title={user ? `Sign out (${user.username})` : 'Sign out'}
+                    aria-label={user ? `Sign out (${user.username})` : 'Sign out'}
                     onClick={logout}
-                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-(--c-text-dim) hover:text-(--c-danger-text)'
-                />
+                    className='text-2xl transition-all duration-200 hover:scale-105 text-(--c-text-dim) hover:text-(--c-danger-text)'
+                >
+                    <IoLogOutOutline />
+                </Button>
             </div>
         </div>
     )

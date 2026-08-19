@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { IoAdd, IoAlertCircleOutline, IoTrashOutline, IoWarningOutline } from 'react-icons/io5'
+import { IoAdd, IoAlertCircleOutline, IoTrashOutline } from 'react-icons/io5'
 import Modal from './Modal'
+import ConfirmDeleteDialog from './ConfirmDeleteDialog'
 import AgentFormFields from './AgentFormFields'
 import { useAgentForm } from './useAgentForm'
 import { updateAgent, deleteAgent, type Agent } from '../../api/agentApi'
@@ -92,7 +93,6 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
         <Modal
             title={<>Edit Agent</>}
             onClose={onClose}
-            onEscape={() => confirmingDelete ? setConfirmingDelete(false) : onClose()}
             footer={
                 <>
                     <button className="btn btn--cancel" onClick={onClose} type="button">
@@ -113,37 +113,15 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
                 </>
             }
         >
-            {confirmingDelete && (
-                <div className="confirm-overlay">
-                    <div className="confirm-overlay__icon"><IoWarningOutline /></div>
-                    <p className="confirm-overlay__heading">Delete Agent?</p>
-                    <p className="confirm-overlay__body">
-                        This will permanently remove{' '}
-                        <span className="confirm-overlay__name">{agent.name}</span>.
-                        This cannot be undone.
-                    </p>
-                    <div className="confirm-overlay__actions">
-                        <button
-                            className="btn btn--cancel"
-                            onClick={() => setConfirmingDelete(false)}
-                            disabled={deleting}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            className="btn--confirm-delete"
-                            onClick={handleConfirmDelete}
-                            disabled={deleting}
-                        >
-                            {deleting ? (
-                                <><span className="ui-spinner" /> Deleting…</>
-                            ) : (
-                                <><IoTrashOutline /> Yes, Delete</>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            )}
+            <ConfirmDeleteDialog
+                open={confirmingDelete}
+                onOpenChange={setConfirmingDelete}
+                title="Delete Agent?"
+                description={<>This will permanently remove <strong>{agent.name}</strong>. This cannot be undone.</>}
+                onConfirm={handleConfirmDelete}
+                deleting={deleting}
+                confirmLabel="Yes, Delete"
+            />
 
             {form.errors._global && (
                 <div className="form-error form-error--banner">{form.errors._global}</div>

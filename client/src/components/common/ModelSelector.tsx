@@ -1,5 +1,10 @@
-import { useState, useRef, useEffect } from 'react'
-import { IoChevronDown, IoChevronUp, IoCheckmark } from 'react-icons/io5'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../ui/select'
 
 export interface ModelOption {
     id: string
@@ -14,56 +19,32 @@ interface ModelSelectorProps {
     label?: string
 }
 
+const triggerClassName =
+    'h-auto w-fit gap-1 rounded-none border-0 bg-transparent p-0 text-sm shadow-none hover:bg-transparent hover:text-(--c-text-body) focus-visible:ring-0 data-[size=default]:h-auto data-[size=sm]:h-auto [&_svg]:opacity-70'
+
 function ModelSelector({ models, selectedModel, onSelect, label = 'Select a model' }: ModelSelectorProps) {
-    const [isOpen, setIsOpen] = useState(false)
-    const dropdownRef = useRef<HTMLDivElement>(null)
-
-    useEffect(() => {
-        function handleClickOutside(e: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setIsOpen(false)
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
-
     return (
-        <div className='relative' ref={dropdownRef}>
-            <button
-                className='flex items-center gap-1 hover:text-(--c-text-body) transition-colors text-sm cursor-pointer'
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                <span>{selectedModel.name}</span>
-                {isOpen ? <IoChevronUp /> : <IoChevronDown />}
-            </button>
-
-            {isOpen && (
-                <div className='absolute bottom-full left-0 mb-2 w-56 bg-(--c-surface) border border-(--c-border) rounded-lg shadow-xl overflow-hidden'>
-                    <div className='p-2 text-xs text-(--c-text-muted) border-b border-(--c-hover)'>{label}</div>
-                    {models.map((model) => (
-                        <button
-                            key={model.id}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer
-                                ${selectedModel.id === model.id
-                                    ? 'bg-(--c-hover) text-(--c-text-strong)'
-                                    : 'text-(--c-text-dim) hover:bg-(--c-hover)/50 hover:text-(--c-text)'
-                                }`}
-                            onClick={() => {
-                                onSelect(model)
-                                setIsOpen(false)
-                            }}
-                        >
-                            <div className='flex flex-col items-start'>
-                                <span>{model.name}</span>
-                                <span className='text-xs text-(--c-text-muted)'>{model.provider}</span>
-                            </div>
-                            {selectedModel.id === model.id && <IoCheckmark className='text-(--c-accent)' />}
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
+        <Select
+            value={selectedModel.id}
+            onValueChange={(id) => {
+                const model = models.find((m) => m.id === id)
+                if (model) onSelect(model)
+            }}
+        >
+            <SelectTrigger className={triggerClassName}>
+                <SelectValue placeholder={label}>{selectedModel.name}</SelectValue>
+            </SelectTrigger>
+            <SelectContent side="top" className="w-56">
+                {models.map((model) => (
+                    <SelectItem key={model.id} value={model.id}>
+                        <div className="flex flex-col items-start">
+                            <span>{model.name}</span>
+                            <span className="text-xs text-(--c-text-muted)">{model.provider}</span>
+                        </div>
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
     )
 }
 
