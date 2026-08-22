@@ -38,7 +38,7 @@ function contrastRatio(hexA: string, hexB: string): number {
     return (lighter + 0.05) / (darker + 0.05)
 }
 
-function isDark(hex: string): boolean {
+export function isDark(hex: string): boolean {
     return relativeLuminance(hex) < 0.5
 }
 

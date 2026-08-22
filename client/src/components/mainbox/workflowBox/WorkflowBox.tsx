@@ -44,6 +44,8 @@ import { listMcpServers, type McpServer } from '../../../api/mcpApi'
 import ChatBox from '../chatbox/ChatBox'
 import CopyCurlButton from '../../common/CopyCurlButton'
 import { useChatStore } from '../../../stores/ChatStore'
+import { useThemeStore } from '../../../stores/ThemeStore'
+import { isDark, deriveTheme, BUILTIN_PRESETS } from '../../../utils/theme'
 import { Input } from '../../ui/input'
 import { Button } from '../../ui/button'
 import ConditionNode from './ConditionNode'
@@ -243,6 +245,18 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
     >(null)
 
     const selectWorkflow = useChatStore((s) => s.selectWorkflow)
+
+    // React Flow's Controls/MiniMap/Background ship their own default CSS
+    // (light-mode colors) that isn't aware of the app's own theme system, so
+    // they need to be told explicitly which mode to render in.
+    const activeThemeId = useThemeStore((s) => s.activeThemeId)
+    const customThemes = useThemeStore((s) => s.customThemes)
+    const colorMode = useMemo(() => {
+        const preset = BUILTIN_PRESETS.find((p) => p.id === activeThemeId)
+        const custom = customThemes.find((t) => t.id === activeThemeId)
+        const tokens = preset?.tokens ?? (custom ? deriveTheme(custom) : null)
+        return tokens && isDark(tokens.bg) ? 'dark' : 'light'
+    }, [activeThemeId, customThemes])
 
     // Point the shared chat at this workflow, then reveal the chat box.
     function toggleChat() {
@@ -640,6 +654,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
             )}
 
             <ReactFlow
+                colorMode={colorMode}
                 nodes={displayNodes}
                 edges={edges}
                 nodeTypes={NODE_TYPES}
