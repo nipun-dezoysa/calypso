@@ -187,6 +187,15 @@ class WorkflowService:
             raise ValueError(f"{label} not found: {', '.join(missing)}")
         return by_id
 
+    async def rename(self, workflow_id: str, name: str) -> Workflow | None:
+        wf = await self.get(workflow_id)
+        if wf is None:
+            return None
+        wf.name = name
+        await self.db.commit()
+        await self.db.refresh(wf, attribute_names=_GRAPH_ATTRS)
+        return wf
+
     async def delete(self, workflow_id: str) -> bool:
         wf = await self.get(workflow_id)
         if wf is None:

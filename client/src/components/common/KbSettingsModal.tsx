@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
-import { IoSaveOutline, IoEye, IoEyeOff, IoInformationCircle } from 'react-icons/io5'
+import { IoSaveOutline, IoInformationCircle } from 'react-icons/io5'
 import Modal from './Modal'
+import PasswordField from '../auth/PasswordField'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
+import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group'
 import {
     getKbSettings,
     updateKbSettings,
@@ -36,19 +40,24 @@ function Segmented<T extends string>({
     onChange: (v: T) => void
 }) {
     return (
-        <div className="kb-seg">
+        <ToggleGroup
+            type="single"
+            variant="outline"
+            value={value}
+            onValueChange={(v) => { if (v) onChange(v as T) }}
+            className="w-full gap-2"
+        >
             {options.map((opt) => (
-                <button
+                <ToggleGroupItem
                     key={opt.id}
-                    type="button"
-                    className={`kb-seg-item ${value === opt.id ? 'kb-seg-item--on' : ''}`}
-                    onClick={() => onChange(opt.id)}
+                    value={opt.id}
+                    className="h-auto flex-col items-start gap-0.5 whitespace-normal rounded-(--radius)! px-3 py-2 text-left data-[state=on]:border-(--c-accent) data-[state=on]:bg-(--c-accent)/10"
                 >
-                    <span className="kb-seg-label">{opt.label}</span>
-                    <span className="kb-seg-hint">{opt.hint}</span>
-                </button>
+                    <span className="text-[13px] font-medium">{opt.label}</span>
+                    <span className="text-[10.5px] text-muted-foreground">{opt.hint}</span>
+                </ToggleGroupItem>
             ))}
-        </div>
+        </ToggleGroup>
     )
 }
 
@@ -66,8 +75,6 @@ function KbSettingsModal({ onClose }: KbSettingsModalProps) {
     const [embedModel, setEmbedModel] = useState('')
     const [nomicKey, setNomicKey] = useState('')
     const [nomicKeySet, setNomicKeySet] = useState(false)
-
-    const [showKeys, setShowKeys] = useState(false)
 
     useEffect(() => {
         let active = true
@@ -123,11 +130,10 @@ function KbSettingsModal({ onClose }: KbSettingsModalProps) {
             onClose={onClose}
             footer={
                 <>
-                    <button className="btn btn--cancel" onClick={onClose} type="button">
+                    <Button variant="secondary" onClick={onClose} type="button">
                         Cancel
-                    </button>
-                    <button
-                        className="btn btn--primary"
+                    </Button>
+                    <Button
                         onClick={handleSave}
                         disabled={saving || loading}
                         type="button"
@@ -137,7 +143,7 @@ function KbSettingsModal({ onClose }: KbSettingsModalProps) {
                         ) : (
                             <><IoSaveOutline style={{ fontSize: 15 }} /> Save</>
                         )}
-                    </button>
+                    </Button>
                 </>
             }
         >
@@ -166,43 +172,23 @@ function KbSettingsModal({ onClose }: KbSettingsModalProps) {
                                     Qdrant URL
                                     <span className="form-label-required">* required</span>
                                 </label>
-                                <input
+                                <Input
                                     id="ks-qurl"
-                                    className="form-input"
                                     placeholder="https://your-cluster.qdrant.io:6333"
                                     value={qdrantUrl}
                                     onChange={(e) => setQdrantUrl(e.target.value)}
                                     spellCheck={false}
                                 />
                             </div>
-                            <div className="form-field">
-                                <label className="form-label" htmlFor="ks-qkey">
-                                    Qdrant API Key
-                                    <span className="form-label-optional">
-                                        {qdrantKeySet ? 'configured' : 'optional'}
-                                    </span>
-                                </label>
-                                <div className="form-pw-wrapper">
-                                    <input
-                                        id="ks-qkey"
-                                        className="form-input"
-                                        type={showKeys ? 'text' : 'password'}
-                                        placeholder={qdrantKeySet ? '•••••••• (leave blank to keep)' : 'Paste API key…'}
-                                        value={qdrantKey}
-                                        onChange={(e) => setQdrantKey(e.target.value)}
-                                        autoComplete="new-password"
-                                        spellCheck={false}
-                                    />
-                                    <button
-                                        className="form-pw-toggle"
-                                        onClick={() => setShowKeys((v) => !v)}
-                                        type="button"
-                                        aria-label={showKeys ? 'Hide keys' : 'Show keys'}
-                                    >
-                                        {showKeys ? <IoEyeOff /> : <IoEye />}
-                                    </button>
-                                </div>
-                            </div>
+                            <PasswordField
+                                id="ks-qkey"
+                                label="Qdrant API Key"
+                                hint={qdrantKeySet ? 'configured' : 'optional'}
+                                value={qdrantKey}
+                                onChange={setQdrantKey}
+                                placeholder={qdrantKeySet ? '•••••••• (leave blank to keep)' : 'Paste API key…'}
+                                autoComplete="new-password"
+                            />
                         </>
                     )}
 
@@ -223,9 +209,8 @@ function KbSettingsModal({ onClose }: KbSettingsModalProps) {
                             Model Name
                             <span className="form-label-optional">optional</span>
                         </label>
-                        <input
+                        <Input
                             id="ks-model"
-                            className="form-input"
                             placeholder={
                                 embedProvider === 'nomic'
                                     ? 'nomic-embed-text-v1.5'
@@ -238,34 +223,15 @@ function KbSettingsModal({ onClose }: KbSettingsModalProps) {
                     </div>
 
                     {embedProvider === 'nomic' && (
-                        <div className="form-field">
-                            <label className="form-label" htmlFor="ks-nkey">
-                                Nomic API Key
-                                <span className="form-label-required">
-                                    {nomicKeySet ? 'configured' : '* required'}
-                                </span>
-                            </label>
-                            <div className="form-pw-wrapper">
-                                <input
-                                    id="ks-nkey"
-                                    className="form-input"
-                                    type={showKeys ? 'text' : 'password'}
-                                    placeholder={nomicKeySet ? '•••••••• (leave blank to keep)' : 'Paste API key…'}
-                                    value={nomicKey}
-                                    onChange={(e) => setNomicKey(e.target.value)}
-                                    autoComplete="new-password"
-                                    spellCheck={false}
-                                />
-                                <button
-                                    className="form-pw-toggle"
-                                    onClick={() => setShowKeys((v) => !v)}
-                                    type="button"
-                                    aria-label={showKeys ? 'Hide keys' : 'Show keys'}
-                                >
-                                    {showKeys ? <IoEyeOff /> : <IoEye />}
-                                </button>
-                            </div>
-                        </div>
+                        <PasswordField
+                            id="ks-nkey"
+                            label="Nomic API Key"
+                            hint={nomicKeySet ? 'configured' : '* required'}
+                            value={nomicKey}
+                            onChange={setNomicKey}
+                            placeholder={nomicKeySet ? '•••••••• (leave blank to keep)' : 'Paste API key…'}
+                            autoComplete="new-password"
+                        />
                     )}
 
                     <div className="form-info-note">

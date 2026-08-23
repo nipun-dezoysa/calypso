@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { IoClose, IoDocumentTextOutline, IoWarningOutline } from 'react-icons/io5'
 import { fetchAttachmentBlob, type ChatAttachment } from '../../../api/chatApi'
+import { Button } from '../../ui/button'
 
 const thumbnailCache = new Map<string, string>()
 
@@ -85,14 +86,16 @@ function AttachmentChip({ attachment, onRemove }: Props) {
             </div>
 
             {onRemove && (
-                <button
+                <Button
                     type='button'
+                    variant='ghost'
+                    size='icon'
                     onClick={() => onRemove(attachment.id)}
-                    className='shrink-0 text-(--c-text-muted) hover:text-(--c-text) cursor-pointer'
+                    className='shrink-0 size-5 text-(--c-text-muted) hover:text-(--c-text) cursor-pointer'
                     aria-label={`Remove ${attachment.filename}`}
                 >
                     <IoClose />
-                </button>
+                </Button>
             )}
         </div>
     )

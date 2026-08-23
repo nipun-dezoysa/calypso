@@ -1,14 +1,26 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { IoChatboxOutline, IoLibraryOutline, IoGitNetworkOutline, IoExtensionPuzzleOutline, IoSettingsOutline, IoLogOutOutline } from 'react-icons/io5'
 import { TbBrain } from 'react-icons/tb'
 import { useSideBarStore } from '../../stores/SideBarStore'
 import { useAuthStore } from '../../stores/AuthStore'
 import type { SidebarSection } from '../../types/sidebar'
+import { Button } from '../ui/button'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '../ui/alert-dialog'
 
 function IconBar() {
     const { activeSection, setActiveSection, isCollapsed, setCollapsed } = useSideBarStore()
     const user = useAuthStore((s) => s.user)
     const logout = useAuthStore((s) => s.logout)
+    const [confirmingLogout, setConfirmingLogout] = useState(false)
 
     const handleSelect = (id: SidebarSection) => {
         setActiveSection(id)
@@ -26,14 +38,20 @@ function IconBar() {
     const renderIcon = (id: SidebarSection, IconComponent: React.ComponentType<any>, title: string) => {
         const isActive = activeSection === id
         return (
-            <IconComponent
+            <Button
                 key={id}
+                type='button'
+                variant='ghost'
+                size='icon'
                 title={title}
+                aria-label={title}
                 onClick={() => handleSelect(id)}
-                className={`cursor-pointer transition-all duration-200 hover:scale-105 ${
+                className={`text-2xl transition-all duration-200 hover:scale-105 ${
                     isActive ? 'text-(--c-accent)' : 'text-(--c-text-dim) hover:text-(--c-text-strong)'
                 }`}
-            />
+            >
+                <IconComponent className="size-6" />
+            </Button>
         )
     }
 
@@ -44,12 +62,35 @@ function IconBar() {
             </div>
             <div className='flex flex-col gap-5'>
                 {renderIcon('settings', IoSettingsOutline, 'Settings')}
-                <IoLogOutOutline
+                <Button
+                    type='button'
+                    variant='ghost'
+                    size='icon'
                     title={user ? `Sign out (${user.username})` : 'Sign out'}
-                    onClick={logout}
-                    className='cursor-pointer transition-all duration-200 hover:scale-105 text-(--c-text-dim) hover:text-(--c-danger-text)'
-                />
+                    aria-label={user ? `Sign out (${user.username})` : 'Sign out'}
+                    onClick={() => setConfirmingLogout(true)}
+                    className='text-2xl transition-all duration-200 hover:scale-105 text-(--c-text-dim) hover:text-(--c-danger-text)'
+                >
+                    <IoLogOutOutline className="size-6" />
+                </Button>
             </div>
+
+            <AlertDialog open={confirmingLogout} onOpenChange={setConfirmingLogout}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Sign out?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {user ? <>You'll be signed out of <strong>{user.username}</strong>.</> : "You'll be signed out."}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={(e) => { e.preventDefault(); logout() }}>
+                            Sign out
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </div>
     )
 }

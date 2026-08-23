@@ -1,5 +1,20 @@
-import { useState, useRef, useEffect } from 'react'
-import { IoChevronDown, IoChevronUp, IoCheckmark } from 'react-icons/io5'
+import { IoChevronDown } from 'react-icons/io5'
+import { Button } from '../ui/button'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '../ui/select'
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
 
 export interface SelectOption {
     id: string
@@ -25,88 +40,95 @@ interface MultiSelectProps {
 
 type DropdownSelectorProps = SingleSelectProps | MultiSelectProps
 
+const triggerClassName =
+    'h-auto w-fit gap-1 rounded-none border-0 bg-transparent p-0 text-sm text-(--c-text-muted) shadow-none hover:bg-transparent hover:text-(--c-text-body) focus-visible:ring-0 data-[size=default]:h-auto data-[size=sm]:h-auto [&_svg]:opacity-70'
+
 function DropdownSelector(props: DropdownSelectorProps) {
     const { options, label = 'Select an option', multiple } = props
-    const [isOpen, setIsOpen] = useState(false)
-    const dropdownRef = useRef<HTMLDivElement>(null)
 
-    useEffect(() => {
-        function handleClickOutside(e: MouseEvent) {
-            if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-                setIsOpen(false)
-            }
-        }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [])
+    if (multiple) {
+        const { selected, onSelect } = props
 
-    const isSelected = (option: SelectOption) => {
-        if (multiple) {
-            return (props as MultiSelectProps).selected.some((s) => s.id === option.id)
-        }
-        return (props as SingleSelectProps).selected.id === option.id
-    }
-
-    const handleSelect = (option: SelectOption) => {
-        if (multiple) {
-            const multiProps = props as MultiSelectProps
-            const alreadySelected = multiProps.selected.some((s) => s.id === option.id)
-            if (alreadySelected) {
-                multiProps.onSelect(multiProps.selected.filter((s) => s.id !== option.id))
-            } else {
-                multiProps.onSelect([...multiProps.selected, option])
-            }
-        } else {
-            (props as SingleSelectProps).onSelect(option)
-            setIsOpen(false)
-        }
-    }
-
-    const displayText = () => {
-        if (multiple) {
-            const selected = (props as MultiSelectProps).selected
+        const displayText = (() => {
             if (selected.length === 0) return label
             if (selected.length === 1) return selected[0].name
             return `${selected.length} selected`
+        })()
+
+        const toggleOption = (option: SelectOption, checked: boolean) => {
+            if (checked) {
+                onSelect([...selected, option])
+            } else {
+                onSelect(selected.filter((s) => s.id !== option.id))
+            }
         }
-        return (props as SingleSelectProps).selected.name
+
+        return (
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className={triggerClassName}>
+                        <span>{displayText}</span>
+                        <IoChevronDown />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="top" align="start" className="w-56">
+                    <DropdownMenuLabel className="text-xs text-(--c-text-muted)">
+                        {label}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {options.map((option) => {
+                        const checked = selected.some((s) => s.id === option.id)
+                        return (
+                            <DropdownMenuCheckboxItem
+                                key={option.id}
+                                checked={checked}
+                                onSelect={(e) => e.preventDefault()}
+                                onCheckedChange={(isChecked) => toggleOption(option, isChecked)}
+                            >
+                                <div className="flex flex-col items-start">
+                                    <span>{option.name}</span>
+                                    {option.description && (
+                                        <span className="text-xs text-(--c-text-muted)">
+                                            {option.description}
+                                        </span>
+                                    )}
+                                </div>
+                            </DropdownMenuCheckboxItem>
+                        )
+                    })}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        )
     }
 
-    return (
-        <div className='relative' ref={dropdownRef}>
-            <button
-                className='flex items-center gap-1 hover:text-(--c-text-body) transition-colors text-sm cursor-pointer'
-                onClick={() => setIsOpen(!isOpen)}
-            >
-                <span>{displayText()}</span>
-                {isOpen ? <IoChevronUp /> : <IoChevronDown />}
-            </button>
+    const { selected, onSelect } = props
 
-            {isOpen && (
-                <div className='absolute bottom-full left-0 mb-2 w-56 bg-(--c-surface) border border-(--c-border) rounded-lg shadow-xl overflow-hidden'>
-                    <div className='p-2 text-xs text-(--c-text-muted) border-b border-(--c-hover)'>{label}</div>
-                    {options.map((option) => (
-                        <button
-                            key={option.id}
-                            className={`w-full flex items-center justify-between px-3 py-2 text-sm transition-colors cursor-pointer
-                                ${isSelected(option)
-                                    ? 'bg-(--c-hover) text-(--c-text-strong)'
-                                    : 'text-(--c-text-dim) hover:bg-(--c-hover)/50 hover:text-(--c-text)'
-                                }`}
-                            onClick={() => handleSelect(option)}
-                        >
-                            <div className='flex flex-col items-start'>
-                                <span>{option.name}</span>
-                                {option.description && (
-                                    <span className='text-xs text-(--c-text-muted)'>{option.description}</span>
-                                )}
-                            </div>
-                            {isSelected(option) && <IoCheckmark className='text-(--c-accent)' />}
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
+    return (
+        <Select
+            value={selected.id}
+            onValueChange={(id) => {
+                const option = options.find((o) => o.id === id)
+                if (option) onSelect(option)
+            }}
+        >
+            <SelectTrigger className={triggerClassName}>
+                <SelectValue placeholder={label}>{selected.name}</SelectValue>
+            </SelectTrigger>
+            <SelectContent side="top" className="w-56">
+                {options.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                        <div className="flex flex-col items-start">
+                            <span>{option.name}</span>
+                            {option.description && (
+                                <span className="text-xs text-(--c-text-muted)">
+                                    {option.description}
+                                </span>
+                            )}
+                        </div>
+                    </SelectItem>
+                ))}
+            </SelectContent>
+        </Select>
     )
 }
 

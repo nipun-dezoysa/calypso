@@ -3,6 +3,7 @@ import { IoRefreshOutline, IoAlertCircleOutline } from 'react-icons/io5'
 import CollapsibleSection from '../../common/CollapsibleSection'
 import CreateCollectionModal from '../../common/CreateCollectionModal'
 import ManageCollectionModal from '../../common/ManageCollectionModal'
+import { Badge } from '../../ui/badge'
 import { listCollections, type Collection } from '../../../api/kbApi'
 
 type LoadState = 'idle' | 'loading' | 'error'
@@ -92,9 +93,9 @@ function KnowledgeSection() {
                         title={kb.description ?? kb.name}
                     >
                         <span className="truncate">{kb.name}</span>
-                        <span className="text-[10px] text-(--c-text-muted) bg-(--c-hover) px-1.5 py-0.5 rounded-full font-mono">
+                        <Badge variant="secondary" className="rounded-full font-mono text-[10px] px-1.5 py-0.5">
                             {kb.document_count}
-                        </span>
+                        </Badge>
                     </div>
                 ))}
             </div>

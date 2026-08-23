@@ -152,6 +152,11 @@ export async function replaceWorkflow(
     return response.data
 }
 
+export async function renameWorkflow(workflowId: string, name: string): Promise<Workflow> {
+    const response = await axiosInstance.patch<Workflow>(`${BASE}/${workflowId}`, { name })
+    return response.data
+}
+
 export async function deleteWorkflow(workflowId: string): Promise<void> {
     await axiosInstance.delete(`${BASE}/${workflowId}`)
 }

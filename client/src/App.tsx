@@ -5,6 +5,7 @@ import LoginPage from './components/auth/LoginPage'
 import UpdateCredentialsPage from './components/auth/UpdateCredentialsPage'
 import { useAuthStore } from './stores/AuthStore'
 import { useThemeStore } from './stores/ThemeStore'
+import { Toaster } from './components/ui/sonner'
 
 function App() {
   const status = useAuthStore((s) => s.status)
@@ -39,6 +40,7 @@ function App() {
     <div className='bg-(--c-surface) h-screen flex'>
       <SideBar />
       <MainBox />
+      <Toaster position="bottom-right" />
     </div>
   )
 }

@@ -2,12 +2,12 @@ import { useState } from 'react'
 import {
     IoAdd,
     IoTrashOutline,
-    IoWarningOutline,
     IoFlashOutline,
     IoCheckmarkCircle,
     IoAlertCircle,
 } from 'react-icons/io5'
 import Modal from './Modal'
+import ConfirmDeleteDialog from './ConfirmDeleteDialog'
 import McpServerFormFields from './McpServerFormFields'
 import { useMcpServerForm } from './useMcpServerForm'
 import {
@@ -85,7 +85,6 @@ function EditMcpServerModal({ server, onClose, onUpdated, onDeleted }: EditMcpSe
             title="Edit MCP Server"
             subtitle={server.name}
             onClose={onClose}
-            onEscape={() => (confirmingDelete ? setConfirmingDelete(false) : onClose())}
             footer={
                 <>
                     <button className="btn btn--cancel" onClick={onClose} type="button">
@@ -106,37 +105,15 @@ function EditMcpServerModal({ server, onClose, onUpdated, onDeleted }: EditMcpSe
                 </>
             }
         >
-            {confirmingDelete && (
-                <div className="confirm-overlay">
-                    <div className="confirm-overlay__icon"><IoWarningOutline /></div>
-                    <p className="confirm-overlay__heading">Delete MCP Server?</p>
-                    <p className="confirm-overlay__body">
-                        This will permanently remove{' '}
-                        <span className="confirm-overlay__name">{server.name}</span>.
-                        This cannot be undone.
-                    </p>
-                    <div className="confirm-overlay__actions">
-                        <button
-                            className="btn btn--cancel"
-                            onClick={() => setConfirmingDelete(false)}
-                            disabled={deleting}
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            className="btn--confirm-delete"
-                            onClick={handleConfirmDelete}
-                            disabled={deleting}
-                        >
-                            {deleting ? (
-                                <><span className="ui-spinner" /> Deleting…</>
-                            ) : (
-                                <><IoTrashOutline /> Yes, Delete</>
-                            )}
-                        </button>
-                    </div>
-                </div>
-            )}
+            <ConfirmDeleteDialog
+                open={confirmingDelete}
+                onOpenChange={setConfirmingDelete}
+                title="Delete MCP Server?"
+                description={<>This will permanently remove <strong>{server.name}</strong>. This cannot be undone.</>}
+                onConfirm={handleConfirmDelete}
+                deleting={deleting}
+                confirmLabel="Yes, Delete"
+            />
 
             {form.errors._global && (
                 <div className="form-error form-error--banner">{form.errors._global}</div>

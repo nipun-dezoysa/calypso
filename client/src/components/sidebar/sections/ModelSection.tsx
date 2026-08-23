@@ -9,6 +9,7 @@ import {
     type AIProvider,
 } from '../../../api/aiProviderApi'
 import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline } from 'react-icons/io5'
+import { Badge } from '../../ui/badge'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -152,15 +153,17 @@ function ModelSection() {
                                     <span className="truncate">{model}</span>
                                     <span className="flex items-center gap-2 shrink-0">
                                         {context ? (
-                                            <span
-                                                className="text-[10px] text-(--c-text-subtle)"
+                                            <Badge
+                                                variant="secondary"
+                                                className="text-[10px] px-1.5 py-0"
                                                 title={`${context.toLocaleString()} token context window`}
                                             >
                                                 {formatTokens(context)}
-                                            </span>
+                                            </Badge>
                                         ) : null}
-                                        <span
-                                            className="w-1.5 h-1.5 rounded-full bg-(--c-success)"
+                                        <Badge
+                                            variant="success"
+                                            className="w-1.5 h-1.5 rounded-full p-0 border-0"
                                             title="Active"
                                         />
                                     </span>

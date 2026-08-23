@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { useAuthStore } from '../../stores/AuthStore'
 import PasswordField from './PasswordField'
+import { Input } from '../ui/input'
+import { Button } from '../ui/button'
 import './auth.css'
 
 function LoginPage() {
@@ -45,9 +47,8 @@ function LoginPage() {
                         <label className="form-label" htmlFor="auth-username">
                             Username
                         </label>
-                        <input
+                        <Input
                             id="auth-username"
-                            className="form-input"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
                             placeholder="admin"
@@ -67,14 +68,14 @@ function LoginPage() {
                         disabled={submitting}
                     />
 
-                    <button
+                    <Button
                         type="submit"
-                        className="btn btn--primary auth-submit"
+                        className="auth-submit"
                         disabled={submitting}
                     >
                         {submitting && <span className="ui-spinner" />}
                         {submitting ? 'Signing in…' : 'Sign in'}
-                    </button>
+                    </Button>
                 </form>
 
                 <p className="auth-note">

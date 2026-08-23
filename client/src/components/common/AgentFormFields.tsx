@@ -3,6 +3,21 @@ import type { AIProvider } from '../../api/aiProviderApi'
 import type { Collection } from '../../api/kbApi'
 import type { McpServer } from '../../api/mcpApi'
 import type { AgentFormHandle } from './useAgentForm'
+import { Input } from '../ui/input'
+import { Textarea } from '../ui/textarea'
+import { Slider } from '../ui/slider'
+import { Checkbox } from '../ui/checkbox'
+import { Label } from '../ui/label'
+import { ToggleGroup, ToggleGroupItem } from '../ui/toggle-group'
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectTrigger,
+    SelectValue,
+} from '../ui/select'
 import './mcp.css'
 
 interface AgentFormFieldsProps {
@@ -37,13 +52,12 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
     return (
         <>
             <div className="form-field">
-                <label className="form-label" htmlFor="af-name">
+                <Label className="form-label" htmlFor="af-name">
                     Agent Name
                     <span className="form-label-required">* required</span>
-                </label>
-                <input
+                </Label>
+                <Input
                     id="af-name"
-                    className="form-input"
                     placeholder="e.g. Support Bot"
                     value={name}
                     onChange={(e) => {
@@ -57,45 +71,49 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
             </div>
 
             <div className="form-field">
-                <label className="form-label" htmlFor="af-model">
+                <Label className="form-label" htmlFor="af-model">
                     Model
                     <span className="form-label-required">* required</span>
-                </label>
-                <select
-                    id="af-model"
-                    className="form-input"
+                </Label>
+                <Select
                     value={llmModelId}
-                    onChange={(e) => {
-                        setLlmModelId(e.target.value)
+                    onValueChange={(value) => {
+                        setLlmModelId(value)
                         setErrors((prev) => ({ ...prev, llm_model_id: '' }))
                     }}
                 >
-                    <option value="" disabled>
-                        {providersWithModels.length === 0
-                            ? 'No models available — add a provider first'
-                            : 'Select a model…'}
-                    </option>
-                    {providersWithModels.map((provider) => (
-                        <optgroup key={provider.id} label={provider.provider_name}>
-                            {provider.models.map((model) => (
-                                <option key={model.id} value={model.id}>
-                                    {model.model_name}
-                                </option>
-                            ))}
-                        </optgroup>
-                    ))}
-                </select>
+                    <SelectTrigger id="af-model" className="w-full">
+                        <SelectValue
+                            placeholder={
+                                providersWithModels.length === 0
+                                    ? 'No models available — add a provider first'
+                                    : 'Select a model…'
+                            }
+                        />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {providersWithModels.map((provider) => (
+                            <SelectGroup key={provider.id}>
+                                <SelectLabel>{provider.provider_name}</SelectLabel>
+                                {provider.models.map((model) => (
+                                    <SelectItem key={model.id} value={model.id}>
+                                        {model.model_name}
+                                    </SelectItem>
+                                ))}
+                            </SelectGroup>
+                        ))}
+                    </SelectContent>
+                </Select>
                 {errors.llm_model_id && <div className="form-error">{errors.llm_model_id}</div>}
             </div>
 
             <div className="form-field">
-                <label className="form-label" htmlFor="af-instructions">
+                <Label className="form-label" htmlFor="af-instructions">
                     Instructions
                     <span className="form-label-required">* required</span>
-                </label>
-                <textarea
+                </Label>
+                <Textarea
                     id="af-instructions"
-                    className="form-input"
                     rows={5}
                     placeholder="Describe how this agent should behave, its role, tone, and constraints…"
                     value={agentInstructions}
@@ -112,18 +130,16 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
             </div>
 
             <div className="form-field">
-                <label className="form-label" htmlFor="af-creativity">
+                <Label className="form-label" htmlFor="af-creativity">
                     Creativity
                     <span className="form-label-optional">{creativity} · {creativityLabel(creativity)}</span>
-                </label>
-                <input
+                </Label>
+                <Slider
                     id="af-creativity"
-                    className="form-range"
-                    type="range"
                     min={0}
                     max={100}
-                    value={creativity}
-                    onChange={(e) => setCreativity(Number(e.target.value))}
+                    value={[creativity]}
+                    onValueChange={([v]) => setCreativity(v)}
                 />
                 <div className="form-range-scale">
                     <span>Precise</span>
@@ -132,14 +148,13 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
             </div>
 
             <div className="form-field">
-                <label className="mcp-toggle">
-                    <input
-                        type="checkbox"
+                <Label className="mcp-toggle">
+                    <Checkbox
                         checked={markdownEnabled}
-                        onChange={(e) => setMarkdownEnabled(e.target.checked)}
+                        onCheckedChange={(checked) => setMarkdownEnabled(checked === true)}
                     />
                     <span>Format responses with Markdown</span>
-                </label>
+                </Label>
             </div>
 
             <div className="form-field">
@@ -156,13 +171,18 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
                         <p style={{ fontSize: 11, color: '#52525b', marginBottom: 5 }}>
                             Attach collections this agent can retrieve context from — click to toggle:
                         </p>
-                        <div className="form-model-pills">
+                        <ToggleGroup
+                            type="multiple"
+                            variant="outline"
+                            className="form-model-pills"
+                            value={collectionIds}
+                        >
                             {collections.map((c) => {
                                 const on = collectionIds.includes(c.id)
                                 return (
-                                    <button
+                                    <ToggleGroupItem
                                         key={c.id}
-                                        type="button"
+                                        value={c.id}
                                         className={`form-model-pill ${on ? 'form-model-pill--on' : ''}`}
                                         onClick={() => toggleCollection(c.id)}
                                         title={c.description ?? c.name}
@@ -172,10 +192,10 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
                                         <span style={{ marginLeft: 5, opacity: 0.6, fontSize: 10 }}>
                                             {c.document_count}
                                         </span>
-                                    </button>
+                                    </ToggleGroupItem>
                                 )
                             })}
-                        </div>
+                        </ToggleGroup>
                     </>
                 )}
             </div>
@@ -194,23 +214,28 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
                         <p style={{ fontSize: 11, color: '#52525b', marginBottom: 5 }}>
                             Attach MCP servers whose tools this agent can call — click to toggle:
                         </p>
-                        <div className="form-model-pills">
+                        <ToggleGroup
+                            type="multiple"
+                            variant="outline"
+                            className="form-model-pills"
+                            value={mcpServerIds}
+                        >
                             {mcpServers.map((s) => {
                                 const on = mcpServerIds.includes(s.id)
                                 return (
-                                    <button
+                                    <ToggleGroupItem
                                         key={s.id}
-                                        type="button"
+                                        value={s.id}
                                         className={`form-model-pill ${on ? 'form-model-pill--on' : ''}`}
                                         onClick={() => toggleMcpServer(s.id)}
                                         title={`${s.transport}${s.enabled ? '' : ' · disabled'}`}
                                     >
                                         {on && <IoCheckmark style={{ marginRight: 3, fontSize: 10 }} />}
                                         {s.name}
-                                    </button>
+                                    </ToggleGroupItem>
                                 )
                             })}
-                        </div>
+                        </ToggleGroup>
                     </>
                 )}
             </div>

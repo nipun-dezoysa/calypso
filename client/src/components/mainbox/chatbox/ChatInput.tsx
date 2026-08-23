@@ -3,6 +3,7 @@ import { IoAdd, IoArrowUp, IoStop } from "react-icons/io5";
 import DropdownSelector, {
   type SelectOption,
 } from "../../common/DropdownSelector";
+import { Button } from "../../ui/button";
 import { listAgents, updateAgent, type Agent } from "../../../api/agentApi";
 import { listCollections, type Collection } from "../../../api/kbApi";
 import { listMcpServers, type McpServer } from "../../../api/mcpApi";
@@ -251,11 +252,13 @@ function ChatInput() {
                 e.target.value = "";
               }}
             />
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => fileInputRef.current?.click()}
               disabled={!canAttach}
-              className={`p-1 rounded ${
+              className={`size-7 ${
                 canAttach
                   ? "hover:text-(--c-text-body) cursor-pointer"
                   : "opacity-40 cursor-not-allowed"
@@ -264,7 +267,7 @@ function ChatInput() {
               aria-label="Attach a file"
             >
               <IoAdd size={18} />
-            </button>
+            </Button>
             <span className="text-(--c-text-subtle)">·</span>
             <DropdownSelector
               options={agentOptions}
@@ -301,11 +304,12 @@ function ChatInput() {
               </>
             )}
           </div>
-          <button
-            className={`p-2 rounded-sm text-white ${
+          <Button
+            size="icon"
+            className={`size-8 rounded-sm text-white ${
               sending || canSend
-                ? "bg-(--c-accent) cursor-pointer"
-                : "bg-(--c-border) cursor-not-allowed"
+                ? "bg-(--c-accent) hover:bg-(--c-accent) cursor-pointer"
+                : "bg-(--c-border) hover:bg-(--c-border) cursor-not-allowed"
             }`}
             onClick={sending ? stopStreaming : handleSend}
             disabled={!sending && !canSend}
@@ -317,7 +321,7 @@ function ChatInput() {
             }
           >
             {sending ? <IoStop /> : <IoArrowUp />}
-          </button>
+          </Button>
         </div>
       </div>
       <div className="text-(--c-text-muted) text-xs pt-2">

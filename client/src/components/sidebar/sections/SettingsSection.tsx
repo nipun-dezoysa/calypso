@@ -3,6 +3,7 @@ import CollapsibleSection from '../../common/CollapsibleSection'
 import KbSettingsModal from '../../common/KbSettingsModal'
 import AccountSettingsModal from '../../common/AccountSettingsModal'
 import ThemeSettingsModal from '../../common/ThemeSettingsModal'
+import { Button } from '../../ui/button'
 
 type SettingsCategory = { label: string; onOpen: () => void }
 
@@ -21,13 +22,15 @@ function SettingsSection() {
         <div>
             <CollapsibleSection title="Settings">
                 {categories.map((category) => (
-                    <div
+                    <Button
                         key={category.label}
-                        className="sidebar-item"
+                        type="button"
+                        variant="ghost"
                         onClick={category.onOpen}
+                        className="w-full justify-start h-auto rounded-none py-1 pl-6 pr-2.5 text-[13px] font-normal text-(--c-text-dim) hover:bg-(--c-hover) hover:text-(--c-text)"
                     >
                         {category.label}
-                    </div>
+                    </Button>
                 ))}
             </CollapsibleSection>
 

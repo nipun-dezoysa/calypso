@@ -44,6 +44,10 @@ import { listMcpServers, type McpServer } from '../../../api/mcpApi'
 import ChatBox from '../chatbox/ChatBox'
 import CopyCurlButton from '../../common/CopyCurlButton'
 import { useChatStore } from '../../../stores/ChatStore'
+import { useThemeStore } from '../../../stores/ThemeStore'
+import { isDark, deriveTheme, BUILTIN_PRESETS } from '../../../utils/theme'
+import { Input } from '../../ui/input'
+import { Button } from '../../ui/button'
 import ConditionNode from './ConditionNode'
 import AgentNode from './AgentNode'
 import BranchEditor from './BranchEditor'
@@ -241,6 +245,18 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
     >(null)
 
     const selectWorkflow = useChatStore((s) => s.selectWorkflow)
+
+    // React Flow's Controls/MiniMap/Background ship their own default CSS
+    // (light-mode colors) that isn't aware of the app's own theme system, so
+    // they need to be told explicitly which mode to render in.
+    const activeThemeId = useThemeStore((s) => s.activeThemeId)
+    const customThemes = useThemeStore((s) => s.customThemes)
+    const colorMode = useMemo(() => {
+        const preset = BUILTIN_PRESETS.find((p) => p.id === activeThemeId)
+        const custom = customThemes.find((t) => t.id === activeThemeId)
+        const tokens = preset?.tokens ?? (custom ? deriveTheme(custom) : null)
+        return tokens && isDark(tokens.bg) ? 'dark' : 'light'
+    }, [activeThemeId, customThemes])
 
     // Point the shared chat at this workflow, then reveal the chat box.
     function toggleChat() {
@@ -490,53 +506,68 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
             <div className="relative h-full flex-1 min-w-0">
             {/* Toolbar */}
             <div className="absolute top-3 left-3 z-10 max-w-[calc(100%-1.5rem)] flex flex-wrap items-center gap-2 bg-(--c-bg)/90 border border-(--c-hover) rounded-lg px-3 py-2">
-                <input
-                    className="bg-transparent text-(--c-text) text-sm font-medium outline-none w-40 border-b border-transparent focus:border-(--c-text-subtle)"
+                <Input
+                    className="bg-transparent h-7 text-sm font-medium w-40 rounded-none border-0 border-b border-transparent focus-visible:ring-0 focus-visible:border-(--c-text-subtle) px-0 shadow-none"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Workflow name"
                     spellCheck={false}
                 />
                 <span className="text-[11px] text-(--c-text-subtle) font-mono">{nodes.length} nodes</span>
-                <button
-                    className="flex items-center gap-1 text-xs text-(--c-text-body) hover:text-(--c-accent-hi) border border-(--c-border) rounded px-2 py-1"
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs text-(--c-text-body) hover:text-(--c-accent-hi)"
                     onClick={() => addNode('agent')}
                 >
                     <IoAddOutline /> Agent node
-                </button>
-                <button
-                    className="flex items-center gap-1 text-xs text-(--c-text-body) hover:text-sky-400 border border-(--c-border) rounded px-2 py-1"
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-xs text-(--c-text-body) hover:text-sky-400"
                     onClick={() => addNode('condition')}
                 >
                     <IoGitBranchOutline /> Condition node
-                </button>
-                <button
-                    className="flex items-center gap-1 text-xs text-white bg-(--c-accent) hover:bg-(--c-accent-lo) rounded px-2.5 py-1 disabled:opacity-50"
+                </Button>
+                <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    className="text-xs"
                     onClick={handleSave}
                     disabled={saving}
                     title="Save workflow (Ctrl+S)"
                 >
                     {saving ? <span className="ui-spinner" /> : <IoSaveOutline />} Save
-                </button>
-                <button
-                    className={`flex items-center gap-1 text-xs border rounded px-2 py-1 ${
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={`text-xs ${
                         designerOpen
-                            ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30'
-                            : 'border-(--c-border) text-(--c-text-body) hover:text-(--c-accent-hi)'
+                            ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30 hover:bg-(--c-accent)/30'
+                            : 'text-(--c-text-body) hover:text-(--c-accent-hi)'
                     }`}
                     onClick={() => setDesignerOpen((open) => !open)}
                     title="Describe the workflow you want and have it drafted for you"
                 >
                     <IoSparklesOutline /> Designer
-                </button>
+                </Button>
                 {beforeDesign && (
-                    <button
-                        className="flex items-center gap-1 text-xs text-(--c-text-body) hover:text-(--c-accent-hi) border border-(--c-border) rounded px-2 py-1"
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs text-(--c-text-body) hover:text-(--c-accent-hi)"
                         onClick={undoDesign}
                         title="Put the canvas back the way it was before the designer changed it"
                     >
                         <IoArrowUndoOutline /> Undo design
-                    </button>
+                    </Button>
                 )}
                 <CopyCurlButton targetId={workflowId} />
                 {savedAt && !saveError && (
@@ -578,24 +609,30 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                         )
                     )}
 
-                    <button
-                        className={`flex items-center gap-1.5 text-xs rounded px-2 py-1.5 border ${
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className={`justify-start text-xs ${
                             selectedNode.data.is_start
-                                ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30'
-                                : 'border-(--c-border) text-(--c-text-body) hover:border-(--c-accent) hover:text-(--c-accent-hi)'
+                                ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30 hover:bg-(--c-accent)/30'
+                                : 'text-(--c-text-body) hover:border-(--c-accent) hover:text-(--c-accent-hi)'
                         }`}
                         onClick={() => makeStart(selectedNode.id)}
                         disabled={selectedNode.data.is_start}
                     >
                         <IoFlagOutline />
                         {selectedNode.data.is_start ? 'Start node' : 'Set as start'}
-                    </button>
-                    <button
-                        className="flex items-center gap-1.5 text-xs text-(--c-danger-text) hover:text-(--c-danger-text) border border-(--c-danger)/60 rounded px-2 py-1.5"
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="justify-start text-xs text-(--c-danger-text) hover:text-(--c-danger-text) border-(--c-danger)/60"
                         onClick={() => deleteNode(selectedNode.id)}
                     >
                         <IoTrashOutline /> Delete node
-                    </button>
+                    </Button>
                 </div>
             )}
 
@@ -603,17 +640,21 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
             {selectedEdge && (
                 <div className="absolute top-3 right-3 z-10 w-60 bg-(--c-bg)/95 border border-(--c-hover) rounded-lg p-3 flex flex-col gap-3">
                     <div className="text-xs font-semibold text-(--c-text-body)">Connection</div>
-                    <button
-                        className="flex items-center gap-1.5 text-xs text-(--c-danger-text) hover:text-(--c-danger-text) border border-(--c-danger)/60 rounded px-2 py-1.5"
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="justify-start text-xs text-(--c-danger-text) hover:text-(--c-danger-text) border-(--c-danger)/60"
                         onClick={() => deleteEdge(selectedEdge.id)}
                     >
                         <IoTrashOutline /> Delete edge
-                    </button>
+                    </Button>
                     <span className="text-[11px] text-(--c-text-subtle)">Tip: select an edge and press Delete.</span>
                 </div>
             )}
 
             <ReactFlow
+                colorMode={colorMode}
                 nodes={displayNodes}
                 edges={edges}
                 nodeTypes={NODE_TYPES}
@@ -632,13 +673,15 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
             </ReactFlow>
 
             {/* Bottom-center chat toggle */}
-            <button
-                className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 text-sm text-white bg-(--c-accent) hover:bg-(--c-accent-lo) rounded-full px-4 py-2 shadow-lg shadow-black/40"
+            <Button
+                type="button"
+                variant="default"
+                className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 rounded-full px-4 shadow-lg shadow-black/40"
                 onClick={toggleChat}
             >
                 <IoChatbubbleEllipsesOutline size={16} />
                 {chatOpen ? 'Hide Chat' : 'Chat'}
-            </button>
+            </Button>
             </div>
 
             {chatOpen && (

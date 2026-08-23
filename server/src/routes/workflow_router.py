@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.database import get_db
 from src.schemas.workflow_schema import (
     WorkflowCreate,
+    WorkflowRename,
     WorkflowReplace,
     WorkflowResponse,
     WorkflowSummary,
@@ -84,6 +85,25 @@ async def replace_workflow(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)
         ) from exc
+    if wf is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Workflow with id '{workflow_id}' not found",
+        )
+    return WorkflowResponse.from_model(wf)
+
+
+@router.patch(
+    "/{workflow_id}",
+    response_model=WorkflowResponse,
+    summary="Rename a workflow",
+)
+async def rename_workflow(
+    workflow_id: str,
+    data: WorkflowRename,
+    service: WorkflowService = Depends(_get_service),
+) -> WorkflowResponse:
+    wf = await service.rename(workflow_id, data.name)
     if wf is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

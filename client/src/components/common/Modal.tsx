@@ -1,5 +1,10 @@
-import { useEffect, type ReactNode } from 'react'
-import { IoClose } from 'react-icons/io5'
+import { type ReactNode } from 'react'
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogTitle,
+} from '../ui/dialog'
 import './ui.css'
 
 export interface ModalProps {
@@ -21,40 +26,38 @@ function Modal({
     footer,
     maxWidth = 520,
 }: ModalProps) {
-    useEffect(() => {
-        const handler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') (onEscape ?? onClose)()
-        }
-        document.addEventListener('keydown', handler)
-        return () => document.removeEventListener('keydown', handler)
-    }, [onClose, onEscape])
-
     return (
-        <div
-            className="modal-backdrop"
-            onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
-        >
-            <div
-                className="modal-panel"
-                style={{ maxWidth }}
-                role="dialog"
-                aria-modal="true"
+        <Dialog open onOpenChange={(open) => { if (!open) onClose() }}>
+            <DialogContent
+                className="p-0 gap-0 flex flex-col overflow-hidden rounded-[var(--radius-lg)]"
+                style={{ width: maxWidth, maxWidth: 'calc(100vw - 32px)', maxHeight: 'calc(100vh - 64px)' }}
+                onEscapeKeyDown={(e) => {
+                    if (onEscape) {
+                        e.preventDefault()
+                        onEscape()
+                    }
+                }}
             >
                 <div className="modal-header">
                     <div>
-                        <p className="modal-title">{title}</p>
-                        {subtitle && <p className="modal-subtitle">{subtitle}</p>}
+                        <DialogTitle asChild>
+                            <p className="modal-title">{title}</p>
+                        </DialogTitle>
+                        {subtitle ? (
+                            <DialogDescription asChild>
+                                <p className="modal-subtitle">{subtitle}</p>
+                            </DialogDescription>
+                        ) : (
+                            <DialogDescription className="sr-only">{title}</DialogDescription>
+                        )}
                     </div>
-                    <button className="modal-close-btn" onClick={onClose} aria-label="Close">
-                        <IoClose />
-                    </button>
                 </div>
 
                 <div className="modal-body">{children}</div>
 
                 {footer && <div className="modal-footer">{footer}</div>}
-            </div>
-        </div>
+            </DialogContent>
+        </Dialog>
     )
 }
 

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
-import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline } from 'react-icons/io5'
+import { IoRefreshOutline, IoAlertCircleOutline } from 'react-icons/io5'
 import CollapsibleSection from '../../common/CollapsibleSection'
 import AddMcpServerModal from '../../common/AddMcpServerModal'
 import EditMcpServerModal from '../../common/EditMcpServerModal'
+import { Badge } from '../../ui/badge'
 import { listMcpServers, type McpServer } from '../../../api/mcpApi'
 
 type LoadState = 'idle' | 'loading' | 'error'
@@ -94,20 +95,12 @@ function McpSection() {
                                 {server.transport}
                             </span>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                            <span
-                                className={`w-2 h-2 rounded-full ${server.enabled ? 'bg-(--c-success)' : 'bg-(--c-text-subtle)'}`}
-                                title={server.enabled ? 'Enabled' : 'Disabled'}
-                            />
-                            <button
-                                className="opacity-0 group-hover:opacity-100 transition-opacity text-(--c-text-subtle) hover:text-(--c-accent-hi) p-0.5"
-                                onClick={(e) => { e.stopPropagation(); setEditing(server) }}
-                                title={`Edit ${server.name}`}
-                                aria-label={`Edit ${server.name}`}
-                            >
-                                <IoPencilOutline size={12} />
-                            </button>
-                        </div>
+                        <Badge
+                            variant={server.enabled ? 'success' : 'secondary'}
+                            className="text-[10px] px-1.5 py-0 shrink-0"
+                        >
+                            {server.enabled ? 'Enabled' : 'Disabled'}
+                        </Badge>
                     </div>
                 ))}
             </div>
