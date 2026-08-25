@@ -56,7 +56,7 @@ class AgentNodeInput(BaseModel):
     @model_validator(mode="after")
     def check_runnable(self) -> "AgentNodeInput":
         # Without a base agent to inherit from, the node has to name its own
-        # model — otherwise there is nothing to call at run time.
+        # model, otherwise there is nothing to call at run time.
         if not self.agent_id and not self.llm_model_id:
             raise ValueError(
                 "an agent node needs a model, or an agent to take one from"
@@ -196,7 +196,7 @@ def validate_graph(
     branch_owner = {c.id: c.n_id for c in conditions}
 
     # A pair of nodes may be wired together in one direction only. Two branches of
-    # the same condition node may each reach the same target, though — that is
+    # the same condition node may each reach the same target, though, and that is
     # still one direction, just two ways of getting there.
     seen: set[tuple[str, str | None, str]] = set()
     direction: dict[frozenset[str], str] = {}
@@ -269,7 +269,7 @@ class WorkflowReplace(BaseModel):
 
 
 class WorkflowRename(BaseModel):
-    """Name-only update — the sidebar's rename action, which shouldn't have
+    """Name-only update for the sidebar's rename action, which shouldn't have
     to round-trip the whole graph just to change a label."""
 
     name: str = Field(..., min_length=1, max_length=100)
@@ -346,7 +346,7 @@ class AgentNodeResponse(BaseModel):
 
 
 class WorkflowSummary(BaseModel):
-    """List view — no graph, just counts."""
+    """List view: no graph, just counts."""
 
     id: str
     name: str

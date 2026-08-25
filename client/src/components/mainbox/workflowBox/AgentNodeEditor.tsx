@@ -81,7 +81,7 @@ export default function AgentNodeEditor({
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value={NO_AGENT}>None — configure below</SelectItem>
+                        <SelectItem value={NO_AGENT}>None, configure below</SelectItem>
                         {agents.map((a) => (
                             <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                         ))}
@@ -105,7 +105,7 @@ export default function AgentNodeEditor({
                     <SelectContent>
                         <SelectItem value={NO_MODEL}>
                             {providersWithModels.length === 0
-                                ? 'No models — add a provider first'
+                                ? 'No models. Add a provider first'
                                 : modelPlaceholder}
                         </SelectItem>
                         {providersWithModels.map((p) => (
@@ -213,7 +213,7 @@ export default function AgentNodeEditor({
             <div className="flex flex-col gap-1">
                 <Label className={LABEL}>Knowledgebases</Label>
                 {collections.length === 0 ? (
-                    <p className={HINT}>None yet — create one in the Knowledgebases panel.</p>
+                    <p className={HINT}>None yet. Create one in the Knowledgebases panel.</p>
                 ) : (
                     <div className="flex flex-wrap gap-1">
                         {collections.map((c) => {
@@ -244,7 +244,7 @@ export default function AgentNodeEditor({
             <div className="flex flex-col gap-1">
                 <Label className={LABEL}>MCP servers</Label>
                 {mcpServers.length === 0 ? (
-                    <p className={HINT}>None yet — add one in the MCPs panel.</p>
+                    <p className={HINT}>None yet. Add one in the MCPs panel.</p>
                 ) : (
                     <div className="flex flex-wrap gap-1">
                         {mcpServers.map((s) => {

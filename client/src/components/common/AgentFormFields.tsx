@@ -86,7 +86,7 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
                         <SelectValue
                             placeholder={
                                 providersWithModels.length === 0
-                                    ? 'No models available — add a provider first'
+                                    ? 'No models available. Add a provider first'
                                     : 'Select a model…'
                             }
                         />
@@ -164,12 +164,12 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
                 </label>
                 {collections.length === 0 ? (
                     <p style={{ fontSize: 12, color: '#71717a', fontStyle: 'italic' }}>
-                        No knowledgebases yet — create one in the Knowledgebases panel.
+                        No knowledgebases yet. Create one in the Knowledgebases panel.
                     </p>
                 ) : (
                     <>
                         <p style={{ fontSize: 11, color: '#52525b', marginBottom: 5 }}>
-                            Attach collections this agent can retrieve context from — click to toggle:
+                            Attach collections this agent can retrieve context from, click to toggle:
                         </p>
                         <ToggleGroup
                             type="multiple"
@@ -207,12 +207,12 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
                 </label>
                 {mcpServers.length === 0 ? (
                     <p style={{ fontSize: 12, color: '#71717a', fontStyle: 'italic' }}>
-                        No MCP servers yet — add one in the MCPs panel.
+                        No MCP servers yet. Add one in the MCPs panel.
                     </p>
                 ) : (
                     <>
                         <p style={{ fontSize: 11, color: '#52525b', marginBottom: 5 }}>
-                            Attach MCP servers whose tools this agent can call — click to toggle:
+                            Attach MCP servers whose tools this agent can call, click to toggle:
                         </p>
                         <ToggleGroup
                             type="multiple"

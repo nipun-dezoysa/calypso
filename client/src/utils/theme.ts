@@ -1,4 +1,4 @@
-// Small hand-rolled color math — no new dependency for 3-seed-color theme
+// Small hand-rolled color math, so there is no new dependency for 3-seed-color theme
 // derivation. sRGB channel mixing is not perceptually uniform, but that's an
 // acceptable v1 tradeoff for a user-picked accent/background/surface trio.
 
@@ -105,7 +105,7 @@ export const CSS_VAR_MAP: [keyof ThemeTokens, string][] = [
 ]
 
 /** Derive a full token map from 3 seed colors. Used for every preset except
- * "Default" (which stays hand-authored — Tailwind's zinc scale isn't a
+ * "Default" (which stays hand-authored, because Tailwind's zinc scale isn't a
  * uniform ramp, so a generic mix can't reproduce it exactly) and for every
  * custom theme. */
 export function deriveTheme({ bg, surface, accent }: ThemeSeed): ThemeTokens {
@@ -126,7 +126,7 @@ export function deriveTheme({ bg, surface, accent }: ThemeSeed): ThemeTokens {
     // Pressed/hover on a solid accent button always reads as "darker".
     const accentLo = mix(accent, '#000000', 0.15)
     // Hover/emphasis text needs to gain contrast against the surface either
-    // way — lighten on a dark theme, darken on a light one.
+    // way: lighten on a dark theme, darken on a light one.
     const accentHi = dark ? mix(accent, '#ffffff', 0.25) : mix(accent, '#000000', 0.2)
     const accentContrast = pickContrastText(accent)
 
@@ -208,13 +208,13 @@ export function applyThemeTokens(tokens: ThemeTokens): void {
         root.setProperty(cssVar, tokens[key])
     }
     // Native form controls (input/select/textarea, scrollbars, the built-in
-    // color picker) don't inherit color from the page — without this they
+    // color picker) don't inherit color from the page. Without this they
     // default to the browser's light UA styling regardless of our own CSS
     // variables, which is why input text was reading as black on dark themes.
     root.colorScheme = isDark(tokens.bg) ? 'dark' : 'light'
     try {
         localStorage.setItem(ACTIVE_THEME_SNAPSHOT_KEY, JSON.stringify(tokens))
     } catch {
-        // Best-effort — worst case the next boot just paints Default first.
+        // Best-effort; worst case the next boot just paints Default first.
     }
 }

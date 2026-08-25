@@ -51,7 +51,7 @@ const BASE = "/api/v1/chat";
 // LLM responses can take well over the default 15s axios timeout.
 const ASK_TIMEOUT_MS = 120_000;
 
-// `targetId` may be an agent id or a workflow id — the server decides.
+// `targetId` may be an agent id or a workflow id; the server decides.
 export async function ask(
   targetId: string,
   data: ChatAskRequest,

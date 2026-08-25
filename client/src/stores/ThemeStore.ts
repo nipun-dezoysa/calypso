@@ -21,10 +21,10 @@ interface ThemeState {
     customThemes: CustomTheme[]
 
     /** Resolve and apply whichever theme `activeThemeId` currently points at
-     * — call once on boot after the store rehydrates from localStorage. */
+     * Call once on boot after the store rehydrates from localStorage. */
     applyActiveTheme: () => void
     selectTheme: (id: string) => void
-    /** Applies the seed live without selecting/persisting it — used for the
+    /** Applies the seed live without selecting/persisting it. Used for the
      * custom-theme builder's color pickers so the whole app previews the
      * pick before the user commits to it with a name. */
     previewSeed: (seed: ThemeSeed) => void

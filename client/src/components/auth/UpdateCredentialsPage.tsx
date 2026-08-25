@@ -126,7 +126,7 @@ function UpdateCredentialsPage() {
                 </form>
 
                 <p className="auth-note">
-                    Signed in as <code>{user?.username}</code> —{' '}
+                    Signed in as <code>{user?.username}</code>.{' '}
                     <Button
                         type="button"
                         variant="link"

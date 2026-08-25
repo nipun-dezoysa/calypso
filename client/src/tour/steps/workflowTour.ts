@@ -5,7 +5,7 @@ import { openSection } from './shared'
 
 /** The advanced tour, offered from Settings once the first-run one is done.
  *  Two halves: building a graph by hand, then handing the same job to the
- *  Designer. The hand-built half comes first on purpose — the Designer's
+ *  Designer. The hand-built half comes first on purpose, because the Designer's
  *  output is only reviewable if you know what a node and a branch are. */
 export const workflowTour: TourDefinition = {
     id: 'workflows',
@@ -14,7 +14,7 @@ export const workflowTour: TourDefinition = {
             id: 'wf-welcome',
             title: 'Workflows',
             description:
-                'One agent answers one way. A workflow chains several together — classify first, then branch, then answer, then rewrite — and each node can be a different model with its own instructions, documents and tools.<br><br>You will build one by hand, then have the AI Designer draft one for you.',
+                'One agent answers one way. A workflow chains several together (classify first, then branch, then answer, then rewrite) and each node can be a different model with its own instructions, documents and tools.<br><br>You will build one by hand, then have the AI Designer draft one for you.',
             align: 'center',
         },
         {
@@ -30,7 +30,7 @@ export const workflowTour: TourDefinition = {
             element: '[data-tour="workflow-add"]',
             title: 'Create a workflow',
             description:
-                '<strong>+ New</strong> makes an empty one and drops you straight onto its canvas — or click one you already have. Rename, duplicate and delete live in the ⋮ menu on each row.',
+                '<strong>+ New</strong> makes an empty one and drops you straight onto its canvas, or click one you already have. Rename, duplicate and delete live in the ⋮ menu on each row.',
             side: 'right',
             setup: () => openSection('workflows'),
             advance: {
@@ -54,7 +54,7 @@ export const workflowTour: TourDefinition = {
             element: '[data-tour="wf-add-agent-node"]',
             title: 'Add an agent node',
             description:
-                'A step that calls a model. <strong>Click it a couple of times</strong> — a workflow needs at least two nodes to be worth chaining.',
+                'A step that calls a model. <strong>Click it a couple of times</strong>, since a workflow needs at least two nodes to be worth chaining.',
             side: 'bottom',
             advance: { on: 'click' },
         },
@@ -77,7 +77,7 @@ export const workflowTour: TourDefinition = {
             element: '[data-tour="wf-node-panel"]',
             title: 'Configure the selected node',
             description:
-                'Each node picks its own model, instructions, knowledgebases and MCP servers — or borrows them wholesale from an agent you already built.',
+                'Each node picks its own model, instructions, knowledgebases and MCP servers, or borrows them wholesale from an agent you already built.',
             side: 'left',
         },
         {
@@ -93,7 +93,7 @@ export const workflowTour: TourDefinition = {
             element: '[data-tour="wf-canvas"]',
             title: 'Wire the nodes together',
             description:
-                '<strong>Drag from the handle on one node to another</strong> to connect them — output flows along the arrow. Click an edge and press Delete to remove it.',
+                '<strong>Drag from the handle on one node to another</strong> to connect them; output flows along the arrow. Click an edge and press Delete to remove it.',
             side: 'top',
             align: 'center',
         },
@@ -102,7 +102,7 @@ export const workflowTour: TourDefinition = {
             element: '[data-tour="wf-add-condition-node"]',
             title: 'Branch on the answer',
             description:
-                'A condition node splits the path. You give each branch a plain-English description — <code>the user is asking about billing</code> — and the model routes to whichever one matches, with one outgoing edge per branch.',
+                'A condition node splits the path. You give each branch a plain-English description, such as <code>the user is asking about billing</code>, and the model routes to whichever one matches, with one outgoing edge per branch.',
             side: 'bottom',
         },
         {
@@ -130,7 +130,7 @@ export const workflowTour: TourDefinition = {
             element: '[data-tour="wf-designer-panel"]',
             title: 'What the Designer sees',
             description:
-                'It gets the canvas exactly as it stands, half-finished and all. So it works on an empty workflow and equally on the one you just built — asking it to add a step or fix a broken branch is the normal way to use it.',
+                'It gets the canvas exactly as it stands, half-finished and all. So it works on an empty workflow and equally on the one you just built. Asking it to add a step or fix a broken branch is the normal way to use it.',
             side: 'left',
         },
         {
@@ -138,7 +138,7 @@ export const workflowTour: TourDefinition = {
             element: '[data-tour="wf-designer-model"]',
             title: 'The model doing the designing',
             description:
-                'This is the model that <em>writes</em> the workflow, not one the workflow runs on. Give it your strongest — laying out a graph is harder than answering with one. Your choice is remembered.',
+                'This is the model that <em>writes</em> the workflow, not one the workflow runs on. Give it your strongest, because laying out a graph is harder than answering with one. Your choice is remembered.',
             side: 'top',
         },
         {
@@ -154,7 +154,7 @@ export const workflowTour: TourDefinition = {
             element: '[data-tour="wf-canvas"]',
             title: 'It drafts onto the canvas',
             description:
-                'The result is drawn as a real graph you can inspect and edit by hand. <strong>Nothing is saved</strong> — the reply flags any fixes it had to make, <strong>Undo design</strong> puts the canvas back, and Save is still yours to press.',
+                'The result is drawn as a real graph you can inspect and edit by hand. <strong>Nothing is saved</strong>. The reply flags any fixes it had to make, <strong>Undo design</strong> puts the canvas back, and Save is still yours to press.',
             side: 'top',
             align: 'center',
         },
@@ -179,7 +179,7 @@ export const workflowTour: TourDefinition = {
             id: 'wf-done',
             title: 'Done',
             description:
-                'Build by hand, or describe and refine — most workflows end up as some of both.<br><br>Both tours can be replayed any time from <strong>Settings → Product Tour</strong>.',
+                'Build by hand, or describe and refine. Most workflows end up as some of both.<br><br>Both tours can be replayed any time from <strong>Settings → Product Tour</strong>.',
             align: 'center',
         },
     ],

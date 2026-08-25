@@ -18,7 +18,7 @@ function CodeBlock({ language, code }: Props) {
       await copyText(code);
       setCopied(true);
     } catch {
-      // Clipboard permission denied — the button simply won't flip to "copied".
+      // Clipboard permission denied, so the button simply won't flip to "copied".
     }
   }
 

@@ -328,7 +328,7 @@ async def delete_attachment(
 
 
 async def _purge_orphans() -> None:
-    """Housekeeping on its own session — the request's is closed by now."""
+    """Housekeeping on its own session; the request's is closed by now."""
     from src.database import async_session
 
     async with async_session() as db:

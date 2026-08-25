@@ -31,7 +31,7 @@ function App() {
     return <LoginPage />
   }
 
-  // Still on the credentials the instance shipped with — nothing else opens
+  // Still on the credentials the instance shipped with, so nothing else opens
   // until they are replaced.
   if (user?.must_change_credentials) {
     return <UpdateCredentialsPage />

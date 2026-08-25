@@ -17,7 +17,7 @@
     --c-accent-lo:     #b45309;
     --c-accent-contrast: #18181b;
 
-    /* Semantic status colors — fixed across every theme, never touched by
+    /* Semantic status colors. Fixed across every theme, never touched by
        theme-switching code (see client/src/utils/theme.ts). */
     --c-danger:              #ef4444;
     --c-danger-text:         #f87171;

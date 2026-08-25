@@ -40,7 +40,7 @@ function TourSettingsModal({ onClose }: TourSettingsModalProps) {
 
     function launch(id: TourId) {
         // The tour points at the sidebar and the canvas, both of which are
-        // behind this dialog — get out of its way first.
+        // behind this dialog, so get out of its way first.
         onClose()
         startTour(id)
     }
@@ -105,7 +105,7 @@ function TourSettingsModal({ onClose }: TourSettingsModalProps) {
             </div>
 
             <p className="text-[11px] text-(--c-text-subtle) leading-relaxed pt-3">
-                A tour drives the real app — anything you create while following one is
+                A tour drives the real app, so anything you create while following one is
                 yours to keep.
             </p>
         </Modal>

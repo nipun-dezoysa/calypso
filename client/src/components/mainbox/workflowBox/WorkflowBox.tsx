@@ -348,7 +348,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
             kind === 'condition'
                 ? [newBranch({ label: 'Match' }), newBranch({ label: 'Otherwise', operator: 'always' })]
                 : []
-        // Every agent node owns a config from the moment it exists — that is what
+        // Every agent node owns a config from the moment it exists, and that is what
         // makes it an agent defined *in* the workflow rather than a pointer out.
         const agent = kind === 'agent' ? newAgentConfig() : null
         setNodes((nds) => [

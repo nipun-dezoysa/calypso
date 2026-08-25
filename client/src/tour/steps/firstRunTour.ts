@@ -8,7 +8,7 @@ import { DIALOG, noModalOpen, openChatView, openSection } from './shared'
 
 /** The onboarding path, in dependency order: a provider makes an agent
  *  possible, an agent makes a chat possible, and everything after that hangs
- *  off the agent. Workflows are deliberately absent — they live in their own
+ *  off the agent. Workflows are deliberately absent; they live in their own
  *  tour, offered from Settings once this one is done. */
 export const firstRunTour: TourDefinition = {
     id: 'first-run',
@@ -17,7 +17,7 @@ export const firstRunTour: TourDefinition = {
             id: 'welcome',
             title: 'Welcome to Calypso',
             description:
-                'Calypso runs AI agents on models you own — hosted or local. This tour walks the whole setup: connect a model, build an agent, chat with it, then give it documents and tools.<br><br>It takes about three minutes, and you can leave any time with the × button.',
+                'Calypso runs AI agents on models you own, hosted or local. This tour walks the whole setup: connect a model, build an agent, chat with it, then give it documents and tools.<br><br>It takes about three minutes, and you can leave any time with the × button.',
             align: 'center',
         },
 
@@ -37,7 +37,7 @@ export const firstRunTour: TourDefinition = {
             element: '[data-tour="provider-add"]',
             title: 'Add your first provider',
             description:
-                'A provider is one place models come from — OpenAI, Anthropic, an Ollama instance on your own machine. <strong>Click + Add.</strong>',
+                'A provider is one place models come from: OpenAI, Anthropic, an Ollama instance on your own machine. <strong>Click + Add.</strong>',
             side: 'right',
             setup: () => openSection('models'),
             advance: { on: 'click' },
@@ -55,7 +55,7 @@ export const firstRunTour: TourDefinition = {
             element: DIALOG,
             title: 'Save the provider',
             description:
-                'Press <strong>Add Provider</strong>. Every model you listed becomes selectable across the app — and the rest of this tour needs one, so it waits here.',
+                'Press <strong>Add Provider</strong>. Every model you listed becomes selectable across the app, and the rest of this tour needs one, so it waits here.',
             side: 'left',
             advance: { on: 'event', name: 'provider.created', required: true },
             satisfied: async () => (await listAIProviders({ limit: 1 })).length > 0,
@@ -86,7 +86,7 @@ export const firstRunTour: TourDefinition = {
             element: '#af-name',
             title: 'Name it',
             description:
-                'Something you will recognise in a list later — <code>Support Bot</code>, <code>Research Assistant</code>.',
+                'Something you will recognise in a list later: <code>Support Bot</code>, <code>Research Assistant</code>.',
             side: 'bottom',
         },
         {
@@ -102,7 +102,7 @@ export const firstRunTour: TourDefinition = {
             element: '#af-instructions',
             title: 'System instructions',
             description:
-                'The standing brief the agent gets on every single message — its job, its tone, what it must never do. This is where most of an agent\'s behaviour is decided.',
+                'The standing brief the agent gets on every single message: its job, its tone, what it must never do. This is where most of an agent\'s behaviour is decided.',
             side: 'top',
         },
         {
@@ -152,7 +152,7 @@ export const firstRunTour: TourDefinition = {
             element: '[data-tour="chat-input"]',
             title: 'Ask it something',
             description:
-                '<strong>Type a message and press Enter.</strong> The tour moves on as soon as it sends — no need to wait for the answer, which can take a few minutes on a local model.',
+                '<strong>Type a message and press Enter.</strong> The tour moves on as soon as it sends, so there is no need to wait for the answer, which can take a few minutes on a local model.',
             side: 'top',
             setup: openChatView,
             advance: {
@@ -184,7 +184,7 @@ export const firstRunTour: TourDefinition = {
             element: '[data-tour="kb-add"]',
             title: 'Create a knowledgebase',
             description:
-                'Group documents by subject rather than dumping everything in one place — an agent searches whichever ones you attach to it. <strong>Click + New.</strong>',
+                'Group documents by subject rather than dumping everything in one place. An agent searches whichever ones you attach to it. <strong>Click + New.</strong>',
             side: 'right',
             setup: () => openSection('knowledgebases'),
             advance: { on: 'click' },
@@ -194,7 +194,7 @@ export const firstRunTour: TourDefinition = {
             element: DIALOG,
             title: 'Name it, then create it',
             description:
-                'The description is only for you — it shows on hover in the sidebar. <strong>Press Create</strong> to carry on; the steps after this one need a knowledgebase to exist.',
+                'The description is only for you; it shows on hover in the sidebar. <strong>Press Create</strong> to carry on; the steps after this one need a knowledgebase to exist.',
             side: 'left',
             advance: { on: 'event', name: 'collection.created', required: true },
             satisfied: async () => (await listCollections({ limit: 1 })).length > 0,
@@ -213,7 +213,7 @@ export const firstRunTour: TourDefinition = {
             element: DIALOG,
             title: 'Upload documents',
             description:
-                '<strong>Press Upload</strong> and pick a PDF, TXT or Markdown file. Files are chunked and embedded in the background — the badge on each row turns <strong>Ready</strong> when it can be searched.',
+                '<strong>Press Upload</strong> and pick a PDF, TXT or Markdown file. Files are chunked and embedded in the background, and the badge on each row turns <strong>Ready</strong> when it can be searched.',
             side: 'left',
             advance: { on: 'event', name: 'document.uploaded', required: true },
         },
@@ -222,7 +222,7 @@ export const firstRunTour: TourDefinition = {
             element: DIALOG,
             title: 'Close the knowledgebase',
             description:
-                'Embedding carries on in the background, so there is nothing to wait for. <strong>Close this dialog</strong> — the next step is back in the chat window, behind it.',
+                'Embedding carries on in the background, so there is nothing to wait for. <strong>Close this dialog</strong>. The next step is back in the chat window, behind it.',
             side: 'left',
             advance: { on: 'condition', check: noModalOpen, required: true },
         },
@@ -248,7 +248,7 @@ export const firstRunTour: TourDefinition = {
             element: '[data-tour="nav-mcps"]',
             title: 'Give it tools',
             description:
-                'MCP servers let an agent do things rather than just answer — read a database, hit an API, touch the filesystem. <strong>Click the puzzle icon.</strong>',
+                'MCP servers let an agent do things rather than just answer: read a database, hit an API, touch the filesystem. <strong>Click the puzzle icon.</strong>',
             side: 'right',
             advance: { on: 'click' },
         },
@@ -287,7 +287,7 @@ export const firstRunTour: TourDefinition = {
             element: '[data-tour="chat-attach"]',
             title: 'One-off files',
             description:
-                'For a document that belongs to a single question rather than the whole agent, attach it to the message — or just drop it on the composer. PDFs, Word files, text and images.',
+                'For a document that belongs to a single question rather than the whole agent, attach it to the message, or just drop it on the composer. PDFs, Word files, text and images.',
             side: 'top',
         },
         {
@@ -304,7 +304,7 @@ export const firstRunTour: TourDefinition = {
             element: '[data-tour="nav-settings"]',
             title: 'Settings',
             description:
-                'Themes, your account, and the retrieval knobs for knowledgebases — chunk size, how many results get pulled into context.',
+                'Themes, your account, and the retrieval knobs for knowledgebases: chunk size, how many results get pulled into context.',
             side: 'right',
             align: 'end',
         },

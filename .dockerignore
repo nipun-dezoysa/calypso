@@ -12,7 +12,7 @@ server/.mypy_cache/
 server/.ruff_cache/
 server/.pytest_cache/
 
-# Local state — the container keeps its own under /app/data
+# Local state. The container keeps its own under /app/data
 server/calypso.db
 server/calypso.db-shm
 server/calypso.db-wal

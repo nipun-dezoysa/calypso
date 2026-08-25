@@ -81,7 +81,7 @@ function LoginPage() {
                 <p className="auth-note">
                     First run? Sign in with the default credentials
                     <br />
-                    <code>admin</code> / <code>admin</code> — you will be asked to change them.
+                    <code>admin</code> / <code>admin</code>. You will be asked to change them.
                 </p>
             </div>
         </div>

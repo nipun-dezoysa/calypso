@@ -130,7 +130,7 @@ function BotMessage({ message, messageId, canRegenerate, onRegenerate, busy }: P
       await copyText(message);
       setCopied(true);
     } catch {
-      // Clipboard permission denied — the button simply won't flip to "copied".
+      // Clipboard permission denied, so the button simply won't flip to "copied".
     }
   }
 

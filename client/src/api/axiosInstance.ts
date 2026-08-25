@@ -41,7 +41,7 @@ axiosInstance.interceptors.response.use(
             const { status, data } = error.response
 
             // A 401 anywhere but the login form itself means the stored token is
-            // gone or stale — drop it and let the app fall back to the login screen.
+            // gone or stale, so drop it and let the app fall back to the login screen.
             const isLoginAttempt = error.config?.url?.includes('/auth/login') ?? false
             if (status === 401 && !isLoginAttempt) {
                 localStorage.removeItem(TOKEN_STORAGE_KEY)
@@ -62,7 +62,7 @@ axiosInstance.interceptors.response.use(
 
         if (error.request) {
             return Promise.reject(
-                new Error('No response from server — check your network connection.'),
+                new Error('No response from server. Check your network connection.'),
             )
         }
 

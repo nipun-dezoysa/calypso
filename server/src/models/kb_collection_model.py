@@ -56,7 +56,7 @@ class KbCollection(Base):
         lazy="selectin",
     )
 
-    # Agents this collection is attached to. Not eager-loaded — accessed only
+    # Agents this collection is attached to. Not eager-loaded, accessed only
     # via the agent side; kept here so ORM deletes clean up the link rows.
     agents: Mapped[list["Agent"]] = relationship(
         "Agent",

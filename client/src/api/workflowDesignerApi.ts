@@ -8,7 +8,7 @@ import type {
 } from './workflowApi'
 
 /** The graph as it stands on the canvas. Sent up on every turn, unfinished bits
- *  and all — asking the designer to fix a half-built workflow is the point, so
+ *  and all. Asking the designer to fix a half-built workflow is the point, so
  *  the server validates nothing on the way in. Shape-identical to a save
  *  payload, which is why the canvas serialises once for both. */
 export type DesignerDraft = WorkflowReplace
@@ -20,7 +20,7 @@ export interface DesignerMessage {
 
 export interface DesignRequest {
     message: string
-    /** The model the designer itself thinks with — not the one the workflow runs on. */
+    /** The model the designer itself thinks with, not the one the workflow runs on. */
     llm_model_id: string
     workflow: DesignerDraft
     history: DesignerMessage[]

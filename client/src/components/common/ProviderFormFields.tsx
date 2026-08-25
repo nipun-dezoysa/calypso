@@ -36,7 +36,7 @@ interface ProviderFormFieldsProps {
 }
 
 // ---------------------------------------------------------------------------
-// Component — renders all 4 provider fields using shared CSS classes
+// Component: renders all 4 provider fields using shared CSS classes
 // ---------------------------------------------------------------------------
 
 function ProviderFormFields({ form, showInfoNote = true }: ProviderFormFieldsProps) {
@@ -171,7 +171,7 @@ function ProviderFormFields({ form, showInfoNote = true }: ProviderFormFieldsPro
                 {availableModels.length > 0 && (
                     <div>
                         <p style={{ fontSize: 11, color: '#52525b', marginBottom: 5 }}>
-                            Suggested for <strong style={{ color: '#a1a1aa' }}>{selectedProvider?.name}</strong> — click to toggle:
+                            Suggested for <strong style={{ color: '#a1a1aa' }}>{selectedProvider?.name}</strong>, click to toggle:
                         </p>
                         <div className="form-model-pills">
                             {(modelOpen ? filteredModelSuggestions : availableModels.filter((m) => !modelTags.includes(m))).map((m) => (
@@ -200,7 +200,7 @@ function ProviderFormFields({ form, showInfoNote = true }: ProviderFormFieldsPro
                     </label>
                     <p style={{ fontSize: 11, color: '#52525b', marginBottom: 8 }}>
                         How many tokens each model can hold at once. Calypso replays up to
-                        half of it as conversation history — a bigger model remembers more.
+                        half of it as conversation history, so a bigger model remembers more.
                         Leave blank to use the server default.
                     </p>
 
@@ -297,7 +297,7 @@ function ProviderFormFields({ form, showInfoNote = true }: ProviderFormFieldsPro
                 <div className="form-info-note">
                     <IoInformationCircle className="form-info-note-icon" />
                     <span>
-                        Secret keys are stored in your local database. For local providers like Ollama or LM Studio, no key is needed — just set the Base URL.
+                        Secret keys are stored in your local database. For local providers like Ollama or LM Studio, no key is needed; just set the Base URL.
                     </span>
                 </div>
             )}

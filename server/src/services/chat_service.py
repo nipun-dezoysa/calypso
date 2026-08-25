@@ -53,7 +53,7 @@ STOPPED_WITH_NOTHING = "_(stopped before the model produced any output)_"
 MARKDOWN_INSTRUCTIONS = (
     "Format your responses using Markdown: headings, bullet or numbered lists, "
     "**bold**/*italic* emphasis, code blocks with language tags for code, and "
-    "tables where they aid clarity. Keep the formatting purposeful — don't "
+    "tables where they aid clarity. Keep the formatting purposeful, don't "
     "force structure onto short conversational replies."
 )
 
@@ -353,7 +353,7 @@ class ChatService:
             raise ValueError(f"a workflow node of type '{node.type}' cannot be run")
         if node.agent_config is None:
             raise ValueError(
-                "a workflow node has no agent set up — open the workflow and configure it"
+                "a workflow node has no agent set up. Open the workflow and configure it"
             )
         config = _config_from_workflow_agent(node.agent_config)
         return await self._run_turn(
@@ -574,7 +574,7 @@ class ChatService:
         self, message_id: str, new_content: str, emit: Emit, stop: asyncio.Event
     ) -> None:
         """Change a user message's text and re-answer from there, dropping
-        whatever came after it — its old answer and any later turns."""
+        whatever came after it: its old answer and any later turns."""
         message = await self.db.get(Message, message_id)
         if message is None or message.is_bot:
             await emit(
@@ -711,7 +711,7 @@ def _config_from_workflow_agent(wa: WorkflowAgent) -> RunConfig:
     llm_model = wa.llm_model or (base.llm_model if base else None)
     if llm_model is None:
         raise ValueError(
-            f"'{label}' has no model — choose one, or an agent to take one from"
+            f"'{label}' has no model. Choose one, or an agent to take one from"
         )
 
     if wa.creativity is not None:
@@ -730,7 +730,7 @@ def _config_from_workflow_agent(wa: WorkflowAgent) -> RunConfig:
         parts.append(f"Output requirements:\n{wa.output_instructions}")
     instructions = "\n\n".join(p for p in parts if p)
     if not instructions:
-        raise ValueError(f"'{label}' has no instructions — add some and save")
+        raise ValueError(f"'{label}' has no instructions. Add some and save")
 
     if wa.markdown_enabled is not None:
         markdown_enabled = wa.markdown_enabled
@@ -859,7 +859,7 @@ def _human_message(
         try:
             data = attachment_extract.read_base64(attachment.file_path)
         except OSError:
-            # The file is gone from disk — the extracted text still stands in.
+            # The file is gone from disk, but the extracted text still stands in.
             continue
         blocks.append(
             create_image_block(
@@ -884,7 +884,7 @@ def _compose_text(question: str, attachments: list[Attachment]) -> str:
         label = f"[{index}] {attachment.filename}"
         if attachment.status == AttachmentStatus.FAILED.value:
             reason = attachment.error_message or "the file could not be read"
-            entries.append(f"{label} — could not be read: {reason}")
+            entries.append(f"{label} (could not be read: {reason})")
             continue
 
         if attachment.extracted_text:
@@ -894,7 +894,7 @@ def _compose_text(question: str, attachments: list[Attachment]) -> str:
         elif attachment.kind == KIND_IMAGE:
             entries.append(f"{label} (image, no readable text in it)")
         else:
-            entries.append(f"{label} — no text could be extracted from this file")
+            entries.append(f"{label} (no text could be extracted from this file)")
 
     body = "\n\n".join(entries)
     header = (
@@ -925,7 +925,7 @@ def _thread_title(question: str, attachments: list[Attachment]) -> str:
 def _handoff_block(handoff: str) -> str:
     return (
         "The previous step of this workflow produced the output below. Treat it as "
-        "context for your own step — do not answer it as if it were the user's "
+        "context for your own step, and do not answer it as if it were the user's "
         "message.\n\n"
         f"--- PREVIOUS STEP OUTPUT ---\n{handoff}\n--- END PREVIOUS STEP OUTPUT ---"
     )

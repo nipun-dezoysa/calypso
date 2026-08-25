@@ -183,7 +183,7 @@ function ChatInput() {
 
   function handleDragOver(e: React.DragEvent) {
     if (!canAttach) return;
-    // Only light up for files — dragging selected text should not look droppable.
+    // Only light up for files. Dragging selected text should not look droppable.
     if (!Array.from(e.dataTransfer.types).includes("Files")) return;
     e.preventDefault();
     setDraggingOver(true);
@@ -321,7 +321,7 @@ function ChatInput() {
             aria-label={sending ? "Stop generating" : "Send message"}
             title={
               sending
-                ? "Stop generating — the part already written is kept"
+                ? "Stop generating. The part already written is kept"
                 : "Send message"
             }
           >

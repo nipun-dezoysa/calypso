@@ -92,7 +92,7 @@ class DraftWorkflow(BaseModel):
 
 class DesignerMessage(BaseModel):
     """One earlier turn of the designer conversation. The client owns this
-    history — the designer keeps nothing between requests."""
+    history, since the designer keeps nothing between requests."""
 
     role: str = Field(..., description="'user' or 'assistant'")
     content: str = Field(default="")

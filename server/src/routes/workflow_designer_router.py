@@ -20,7 +20,7 @@ def _get_service(db: AsyncSession = Depends(get_db)) -> WorkflowDesignerService:
         "Stateless. Send the graph currently on the canvas along with what you "
         "want changed; the reply carries a complete proposed graph, ready to "
         "render and to PUT back to /workflows/{id} unchanged. Nothing is saved "
-        "here — conversation history is the caller's to keep and send back."
+        "here. Conversation history is the caller's to keep and send back."
     ),
 )
 async def design(

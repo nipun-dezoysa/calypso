@@ -134,7 +134,7 @@ class WorkflowService:
                 self.db.add(refs.build(workflow_id, ain))
         await self.db.flush()
 
-        # Fresh ids for the rebuilt edges — avoids any collision with the edges
+        # Fresh ids for the rebuilt edges, which avoids any collision with the edges
         # just deleted above.
         for ein in data.edges:
             self.db.add(
@@ -155,7 +155,7 @@ class WorkflowService:
     # `list()` method by the time these definitions are evaluated.
     async def _resolve_refs(self, agent_nodes: "list[AgentNodeInput]") -> "_AgentRefs":
         """Load every agent / model / collection / MCP server the agent nodes
-        point at, in one pass, and fail loudly on ids that no longer exist —
+        point at, in one pass, and fail loudly on ids that no longer exist,
         a stale canvas should get a clear error rather than a silently
         half-configured node."""
         refs = _AgentRefs(

@@ -13,7 +13,7 @@ export interface TourRecord {
 
 interface TourState {
     activeTour: TourId | null
-    /** Set by TourHost — every record is keyed by it so a second login on the
+    /** Set by TourHost. Every record is keyed by it so a second login on the
      *  same browser starts fresh instead of inheriting someone else's run. */
     userId: string | null
     records: Record<string, TourRecord>
@@ -65,7 +65,7 @@ export const useTourStore = create<TourState>()(
         }),
         {
             name: 'calypso-tour',
-            // activeTour and userId are session facts — persisting them would
+            // activeTour and userId are session facts, and persisting them would
             // relaunch the tour on top of a cold page load.
             partialize: (s) => ({ records: s.records, autoStarted: s.autoStarted }),
         },

@@ -26,7 +26,7 @@ function readVar(name: string): string {
 }
 
 /** In a dark theme the app's own background makes the best scrim. A light
- *  theme needs a genuinely dark wash instead — tinting white over white
+ *  theme needs a genuinely dark wash instead, because tinting white over white
  *  dims nothing. */
 function scrim(): { overlayColor: string; overlayOpacity: number } {
     const bg = readVar('--c-bg')
@@ -59,8 +59,8 @@ export function runTour(def: TourDefinition, options: RunTourOptions): TourHandl
         // Two kinds of step withhold Next. A click step, because the
         // highlighted element is the only thing on the page still accepting
         // clicks and pressing it is the whole instruction. And a `required`
-        // step, because every step after it assumes the thing got done —
-        // there is no sense walking someone through attaching a knowledgebase
+        // step, because every step after it assumes the thing got done.
+        // There is no sense walking someone through attaching a knowledgebase
         // they skipped creating. Both are re-opened by `unlock` below when
         // the work turns out to be already done, and × always closes the tour.
         const gated =
@@ -134,14 +134,14 @@ export function runTour(def: TourDefinition, options: RunTourOptions): TourHandl
 
     /** If the element never appeared, driver falls back to a centered popover.
      *  A gated step would then be showing no Next button and nothing to act
-     *  on, so put the button back — a broken anchor must not strand anyone. */
+     *  on, so put the button back. A broken anchor must not strand anyone. */
     function revealNextIfStranded() {
         if (driverObj.getActiveElement()?.id !== 'driver-dummy-element') return
         revealNext()
     }
 
     /** A `required` step blocks on work the user may have done on an earlier
-     *  run — replaying the tour on a configured instance would otherwise stop
+     *  run. Replaying the tour on a configured instance would otherwise stop
      *  dead at "create a provider". Ask, and hand Next back if so. */
     async function unlockIfAlreadyDone(step: TourStep | undefined, forIndex: number) {
         const advance = step?.advance
@@ -157,7 +157,7 @@ export function runTour(def: TourDefinition, options: RunTourOptions): TourHandl
             const done = await step.satisfied()
             if (done && !ended && index === forIndex) revealNext()
         } catch {
-            // Can't tell — leave the step gated on the event itself.
+            // Can't tell, so leave the step gated on the event itself.
         }
     }
 
@@ -197,7 +197,7 @@ export function runTour(def: TourDefinition, options: RunTourOptions): TourHandl
 
         if (advance.on !== 'condition') return
 
-        // Only a change *after* the step opens should advance it — otherwise a
+        // Only a change *after* the step opens should advance it. Otherwise a
         // step describing a box the user already filled in flashes past before
         // it can be read.
         if (advance.check()) return

@@ -137,7 +137,7 @@ def repair_proposal(
 
 def _parse_each(raw, model, notes: _Notes, label: str):
     """Validate a list item by item, skipping the ones that do not fit. One
-    malformed entry should cost that entry, not the whole proposal — but a
+    malformed entry should cost that entry, not the whole proposal, but a
     dropped entry is always worth saying out loud, because losing one quietly
     shows up much later as a graph that mysteriously will not validate."""
     if not isinstance(raw, list):
@@ -214,7 +214,7 @@ def _clean_conditions(
     notes: _Notes,
 ) -> tuple[list[DraftCondition], dict[str, str]]:
     """Returns the cleaned branches and the map from the ids the designer used
-    to the real ones — the edges still have to resolve their `source_handle`
+    to the real ones, since the edges still have to resolve their `source_handle`
     through it."""
     branch_map = _remap_ids([c.id for c in conditions], {c.id for c in draft.conditions})
     cleaned: list[DraftCondition] = []
@@ -409,7 +409,7 @@ def _fill_gaps(
         a.llm_model_id = fallback_model_id
         notes.add(
             f"'{a.name or a.n_id}' came back without a model, so the designer's own model "
-            "was filled in — change it on the node if that is not what you want."
+            "was filled in. Change it on the node if that is not what you want."
         )
 
     if not a.agent_id and not a.node_instructions and previous is not None:

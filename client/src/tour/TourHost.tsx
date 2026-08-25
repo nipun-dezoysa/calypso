@@ -9,7 +9,7 @@ import { TOURS } from './tours'
  *  not pointing at a spinner. */
 const AUTOSTART_DELAY_MS = 900
 
-/** Headless — mounted once, owns the running tour and decides whether a
+/** Headless. Mounted once, owns the running tour and decides whether a
  *  brand-new user gets offered one. */
 function TourHost() {
     const user = useAuthStore((s) => s.user)
@@ -24,7 +24,7 @@ function TourHost() {
     }, [user?.id, setUser])
 
     // Offer the onboarding tour once per user, and only to someone who has
-    // not already set the app up — a returning user on a fresh browser should
+    // not already set the app up. A returning user on a fresh browser should
     // not be walked through building a provider they already have.
     useEffect(() => {
         if (!user) return

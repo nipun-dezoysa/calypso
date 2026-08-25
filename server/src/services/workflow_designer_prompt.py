@@ -30,21 +30,21 @@ unless the user actually needs branching.
 
 ## What an agent node is made of
 
-- `node_instructions` — what this step should do with what it receives. This is \
+- `node_instructions`: what this step should do with what it receives. This is \
 the important field. Write it as a direct instruction to the model, specific to \
 this step, a few sentences at most.
-- `output_instructions` — how to shape what the step hands to the next node. \
+- `output_instructions`: how to shape what the step hands to the next node. \
 Only fill this in when the shape matters, for example because a condition node \
 downstream tests for a specific word.
-- `agent_id` — optional. Names an existing agent as the node's base, so the node \
+- `agent_id`: optional. Names an existing agent as the node's base, so the node \
 inherits that agent's own instructions, model, knowledge collections and MCP \
 servers. Use it when the user names an agent, or when an existing agent clearly \
 is the step being described. Otherwise leave it null.
-- `llm_model_id` — the model this node calls. Required unless `agent_id` is set \
+- `llm_model_id`: the model this node calls. Required unless `agent_id` is set \
 (then it is an optional override).
-- `creativity` — 0-100, null to inherit. Low for extraction, routing and \
+- `creativity`: 0-100, null to inherit. Low for extraction, routing and \
 classification; higher for writing.
-- `collection_ids` / `mcp_server_ids` — knowledge collections and tool servers \
+- `collection_ids` / `mcp_server_ids`: knowledge collections and tool servers \
 this node gets, added to whatever the base agent already has. Only attach ones \
 that the step genuinely needs.
 
@@ -54,7 +54,7 @@ that the step genuinely needs.
 `llm_model_id`, `collection_ids` and `mcp_server_ids`. Never invent one. If \
 nothing suitable exists, leave the field null or the list empty.
 2. Node ids, condition ids and agent-config ids are yours to choose. **Reuse the \
-exact id from the current workflow for any node you are keeping** — that is how \
+exact id from the current workflow for any node you are keeping**. That is how \
 the canvas knows it is the same node. Use a new short id (`n1`, `triage`) for \
 anything you are adding.
 3. Every node of type `agent` needs exactly one entry in `agent_nodes` pointing \
@@ -74,7 +74,7 @@ to touch exactly as it was, ids included.
 
 ## How to answer
 
-Reply with a single JSON object and nothing else — no prose around it, no \
+Reply with a single JSON object and nothing else. No prose around it, no \
 markdown fence:
 
 {
@@ -86,8 +86,8 @@ markdown fence:
 `reply` says what you built and why, in a sentence or three. Do not paste the \
 JSON into it or list every field back.
 
-Set `workflow` to null when the user asked a question rather than for a change \
-— then `reply` is the whole answer.
+Set `workflow` to null when the user asked a question rather than for a change. \
+Then `reply` is the whole answer.
 
 The shape of `workflow`:
 
@@ -117,7 +117,7 @@ customer's message and reply with a single word naming its topic.", \
   ]
 }
 
-Leave node positions out — the canvas lays the graph out itself.\
+Leave node positions out. The canvas lays the graph out itself.\
 """
 
 
@@ -180,7 +180,7 @@ def _catalog_block(
         ],
     }
     return (
-        "## Catalog — the only ids that exist\n\n"
+        "## Catalog: the only ids that exist\n\n"
         "```json\n" + json.dumps(catalog, indent=2) + "\n```"
     )
 
@@ -233,7 +233,7 @@ def _current_workflow_block(workflow: DraftWorkflow) -> str:
     return (
         "## The current workflow\n\n"
         "This is what is on the canvas right now. It may be unfinished or "
-        "invalid — that is often exactly what you are being asked to fix. Reuse "
+        "invalid, and that is often exactly what you are being asked to fix. Reuse "
         "these node ids for any node you keep.\n\n"
         "```json\n" + json.dumps(current, indent=2) + "\n```"
     )

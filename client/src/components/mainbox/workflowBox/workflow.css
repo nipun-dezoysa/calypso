@@ -10,7 +10,7 @@
     border: 1px solid var(--c-surface);
 }
 
-/* Deliberately fixed — a connection-point highlight, not theme chrome. */
+/* Deliberately fixed: a connection-point highlight, not theme chrome. */
 .react-flow__handle.wf-handle:hover {
     background: #38bdf8;
 }

@@ -1,5 +1,5 @@
 /* driver.js wearing the app's theme. Everything here reads --c-* tokens, so
- * the tour re-colours itself the moment ThemeStore swaps a theme — the one
+ * the tour re-colours itself the moment ThemeStore swaps a theme. The one
  * exception is the overlay scrim, whose fill is an inline SVG style set from
  * runTour.ts. Scoped to .calypso-tour (driver's `popoverClass`) so nothing
  * leaks if driver is ever used elsewhere. */
@@ -88,7 +88,7 @@
     color: var(--c-text-strong);
 }
 
-/* The forward button carries the accent — it is the one thing to press. */
+/* The forward button carries the accent: it is the one thing to press. */
 .driver-popover.calypso-tour .driver-popover-next-btn {
     background: var(--c-accent);
     border-color: var(--c-accent);

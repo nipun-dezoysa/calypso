@@ -2,7 +2,7 @@ import { useSideBarStore } from '../../stores/SideBarStore'
 import { useMainViewStore } from '../../stores/MainViewStore'
 import type { SidebarSection } from '../../types/sidebar'
 
-/** Put the sidebar on `section` and make sure it is actually visible — a
+/** Put the sidebar on `section` and make sure it is actually visible. A
  *  collapsed rail hides every anchor the section owns. */
 export function openSection(section: SidebarSection): void {
     const sidebar = useSideBarStore.getState()

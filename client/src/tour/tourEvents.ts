@@ -1,5 +1,5 @@
-// A tiny pub/sub the tour listens on. Most of what a tour step waits for —
-// "the provider was actually created" — lives in a section component's local
+// A tiny pub/sub the tour listens on. Most of what a tour step waits for,
+// say "the provider was actually created", lives in a section component's local
 // state, out of reach of any store. Rather than lift that state or poll the
 // API, the existing success handlers call notifyTour() with one line.
 

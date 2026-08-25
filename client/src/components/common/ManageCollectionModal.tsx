@@ -296,7 +296,7 @@ function ManageCollectionModal({
             {loadError && <div className="form-error">{loadError}</div>}
 
             {documents.length === 0 ? (
-                <div className="kb-empty">No documents yet — upload a file to get started.</div>
+                <div className="kb-empty">No documents yet. Upload a file to get started.</div>
             ) : (
                 <div className="kb-doc-list">
                     {documents.map((doc) => (

@@ -11,7 +11,7 @@ MIME_BY_EXTENSION = {
 }
 MAX_TEXT_CHARS = 20_000
 _LEGACY_HINTS = {
-    ".doc": "Legacy .doc files are not supported — open it in Word and save as .docx.",
+    ".doc": "Legacy .doc files are not supported. Open it in Word and save as .docx.",
 }
 
 

@@ -212,7 +212,7 @@ export default function DesignerPanel({
                             </div>
                             {t.applied && (
                                 <span className="self-start text-[10px] text-(--c-accent-hi) border border-(--c-accent-lo)/50 bg-(--c-accent)/30 rounded px-1.5 py-0.5">
-                                    Drafted onto the canvas — review, then Save
+                                    Drafted onto the canvas. Review, then Save
                                 </span>
                             )}
                             {t.notes.length > 0 && (
@@ -246,7 +246,7 @@ export default function DesignerPanel({
                     maxHeight={180}
                     placeholder={
                         models.length === 0
-                            ? 'Add an AI provider first — the designer needs a model to think with.'
+                            ? 'Add an AI provider first. The designer needs a model to think with.'
                             : 'Describe the workflow, or the change you want…'
                     }
                     value={text}

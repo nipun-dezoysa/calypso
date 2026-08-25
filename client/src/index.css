@@ -2,7 +2,7 @@
 @import "tw-animate-css";
 @import "./components/common/ui.css";
 
-/* shadcn/ui token bridge — every shadcn/Radix component reads these standard
+/* shadcn/ui token bridge. Every shadcn/Radix component reads these standard
    variable names. Instead of accepting shadcn's own default palette, alias
    them to this app's existing --c-* theme (see components/common/ui.css and
    utils/theme.ts) so components pick up the current theme with zero
@@ -12,7 +12,7 @@
     /* Default theme is dark; applyThemeTokens() in utils/theme.ts overrides
        this at runtime to match whichever theme is actually active (it also
        covers native form controls, which don't otherwise pick up our CSS
-       variables — see that function for why this matters). */
+       variables; see that function for why this matters). */
     color-scheme: dark;
 
     --background: var(--c-bg);
@@ -67,7 +67,7 @@
 }
 
 /* Fixed-viewport app: every scrollable region is an internal one, so the page
-   itself must never scroll — otherwise a layout shift inside a panel (a
+   itself must never scroll, otherwise a layout shift inside a panel (a
    growing textarea, say) pops a native scrollbar across the whole window. */
 html,
 body,

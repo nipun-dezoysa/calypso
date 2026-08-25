@@ -43,7 +43,7 @@ function botMessage(threadId: string, content: string): ChatMessage {
 }
 
 interface ChatState {
-    // The active chat target — an agent or a workflow.
+    // The active chat target: an agent or a workflow.
     targetId: string | null
     targetType: ChatTargetType | null
     targetName: string | null
@@ -112,7 +112,7 @@ const resetConversation = (): Pick<
     // Uploads belong to the conversation they were staged in; the server
     // sweeps whatever is left unsent.
     pendingAttachments: [],
-    // A run already under way is left alone rather than aborted — it finishes
+    // A run already under way is left alone rather than aborted; it finishes
     // and saves in full, and its events are dropped as stale. Only the UI moves
     // on, so the composer is usable again straight away.
     sending: false,
@@ -152,7 +152,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
             return
         }
         if (get().targetType === 'agent' && get().targetId === agent.id) {
-            // Same agent re-selected — keep its full object fresh but don't reset.
+            // Same agent re-selected, so keep its full object fresh but don't reset.
             set({ selectedAgent: agent })
             return
         }
@@ -327,7 +327,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // only becomes known once the `start` event arrives; the store's
         // `threadId` itself is deliberately left uncommitted until `done`
         // lands, so staleness can't be keyed off it (it changes as part of
-        // this same run, not because the user navigated away) — hence
+        // this same run, not because the user navigated away), hence
         // `conversationEpoch`, which only moves on actual navigation.
         let thread = threadId
         const epoch = get().conversationEpoch
@@ -520,7 +520,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const userIndex = messages.findIndex((m) => m.id === messageId)
         if (userIndex === -1 || messages[userIndex].is_bot) return
 
-        // Drop everything after the edited turn optimistically — its old
+        // Drop everything after the edited turn optimistically. Its old
         // answer and any later turns go away server-side too.
         set({
             messages: [

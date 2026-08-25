@@ -52,7 +52,7 @@ class McpServerCreate(BaseModel):
 
 class McpServerUpdate(BaseModel):
     """All fields optional. Note: when changing transport, supply the fields the
-    new transport needs — they aren't re-validated against old values here."""
+    new transport needs; they aren't re-validated against old values here."""
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
     transport: str | None = Field(default=None)

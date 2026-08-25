@@ -6,12 +6,12 @@ import type { TourId } from '../stores/TourStore'
  *
  *  `required` on an event/condition step hides Next entirely: the tour will
  *  not move on until the thing has actually happened. Use it wherever a later
- *  step would be nonsense otherwise — walking someone through attaching a
+ *  step would be nonsense otherwise, such as walking someone through attaching a
  *  knowledgebase they never created, or pointing at a sidebar that is still
  *  behind an open modal. The × button always remains, so this gates the tour
  *  rather than trapping the user in it. */
 export type TourAdvance =
-    /** The default — the Next button, nothing else. */
+    /** The default: the Next button, nothing else. */
     | { on: 'next' }
     /** The user clicks the highlighted element itself. Next is hidden, because
      *  the highlight is the only interactive thing on screen anyway. */
@@ -26,7 +26,7 @@ export interface TourStep {
     /** CSS selector. Omit for a centered card with no highlight. */
     element?: string
     title: string
-    /** Rendered as HTML by driver.js — inline markup is fine, and expected. */
+    /** Rendered as HTML by driver.js, so inline markup is fine and expected. */
     description: string
     side?: Side
     align?: Alignment

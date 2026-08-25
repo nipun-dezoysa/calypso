@@ -41,7 +41,7 @@ def verify_password(password: str, password_hash: str) -> bool:
 def credentials_fingerprint(password_hash: str) -> str:
     """Short digest of the stored hash, embedded in every token. Changing the
     password changes the digest, which retires tokens minted before the change
-    — including the ones handed out while the default password was still live."""
+    including the ones handed out while the default password was still live."""
     return hashlib.sha256(password_hash.encode()).hexdigest()[:16]
 
 

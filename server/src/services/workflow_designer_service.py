@@ -86,7 +86,7 @@ def _interpret(
     proposal, notes = repair_proposal(raw_workflow, draft, catalog, fallback_model_id)
     if proposal is None:
         return DesignResponse(
-            reply=reply or "I could not turn that into a workflow — try describing it another way.",
+            reply=reply or "I could not turn that into a workflow. Try describing it another way.",
             workflow=None,
             notes=notes,
         )

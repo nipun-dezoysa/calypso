@@ -127,7 +127,7 @@ function ModelSection() {
             <div className="py-1">
                 {providers.map((provider) => (
                     <div key={provider.id} className="mb-3">
-                        {/* Provider header row — pencil opens edit modal */}
+                        {/* Provider header row; pencil opens edit modal */}
                         <div className="flex items-center justify-between px-4 mb-1 group">
                             <span className="text-[10px] font-semibold text-(--c-text-subtle) uppercase tracking-wider">
                                 {provider.provider_name}
