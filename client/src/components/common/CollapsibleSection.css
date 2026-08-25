@@ -64,13 +64,7 @@
     color: var(--c-accent-contrast);
     cursor: pointer;
     white-space: nowrap;
-    opacity: 0;
-    transition: opacity 0.15s ease, background-color 0.15s ease;
-}
-
-/* Show action button only on header hover */
-.collapsible-section__header:hover .collapsible-section__action {
-    opacity: 1;
+    transition: background-color 0.15s ease;
 }
 
 .collapsible-section__action:hover {

@@ -142,7 +142,7 @@ export default function DesignerPanel({
     }
 
     return (
-        <div className="h-full flex flex-col bg-(--c-bg)">
+        <div data-tour="wf-designer-panel" className="h-full flex flex-col bg-(--c-bg)">
             <div className="flex items-center gap-2 px-3 py-2 border-b border-(--c-hover)">
                 <IoSparklesOutline className="text-(--c-accent-hi) shrink-0" />
                 <span className="text-sm text-(--c-text-body)">Designer</span>
@@ -240,6 +240,7 @@ export default function DesignerPanel({
 
             <div className="shrink-0 border-t border-(--c-hover) p-2 flex flex-col gap-2">
                 <AutoGrowTextarea
+                    data-tour="wf-designer-input"
                     className="bg-(--c-surface) border border-(--c-hover) rounded text-(--c-text) text-xs px-2 py-1.5 outline-none focus:border-(--c-text-subtle) placeholder:text-(--c-text-subtle)"
                     minRows={3}
                     maxHeight={180}
@@ -260,6 +261,7 @@ export default function DesignerPanel({
                         disabled={models.length === 0}
                     >
                         <SelectTrigger
+                            data-tour="wf-designer-model"
                             className="flex-1 min-w-0 h-7 text-[11px] px-1.5 text-(--c-text-dim)"
                             title="The model the designer thinks with"
                         >

@@ -137,7 +137,7 @@ function ChatBox() {
         <div className="sticky top-0 w-full text-(--c-text-body) px-5 py-2 bg-(--c-surface) z-10 flex items-center gap-3">
           <span className="truncate">{headerTitle}</span>
           {targetId && (
-            <CopyCurlButton targetId={targetId} className="ml-auto" />
+            <CopyCurlButton targetId={targetId} tourId="chat-curl" className="ml-auto" />
           )}
         </div>
         {renderBody()}

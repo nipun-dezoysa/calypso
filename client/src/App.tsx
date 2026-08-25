@@ -6,6 +6,7 @@ import UpdateCredentialsPage from './components/auth/UpdateCredentialsPage'
 import { useAuthStore } from './stores/AuthStore'
 import { useThemeStore } from './stores/ThemeStore'
 import { Toaster } from './components/ui/sonner'
+import TourHost from './tour/TourHost'
 
 function App() {
   const status = useAuthStore((s) => s.status)
@@ -41,6 +42,7 @@ function App() {
       <SideBar />
       <MainBox />
       <Toaster position="bottom-right" />
+      <TourHost />
     </div>
   )
 }

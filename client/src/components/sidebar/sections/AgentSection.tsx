@@ -20,6 +20,7 @@ import {
     IoTrashOutline,
     IoEllipsisVertical,
 } from 'react-icons/io5'
+import { notifyTour } from '../../../tour/tourEvents'
 import { useChatStore } from '../../../stores/ChatStore'
 import { useMainViewStore } from '../../../stores/MainViewStore'
 
@@ -71,6 +72,7 @@ function AgentSection() {
         try {
             const created = await createAgent(payload)
             setAgents((prev) => [created, ...prev])
+            notifyTour('agent.created')
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : 'Failed to add agent')
             throw err
@@ -249,17 +251,23 @@ function AgentSection() {
         <div>
             <CollapsibleSection
                 title="Agents"
-                action={{ label: '+ New', onClick: () => setShowAddModal(true) }}
+                tourId="agent-list"
+                action={{
+                    label: '+ New',
+                    onClick: () => setShowAddModal(true),
+                    tourId: 'agent-add',
+                }}
             >
                 {renderAgentList()}
             </CollapsibleSection>
 
-            <CollapsibleSection title="Workflows">
+            <CollapsibleSection title="Workflows" tourId="agent-workflow-list">
                 {renderWorkflowList()}
             </CollapsibleSection>
 
             <CollapsibleSection
                 title="Recent Chats"
+                tourId="chat-threads"
                 action={targetId ? { label: '+ New', onClick: () => { showChat(); newChat() } } : undefined}
             >
                 {renderThreadList()}

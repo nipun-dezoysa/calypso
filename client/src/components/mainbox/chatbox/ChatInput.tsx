@@ -224,6 +224,7 @@ function ChatInput() {
         )}
 
         <AutoGrowTextarea
+          data-tour="chat-input"
           className="bg-transparent focus:outline-none text-(--c-text-body) placeholder:text-(--c-text-muted)"
           minRows={2}
           maxHeight={200}
@@ -256,6 +257,7 @@ function ChatInput() {
               type="button"
               variant="ghost"
               size="icon"
+              data-tour="chat-attach"
               onClick={() => fileInputRef.current?.click()}
               disabled={!canAttach}
               className={`size-7 ${
@@ -270,6 +272,7 @@ function ChatInput() {
             </Button>
             <span className="text-(--c-text-subtle)">·</span>
             <DropdownSelector
+              tourId="chat-agent-select"
               options={agentOptions}
               selected={selectedOption}
               onSelect={(option) => {
@@ -287,6 +290,7 @@ function ChatInput() {
               <>
                 <span className="text-(--c-text-subtle)">·</span>
                 <DropdownSelector
+                  tourId="chat-kb-select"
                   options={kbOptions}
                   selected={selectedKBs}
                   onSelect={handleChangeKBs}
@@ -295,6 +299,7 @@ function ChatInput() {
                 />
                 <span className="text-(--c-text-subtle)">·</span>
                 <DropdownSelector
+                  tourId="chat-mcp-select"
                   options={mcpOptions}
                   selected={selectedMcpOptions}
                   onSelect={handleChangeMcps}

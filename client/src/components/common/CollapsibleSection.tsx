@@ -7,8 +7,12 @@ interface CollapsibleSectionProps {
     action?: {
         label: string
         onClick: () => void
+        /** `data-tour` anchor for the product tour, if it points here. */
+        tourId?: string
     }
     defaultOpen?: boolean
+    /** `data-tour` anchor for the section's content area. */
+    tourId?: string
     children: ReactNode
 }
 
@@ -16,6 +20,7 @@ function CollapsibleSection({
     title,
     action,
     defaultOpen = true,
+    tourId,
     children,
 }: CollapsibleSectionProps) {
     const [isOpen, setIsOpen] = useState(defaultOpen)
@@ -36,6 +41,7 @@ function CollapsibleSection({
                 {action && (
                     <button
                         className="collapsible-section__action"
+                        data-tour={action.tourId}
                         onClick={(e) => {
                             e.stopPropagation() // prevent header toggle
                             action.onClick()
@@ -49,7 +55,7 @@ function CollapsibleSection({
             <div
                 className={`collapsible-section__body ${isOpen ? 'collapsible-section__body--open' : ''}`}
             >
-                <div className="collapsible-section__content">
+                <div className="collapsible-section__content" data-tour={tourId}>
                     {children}
                 </div>
             </div>

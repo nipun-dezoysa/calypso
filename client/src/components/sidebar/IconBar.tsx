@@ -43,6 +43,7 @@ function IconBar() {
                 type='button'
                 variant='ghost'
                 size='icon'
+                data-tour={`nav-${id}`}
                 title={title}
                 aria-label={title}
                 onClick={() => handleSelect(id)}
@@ -68,6 +69,7 @@ function IconBar() {
                     size='icon'
                     title={user ? `Sign out (${user.username})` : 'Sign out'}
                     aria-label={user ? `Sign out (${user.username})` : 'Sign out'}
+                    data-tour='nav-logout'
                     onClick={() => setConfirmingLogout(true)}
                     className='text-2xl transition-all duration-200 hover:scale-105 text-(--c-text-dim) hover:text-(--c-danger-text)'
                 >

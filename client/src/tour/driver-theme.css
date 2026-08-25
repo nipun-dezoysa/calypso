@@ -1,0 +1,133 @@
+/* driver.js wearing the app's theme. Everything here reads --c-* tokens, so
+ * the tour re-colours itself the moment ThemeStore swaps a theme — the one
+ * exception is the overlay scrim, whose fill is an inline SVG style set from
+ * runTour.ts. Scoped to .calypso-tour (driver's `popoverClass`) so nothing
+ * leaks if driver is ever used elsewhere. */
+
+.driver-popover.calypso-tour {
+    --driver-popover-font-family: inherit;
+    background: var(--c-bg);
+    color: var(--c-text);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+    max-width: 330px;
+    padding: 14px 16px;
+}
+
+.driver-popover.calypso-tour .driver-popover-title {
+    color: var(--c-text-strong);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    padding-right: 24px;
+}
+
+.driver-popover.calypso-tour .driver-popover-description {
+    color: var(--c-text-dim);
+    font-size: 12.5px;
+    line-height: 1.55;
+    margin-top: 6px;
+}
+
+/* Inline markup used by the step copy. */
+.driver-popover.calypso-tour .driver-popover-description strong {
+    color: var(--c-text-body);
+    font-weight: 600;
+}
+
+.driver-popover.calypso-tour .driver-popover-description code {
+    background: var(--c-hover);
+    border-radius: var(--radius-sm);
+    color: var(--c-accent-hi);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    padding: 1px 4px;
+}
+
+.driver-popover.calypso-tour .driver-popover-close-btn {
+    color: var(--c-text-subtle);
+    font-size: 20px;
+    height: 26px;
+    top: 8px;
+    right: 8px;
+    width: 26px;
+}
+
+.driver-popover.calypso-tour .driver-popover-close-btn:hover,
+.driver-popover.calypso-tour .driver-popover-close-btn:focus {
+    color: var(--c-text-strong);
+}
+
+.driver-popover.calypso-tour .driver-popover-footer {
+    align-items: center;
+    gap: 12px;
+    margin-top: 14px;
+}
+
+.driver-popover.calypso-tour .driver-popover-progress-text {
+    color: var(--c-text-subtle);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.driver-popover.calypso-tour .driver-popover-footer-btn {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius-sm);
+    color: var(--c-text-body);
+    font-size: 12px;
+    padding: 4px 10px;
+    transition: background .15s, border-color .15s, color .15s;
+}
+
+.driver-popover.calypso-tour .driver-popover-footer-btn:hover,
+.driver-popover.calypso-tour .driver-popover-footer-btn:focus {
+    background: var(--c-hover);
+    border-color: var(--c-border-focus);
+    color: var(--c-text-strong);
+}
+
+/* The forward button carries the accent — it is the one thing to press. */
+.driver-popover.calypso-tour .driver-popover-next-btn {
+    background: var(--c-accent);
+    border-color: var(--c-accent);
+    color: var(--c-accent-contrast);
+    font-weight: 500;
+}
+
+.driver-popover.calypso-tour .driver-popover-next-btn:hover,
+.driver-popover.calypso-tour .driver-popover-next-btn:focus {
+    background: var(--c-accent-lo);
+    border-color: var(--c-accent-lo);
+    color: var(--c-accent-contrast);
+}
+
+/* Each side class leaves exactly one border edge opaque; recolour that edge
+ * to the popover's own background so the arrow reads as part of the box. */
+.driver-popover.calypso-tour .driver-popover-arrow-side-left { border-left-color: var(--c-bg); }
+.driver-popover.calypso-tour .driver-popover-arrow-side-right { border-right-color: var(--c-bg); }
+.driver-popover.calypso-tour .driver-popover-arrow-side-top { border-top-color: var(--c-bg); }
+.driver-popover.calypso-tour .driver-popover-arrow-side-bottom { border-bottom-color: var(--c-bg); }
+
+/* Accent ring on whatever the step is pointing at. */
+.driver-active-element {
+    border-radius: var(--radius-sm);
+    outline: 2px solid var(--c-accent) !important;
+    outline-offset: 3px;
+}
+
+/* A step whose element never showed up falls back to driver's centered dummy
+ * element; ringing a 0x0 box in the middle of the screen just looks broken. */
+#driver-dummy-element.driver-active-element {
+    outline: none !important;
+}
+
+/* driver.js kills pointer events on everything but the highlighted element.
+ * Radix renders Select/Dropdown/Popover content in a portal on <body>, well
+ * outside that element, so a step pointing at a picker would highlight a
+ * trigger whose menu cannot be clicked. Exempt the portals. */
+.driver-active [data-radix-popper-content-wrapper],
+.driver-active [data-radix-popper-content-wrapper] * {
+    pointer-events: auto;
+}

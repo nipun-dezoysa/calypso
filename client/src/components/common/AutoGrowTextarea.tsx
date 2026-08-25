@@ -15,6 +15,8 @@ type Props = Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "rows"> & {
   maxHeight?: number;
   /** Classes for the positioned wrapper the scrollbar is drawn against. */
   containerClassName?: string;
+  /** `data-tour` anchor, forwarded to the textarea itself. */
+  "data-tour"?: string;
 };
 
 /**

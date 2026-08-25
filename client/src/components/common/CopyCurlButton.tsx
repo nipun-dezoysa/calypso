@@ -21,9 +21,12 @@ interface CopyCurlButtonProps {
     /** Agent or workflow id the snippet should call. */
     targetId: string
     className?: string
+    /** `data-tour` anchor. Opt-in: the chat header and the workflow toolbar
+     *  can both be mounted, and the tour must point at exactly one. */
+    tourId?: string
 }
 
-function CopyCurlButton({ targetId, className = '' }: CopyCurlButtonProps) {
+function CopyCurlButton({ targetId, className = '', tourId }: CopyCurlButtonProps) {
     const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle')
 
     useEffect(() => {
@@ -47,6 +50,7 @@ function CopyCurlButton({ targetId, className = '' }: CopyCurlButtonProps) {
     return (
         <button
             type="button"
+            data-tour={tourId}
             onClick={handleCopy}
             title={`Copy a cURL request to the public /ask endpoint\n\n${buildAskCurl(targetId)}`}
             className={`flex items-center gap-1.5 text-xs border rounded px-2 py-1 whitespace-nowrap transition-colors ${

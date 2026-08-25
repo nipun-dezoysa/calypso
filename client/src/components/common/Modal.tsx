@@ -37,6 +37,13 @@ function Modal({
                         onEscape()
                     }
                 }}
+                // The product tour renders its popover on <body>, so pressing
+                // Next reads as an outside interaction and would otherwise
+                // close the very modal the step is walking through.
+                onInteractOutside={(e) => {
+                    const target = e.target as Element | null
+                    if (target?.closest?.('.driver-popover')) e.preventDefault()
+                }}
             >
                 <div className="modal-header">
                     <div>

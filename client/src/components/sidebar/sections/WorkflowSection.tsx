@@ -33,6 +33,7 @@ import {
     type WorkflowSummary,
 } from '../../../api/workflowApi'
 import { buildDuplicatePayload } from '../../../utils/duplicateWorkflow'
+import { notifyTour } from '../../../tour/tourEvents'
 import { useWorkflowStore } from '../../../stores/WorkflowStore'
 import { useMainViewStore } from '../../../stores/MainViewStore'
 
@@ -109,6 +110,7 @@ function WorkflowSection() {
             ])
             showWorkflow()
             selectWorkflow(wf.id)
+            notifyTour('workflow.created')
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : 'Failed to create workflow')
         } finally {
@@ -298,7 +300,12 @@ function WorkflowSection() {
         <div>
             <CollapsibleSection
                 title="Workflows"
-                action={{ label: creating ? '…' : '+ New', onClick: handleCreate }}
+                tourId="workflow-list"
+                action={{
+                    label: creating ? '…' : '+ New',
+                    onClick: handleCreate,
+                    tourId: 'workflow-add',
+                }}
             >
                 {workflows.length > 0 && (
                     <div className="px-2 pt-1 pb-1.5 relative">

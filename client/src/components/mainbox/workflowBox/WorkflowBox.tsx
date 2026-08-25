@@ -43,6 +43,7 @@ import { listCollections, type Collection } from '../../../api/kbApi'
 import { listMcpServers, type McpServer } from '../../../api/mcpApi'
 import ChatBox from '../chatbox/ChatBox'
 import CopyCurlButton from '../../common/CopyCurlButton'
+import { notifyTour } from '../../../tour/tourEvents'
 import { useChatStore } from '../../../stores/ChatStore'
 import { useThemeStore } from '../../../stores/ThemeStore'
 import { isDark, deriveTheme, BUILTIN_PRESETS } from '../../../utils/theme'
@@ -422,6 +423,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
         try {
             await replaceWorkflow(workflowId, serializeGraph(name, nodes, edges))
             setSavedAt(Date.now())
+            notifyTour('workflow.saved')
             // The canvas and the database agree again, so there is nothing left
             // to undo back to.
             setBeforeDesign(null)
@@ -442,6 +444,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
         setSelectedEdgeId(null)
         setSavedAt(null)
         setSaveError(null)
+        notifyTour('designer.applied')
     }
 
     function undoDesign() {
@@ -503,9 +506,9 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
 
     return (
         <div className="h-full w-full flex">
-            <div className="relative h-full flex-1 min-w-0">
+            <div data-tour="wf-canvas" className="relative h-full flex-1 min-w-0">
             {/* Toolbar */}
-            <div className="absolute top-3 left-3 z-10 max-w-[calc(100%-1.5rem)] flex flex-wrap items-center gap-2 bg-(--c-bg)/90 border border-(--c-hover) rounded-lg px-3 py-2">
+            <div data-tour="wf-toolbar" className="absolute top-3 left-3 z-10 max-w-[calc(100%-1.5rem)] flex flex-wrap items-center gap-2 bg-(--c-bg)/90 border border-(--c-hover) rounded-lg px-3 py-2">
                 <Input
                     className="bg-transparent h-7 text-sm font-medium w-40 rounded-none border-0 border-b border-transparent focus-visible:ring-0 focus-visible:border-(--c-text-subtle) px-0 shadow-none"
                     value={name}
@@ -518,6 +521,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                     type="button"
                     variant="outline"
                     size="sm"
+                    data-tour="wf-add-agent-node"
                     className="text-xs text-(--c-text-body) hover:text-(--c-accent-hi)"
                     onClick={() => addNode('agent')}
                 >
@@ -527,6 +531,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                     type="button"
                     variant="outline"
                     size="sm"
+                    data-tour="wf-add-condition-node"
                     className="text-xs text-(--c-text-body) hover:text-sky-400"
                     onClick={() => addNode('condition')}
                 >
@@ -536,6 +541,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                     type="button"
                     variant="default"
                     size="sm"
+                    data-tour="wf-save"
                     className="text-xs"
                     onClick={handleSave}
                     disabled={saving}
@@ -552,6 +558,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
                             ? 'border-(--c-accent) text-(--c-accent-hi) bg-(--c-accent)/30 hover:bg-(--c-accent)/30'
                             : 'text-(--c-text-body) hover:text-(--c-accent-hi)'
                     }`}
+                    data-tour="wf-designer"
                     onClick={() => setDesignerOpen((open) => !open)}
                     title="Describe the workflow you want and have it drafted for you"
                 >
@@ -585,7 +592,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
 
             {/* Node properties panel */}
             {selectedNode && (
-                <div className="absolute top-3 right-3 z-10 w-64 max-h-[calc(100%-1.5rem)] overflow-y-auto bg-(--c-bg)/95 border border-(--c-hover) rounded-lg p-3 flex flex-col gap-3">
+                <div data-tour="wf-node-panel" className="absolute top-3 right-3 z-10 w-64 max-h-[calc(100%-1.5rem)] overflow-y-auto bg-(--c-bg)/95 border border-(--c-hover) rounded-lg p-3 flex flex-col gap-3">
                     <div className="text-xs font-semibold text-(--c-text-body)">
                         {selectedNode.data.kind === 'condition' ? 'Condition' : 'Agent node'}
                     </div>
@@ -676,6 +683,7 @@ export default function WorkflowBox({ workflowId }: WorkflowBoxProps) {
             <Button
                 type="button"
                 variant="default"
+                data-tour="wf-chat-toggle"
                 className="absolute bottom-5 left-1/2 -translate-x-1/2 z-10 rounded-full px-4 shadow-lg shadow-black/40"
                 onClick={toggleChat}
             >

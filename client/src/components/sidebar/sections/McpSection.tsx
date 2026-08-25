@@ -5,6 +5,7 @@ import AddMcpServerModal from '../../common/AddMcpServerModal'
 import EditMcpServerModal from '../../common/EditMcpServerModal'
 import { Badge } from '../../ui/badge'
 import { listMcpServers, type McpServer } from '../../../api/mcpApi'
+import { notifyTour } from '../../../tour/tourEvents'
 
 type LoadState = 'idle' | 'loading' | 'error'
 
@@ -34,6 +35,7 @@ function McpSection() {
 
     function handleCreated(server: McpServer) {
         setServers((prev) => [server, ...prev])
+        notifyTour('mcp.created')
     }
 
     function handleUpdated(updated: McpServer) {
@@ -111,7 +113,12 @@ function McpSection() {
         <div>
             <CollapsibleSection
                 title="MCP Servers"
-                action={{ label: '+ Add', onClick: () => setShowAdd(true) }}
+                tourId="mcp-list"
+                action={{
+                    label: '+ Add',
+                    onClick: () => setShowAdd(true),
+                    tourId: 'mcp-add',
+                }}
             >
                 {renderList()}
             </CollapsibleSection>

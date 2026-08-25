@@ -9,6 +9,7 @@ import {
     type AIProvider,
 } from '../../../api/aiProviderApi'
 import { IoRefreshOutline, IoAlertCircleOutline, IoPencilOutline } from 'react-icons/io5'
+import { notifyTour } from '../../../tour/tourEvents'
 import { Badge } from '../../ui/badge'
 
 // ---------------------------------------------------------------------------
@@ -63,6 +64,7 @@ function ModelSection() {
             secret_key: payload.secret_key ?? null,
         })
         setProviders((prev) => [...prev, created])
+        notifyTour('provider.created')
     }
 
     // -----------------------------------------------------------------------
@@ -184,9 +186,11 @@ function ModelSection() {
         <div>
             <CollapsibleSection
                 title="AI Providers"
+                tourId="provider-list"
                 action={{
                     label: '+ Add',
                     onClick: () => setShowAddModal(true),
+                    tourId: 'provider-add',
                 }}
             >
                 {renderProviderList()}

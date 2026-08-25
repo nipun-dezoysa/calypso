@@ -27,6 +27,8 @@ interface SingleSelectProps {
     selected: SelectOption
     onSelect: (option: SelectOption) => void
     label?: string
+    /** `data-tour` anchor, placed on the trigger. */
+    tourId?: string
     multiple?: false
 }
 
@@ -35,6 +37,8 @@ interface MultiSelectProps {
     selected: SelectOption[]
     onSelect: (options: SelectOption[]) => void
     label?: string
+    /** `data-tour` anchor, placed on the trigger. */
+    tourId?: string
     multiple: true
 }
 
@@ -44,7 +48,7 @@ const triggerClassName =
     'h-auto w-fit gap-1 rounded-none border-0 bg-transparent p-0 text-sm text-(--c-text-muted) shadow-none hover:bg-transparent hover:text-(--c-text-body) focus-visible:ring-0 data-[size=default]:h-auto data-[size=sm]:h-auto [&_svg]:opacity-70'
 
 function DropdownSelector(props: DropdownSelectorProps) {
-    const { options, label = 'Select an option', multiple } = props
+    const { options, label = 'Select an option', tourId, multiple } = props
 
     if (multiple) {
         const { selected, onSelect } = props
@@ -66,7 +70,7 @@ function DropdownSelector(props: DropdownSelectorProps) {
         return (
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className={triggerClassName}>
+                    <Button variant="ghost" data-tour={tourId} className={triggerClassName}>
                         <span>{displayText}</span>
                         <IoChevronDown />
                     </Button>
@@ -111,7 +115,7 @@ function DropdownSelector(props: DropdownSelectorProps) {
                 if (option) onSelect(option)
             }}
         >
-            <SelectTrigger className={triggerClassName}>
+            <SelectTrigger data-tour={tourId} className={triggerClassName}>
                 <SelectValue placeholder={label}>{selected.name}</SelectValue>
             </SelectTrigger>
             <SelectContent side="top" className="w-56">

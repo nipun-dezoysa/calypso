@@ -7,6 +7,7 @@ import {
     IoSaveOutline,
 } from 'react-icons/io5'
 import Modal from './Modal'
+import { notifyTour } from '../../tour/tourEvents'
 import ConfirmDeleteDialog from './ConfirmDeleteDialog'
 import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
@@ -128,6 +129,7 @@ function ManageCollectionModal({
             for (const file of Array.from(files)) {
                 const created = await uploadDocument(collection.id, file)
                 setDocuments((prev) => [created, ...prev])
+                notifyTour('document.uploaded')
             }
             await refreshCount()
         } catch (err: unknown) {
@@ -266,6 +268,7 @@ function ManageCollectionModal({
                         <IoRefreshOutline />
                     </Button>
                     <Button
+                        data-tour="kb-upload"
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploading}
                         type="button"

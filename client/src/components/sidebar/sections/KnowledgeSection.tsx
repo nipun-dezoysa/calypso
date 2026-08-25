@@ -5,6 +5,7 @@ import CreateCollectionModal from '../../common/CreateCollectionModal'
 import ManageCollectionModal from '../../common/ManageCollectionModal'
 import { Badge } from '../../ui/badge'
 import { listCollections, type Collection } from '../../../api/kbApi'
+import { notifyTour } from '../../../tour/tourEvents'
 
 type LoadState = 'idle' | 'loading' | 'error'
 
@@ -35,6 +36,7 @@ function KnowledgeSection() {
 
     function handleCreated(collection: Collection) {
         setCollections((prev) => [collection, ...prev])
+        notifyTour('collection.created')
     }
 
     function handleUpdated(updated: Collection) {
@@ -106,7 +108,12 @@ function KnowledgeSection() {
         <div>
             <CollapsibleSection
                 title="Knowledgebases"
-                action={{ label: '+ New', onClick: () => setShowCreate(true) }}
+                tourId="kb-list"
+                action={{
+                    label: '+ New',
+                    onClick: () => setShowCreate(true),
+                    tourId: 'kb-add',
+                }}
             >
                 {renderList()}
             </CollapsibleSection>
