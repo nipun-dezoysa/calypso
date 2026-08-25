@@ -312,7 +312,7 @@ export const firstRunTour: TourDefinition = {
             id: 'done',
             title: "That's the whole loop",
             description:
-                'Provider → agent → conversation, with documents and tools hung off the agent.<br><br>The one thing left is <strong>workflows</strong>: several agents chained together with branching, built by hand or described to an AI designer. Its tour is waiting under <strong>Settings → Product Tour</strong>, along with a replay of this one.',
+                'Provider, then agent, then conversation, with documents and tools hung off the agent.<br><br>There is one more thing to show you, and the next screen asks whether you want it now.',
             align: 'center',
         },
     ],

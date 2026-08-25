@@ -264,6 +264,10 @@ export function runTour(def: TourDefinition, options: RunTourOptions): TourHandl
         stop: () => {
             if (ended) return
             driverObj.destroy()
+            // destroy() only reaches onDestroyed once driver has highlighted
+            // something. Stopping during the async bootstrap above would
+            // otherwise leave `ended` false and let the pending drive() fire.
+            end()
         },
     }
 }
