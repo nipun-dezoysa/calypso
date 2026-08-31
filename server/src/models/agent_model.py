@@ -7,9 +7,11 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from src.database import Base
 from src.models.agent_collection import agent_collection
+from src.models.agent_graph_db import agent_graph_db
 from src.models.agent_mcp_server import agent_mcp_server
 
 if TYPE_CHECKING:
+    from src.models.graph_db_model import GraphDatabase
     from src.models.kb_collection_model import KbCollection
     from src.models.llm_model import LLMModel
     from src.models.mcp_server_model import McpServer
@@ -98,6 +100,15 @@ class Agent(Base):
     mcp_servers: Mapped[list["McpServer"]] = relationship(
         "McpServer",
         secondary=agent_mcp_server,
+        back_populates="agents",
+        lazy="selectin",
+    )
+
+    # Graph databases attached to this agent. Each contributes a schema and a
+    # query tool at answer time, alongside the MCP tools.
+    graph_dbs: Mapped[list["GraphDatabase"]] = relationship(
+        "GraphDatabase",
+        secondary=agent_graph_db,
         back_populates="agents",
         lazy="selectin",
     )

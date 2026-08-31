@@ -3,6 +3,7 @@ import { IoRefreshOutline, IoAlertCircleOutline } from 'react-icons/io5'
 import CollapsibleSection from '../../common/CollapsibleSection'
 import CreateCollectionModal from '../../common/CreateCollectionModal'
 import ManageCollectionModal from '../../common/ManageCollectionModal'
+import GraphDbSection from './GraphDbSection'
 import { Badge } from '../../ui/badge'
 import { listCollections, type Collection } from '../../../api/kbApi'
 import { notifyTour } from '../../../tour/tourEvents'
@@ -117,6 +118,8 @@ function KnowledgeSection() {
             >
                 {renderList()}
             </CollapsibleSection>
+
+            <GraphDbSection />
 
             {showCreate && (
                 <CreateCollectionModal

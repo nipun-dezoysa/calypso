@@ -2,6 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.agent_model import Agent
+from src.models.graph_db_model import GraphDatabase
 from src.models.kb_collection_model import KbCollection
 from src.models.llm_model import LLMModel
 from src.models.mcp_server_model import McpServer
@@ -18,6 +19,7 @@ class AgentService:
         """Create a new agent."""
         collections = await self._resolve_collections(data.collection_ids)
         mcp_servers = await self._resolve_mcp_servers(data.mcp_server_ids)
+        graph_dbs = await self._resolve_graph_dbs(data.graph_db_ids)
         agent = Agent(
             name=data.name,
             llm_model_id=data.llm_model_id,
@@ -26,6 +28,7 @@ class AgentService:
             markdown_enabled=data.markdown_enabled,
             collections=collections,
             mcp_servers=mcp_servers,
+            graph_dbs=graph_dbs,
         )
         self.db.add(agent)
         await self.db.commit()
@@ -71,6 +74,10 @@ class AgentService:
         if "mcp_server_ids" in update_data:
             mcp_server_ids = update_data.pop("mcp_server_ids") or []
             agent.mcp_servers = await self._resolve_mcp_servers(mcp_server_ids)
+
+        if "graph_db_ids" in update_data:
+            graph_db_ids = update_data.pop("graph_db_ids") or []
+            agent.graph_dbs = await self._resolve_graph_dbs(graph_db_ids)
 
         for field, value in update_data.items():
             setattr(agent, field, value)
@@ -146,3 +153,27 @@ class AgentService:
         if missing:
             raise ValueError(f"MCP servers not found: {missing}")
         return [by_id[sid] for sid in unique]
+
+    async def missing_graph_db_ids(self, graph_db_ids: list[str]) -> list[str]:
+        """Return the subset of ids that don't correspond to a graph database."""
+        unique = list(dict.fromkeys(graph_db_ids))
+        if not unique:
+            return []
+        stmt = select(GraphDatabase.id).where(GraphDatabase.id.in_(unique))
+        result = await self.db.execute(stmt)
+        found = set(result.scalars().all())
+        return [gid for gid in unique if gid not in found]
+
+    async def _resolve_graph_dbs(self, graph_db_ids: list[str]) -> list[GraphDatabase]:
+        """Fetch graph database rows for the given ids, deduplicated and
+        preserving order. Raises ValueError if any id is unknown."""
+        unique = list(dict.fromkeys(graph_db_ids))
+        if not unique:
+            return []
+        stmt = select(GraphDatabase).where(GraphDatabase.id.in_(unique))
+        result = await self.db.execute(stmt)
+        by_id = {g.id: g for g in result.scalars().all()}
+        missing = [gid for gid in unique if gid not in by_id]
+        if missing:
+            raise ValueError(f"Graph databases not found: {missing}")
+        return [by_id[gid] for gid in unique]

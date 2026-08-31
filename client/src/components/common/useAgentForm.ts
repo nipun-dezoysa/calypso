@@ -8,6 +8,7 @@ export interface AgentFormOptions {
     initialMarkdownEnabled?: boolean
     initialCollectionIds?: string[]
     initialMcpServerIds?: string[]
+    initialGraphDbIds?: string[]
 }
 
 export interface AgentFormValues {
@@ -18,6 +19,7 @@ export interface AgentFormValues {
     markdown_enabled: boolean
     collection_ids: string[]
     mcp_server_ids: string[]
+    graph_db_ids: string[]
 }
 
 export interface AgentFormHandle {
@@ -35,6 +37,8 @@ export interface AgentFormHandle {
     toggleCollection: (id: string) => void
     mcpServerIds: string[]
     toggleMcpServer: (id: string) => void
+    graphDbIds: string[]
+    toggleGraphDb: (id: string) => void
     errors: Record<string, string>
     setErrors: (fn: (prev: Record<string, string>) => Record<string, string>) => void
     validate: () => boolean
@@ -57,6 +61,9 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
     const [mcpServerIds, setMcpServerIds] = useState<string[]>(
         options?.initialMcpServerIds ?? [],
     )
+    const [graphDbIds, setGraphDbIds] = useState<string[]>(
+        options?.initialGraphDbIds ?? [],
+    )
     const [errors, setErrors] = useState<Record<string, string>>({})
 
     function toggleCollection(id: string) {
@@ -68,6 +75,12 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
     function toggleMcpServer(id: string) {
         setMcpServerIds((prev) =>
             prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+        )
+    }
+
+    function toggleGraphDb(id: string) {
+        setGraphDbIds((prev) =>
+            prev.includes(id) ? prev.filter((g) => g !== id) : [...prev, id],
         )
     }
 
@@ -88,6 +101,7 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
         markdown_enabled: markdownEnabled,
         collection_ids: collectionIds,
         mcp_server_ids: mcpServerIds,
+        graph_db_ids: graphDbIds,
     }
 
     return {
@@ -98,6 +112,7 @@ export function useAgentForm(options?: AgentFormOptions): AgentFormHandle {
         markdownEnabled, setMarkdownEnabled,
         collectionIds, toggleCollection,
         mcpServerIds, toggleMcpServer,
+        graphDbIds, toggleGraphDb,
         errors, setErrors,
         validate, formValues,
     }
