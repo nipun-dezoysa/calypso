@@ -50,6 +50,13 @@ async def create_agent(
             detail=f"MCP servers not found: {missing_mcp}",
         )
 
+    missing_graph = await service.missing_graph_db_ids(data.graph_db_ids)
+    if missing_graph:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Graph databases not found: {missing_graph}",
+        )
+
     agent = await service.create(data)
     return AgentResponse.model_validate(agent)
 
@@ -127,6 +134,14 @@ async def update_agent(
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"MCP servers not found: {missing_mcp}",
+            )
+
+    if data.graph_db_ids is not None:
+        missing_graph = await service.missing_graph_db_ids(data.graph_db_ids)
+        if missing_graph:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Graph databases not found: {missing_graph}",
             )
 
     agent = await service.update(agent_id, data)

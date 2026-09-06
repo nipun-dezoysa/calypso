@@ -6,6 +6,7 @@ import { useAgentForm } from './useAgentForm'
 import { listAIProviders, type AIProvider } from '../../api/aiProviderApi'
 import { listCollections, type Collection } from '../../api/kbApi'
 import { listMcpServers, type McpServer } from '../../api/mcpApi'
+import { listGraphDbs, type GraphDb } from '../../api/graphDbApi'
 
 export interface NewAgentPayload {
     name: string
@@ -15,6 +16,7 @@ export interface NewAgentPayload {
     markdown_enabled: boolean
     collection_ids: string[]
     mcp_server_ids: string[]
+    graph_db_ids: string[]
 }
 
 interface AddAgentModalProps {
@@ -29,6 +31,7 @@ function AddAgentModal({ onClose, onSubmit }: AddAgentModalProps) {
     const [providers, setProviders] = useState<AIProvider[]>([])
     const [collections, setCollections] = useState<Collection[]>([])
     const [mcpServers, setMcpServers] = useState<McpServer[]>([])
+    const [graphDbs, setGraphDbs] = useState<GraphDb[]>([])
     const [loadingProviders, setLoadingProviders] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -38,12 +41,14 @@ function AddAgentModal({ onClose, onSubmit }: AddAgentModalProps) {
             listAIProviders({ limit: 100 }),
             listCollections({ limit: 100 }),
             listMcpServers({ limit: 100 }),
+            listGraphDbs({ limit: 100 }),
         ])
-            .then(([providerData, collectionData, mcpData]) => {
+            .then(([providerData, collectionData, mcpData, graphData]) => {
                 if (cancelled) return
                 setProviders(providerData)
                 setCollections(collectionData)
                 setMcpServers(mcpData)
+                setGraphDbs(graphData)
             })
             .catch((err: unknown) => {
                 if (cancelled) return
@@ -109,7 +114,13 @@ function AddAgentModal({ onClose, onSubmit }: AddAgentModalProps) {
                     Loading providers…
                 </div>
             ) : (
-                <AgentFormFields form={form} providers={providers} collections={collections} mcpServers={mcpServers} />
+                <AgentFormFields
+                    form={form}
+                    providers={providers}
+                    collections={collections}
+                    mcpServers={mcpServers}
+                    graphDbs={graphDbs}
+                />
             )}
         </Modal>
     )

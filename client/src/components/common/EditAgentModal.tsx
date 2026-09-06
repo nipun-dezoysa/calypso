@@ -8,6 +8,7 @@ import { updateAgent, deleteAgent, type Agent } from '../../api/agentApi'
 import { listAIProviders, type AIProvider } from '../../api/aiProviderApi'
 import { listCollections, type Collection } from '../../api/kbApi'
 import { listMcpServers, type McpServer } from '../../api/mcpApi'
+import { listGraphDbs, type GraphDb } from '../../api/graphDbApi'
 import './ui.css'
 
 interface EditAgentModalProps {
@@ -26,6 +27,7 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
         initialMarkdownEnabled: agent.markdown_enabled,
         initialCollectionIds: agent.collections.map((c) => c.id),
         initialMcpServerIds: agent.mcp_servers.map((s) => s.id),
+        initialGraphDbIds: agent.graph_dbs.map((g) => g.id),
     })
 
     const [submitting, setSubmitting] = useState(false)
@@ -35,6 +37,7 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
     const [providers, setProviders] = useState<AIProvider[]>([])
     const [collections, setCollections] = useState<Collection[]>([])
     const [mcpServers, setMcpServers] = useState<McpServer[]>([])
+    const [graphDbs, setGraphDbs] = useState<GraphDb[]>([])
     const [loadingProviders, setLoadingProviders] = useState(true)
     const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -44,12 +47,14 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
             listAIProviders({ limit: 100 }),
             listCollections({ limit: 100 }),
             listMcpServers({ limit: 100 }),
+            listGraphDbs({ limit: 100 }),
         ])
-            .then(([providerData, collectionData, mcpData]) => {
+            .then(([providerData, collectionData, mcpData, graphData]) => {
                 if (cancelled) return
                 setProviders(providerData)
                 setCollections(collectionData)
                 setMcpServers(mcpData)
+                setGraphDbs(graphData)
             })
             .catch((err: unknown) => {
                 if (cancelled) return
@@ -140,7 +145,13 @@ function EditAgentModal({ agent, onClose, onUpdated, onDeleted }: EditAgentModal
                     Loading providers…
                 </div>
             ) : (
-                <AgentFormFields form={form} providers={providers} collections={collections} mcpServers={mcpServers} />
+                <AgentFormFields
+                    form={form}
+                    providers={providers}
+                    collections={collections}
+                    mcpServers={mcpServers}
+                    graphDbs={graphDbs}
+                />
             )}
 
             <hr className="ui-divider" />

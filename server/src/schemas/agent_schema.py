@@ -39,6 +39,10 @@ class AgentCreate(BaseModel):
         default_factory=list,
         description="IDs of MCP servers to attach to this agent",
     )
+    graph_db_ids: list[str] = Field(
+        default_factory=list,
+        description="IDs of graph databases this agent can query",
+    )
 
     @field_validator("name")
     @classmethod
@@ -76,6 +80,10 @@ class AgentUpdate(BaseModel):
     mcp_server_ids: list[str] | None = Field(
         default=None,
         description="Replace the agent's attached MCP servers with these IDs",
+    )
+    graph_db_ids: list[str] | None = Field(
+        default=None,
+        description="Replace the agent's attached graph databases with these IDs",
     )
 
     @field_validator("name")
@@ -130,6 +138,17 @@ class AgentMcpServerInfo(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class AgentGraphDbInfo(BaseModel):
+    """Read-only summary of a graph database attached to an agent."""
+
+    id: str
+    name: str
+    provider: str
+    enabled: bool
+
+    model_config = {"from_attributes": True}
+
+
 class AgentResponse(BaseModel):
     """Schema returned from API responses."""
 
@@ -142,6 +161,7 @@ class AgentResponse(BaseModel):
     markdown_enabled: bool
     collections: list[AgentCollectionInfo] = []
     mcp_servers: list[AgentMcpServerInfo] = []
+    graph_dbs: list[AgentGraphDbInfo] = []
     created_at: datetime
     updated_at: datetime
 

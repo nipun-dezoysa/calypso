@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings as app_settings
 from src.models.agent_model import Agent
 from src.models.attachment_model import KIND_IMAGE, Attachment, AttachmentStatus
+from src.models.graph_db_model import GraphDatabase
 from src.models.kb_collection_model import KbCollection
 from src.models.llm_model import LLMModel
 from src.models.mcp_server_model import McpServer
@@ -25,7 +26,13 @@ from src.models.node_model import NODE_TYPE_AGENT, Node
 from src.models.thread_model import THREAD_TYPE_AGENT, THREAD_TYPE_WORKFLOW, Thread
 from src.models.workflow_agent_model import WorkflowAgent
 from src.models.workflow_model import Workflow
-from src.services import attachment_extract, kb_vectorstore, mcp_client, tool_schema
+from src.services import (
+    attachment_extract,
+    graph_tools,
+    kb_vectorstore,
+    mcp_client,
+    tool_schema,
+)
 from src.services.attachment_service import remove_file
 from src.services.kb_settings_service import KbSettingsService
 from src.services.kb_vectorstore import KbConfig
@@ -71,6 +78,7 @@ class RunConfig:
     markdown_enabled: bool
     collections: list[KbCollection]
     mcp_servers: list[McpServer]
+    graph_dbs: list[GraphDatabase]
 
 
 class ChatService:
@@ -262,13 +270,23 @@ class ChatService:
 
         try:
             answer = await self._invoke_with_tools(
-                chat_model, config.mcp_servers, build(with_images=True), sink, stop
+                chat_model,
+                config.mcp_servers,
+                config.graph_dbs,
+                build(with_images=True),
+                sink,
+                stop,
             )
         except Exception:
             if not images or streamed:
                 raise
             answer = await self._invoke_with_tools(
-                chat_model, config.mcp_servers, build(with_images=False), sink, stop
+                chat_model,
+                config.mcp_servers,
+                config.graph_dbs,
+                build(with_images=False),
+                sink,
+                stop,
             )
 
         if not answer and not _stopped(stop):
@@ -407,15 +425,21 @@ class ChatService:
             f"--- CONTEXT ---\n{formatted}\n--- END CONTEXT ---"
         )
 
-    async def _load_tools(self, mcp_servers: list[McpServer]) -> list:
+    async def _load_tools(
+        self, mcp_servers: list[McpServer], graph_dbs: list[GraphDatabase]
+    ) -> list:
+        """Every tool this turn can call. Graph tools are built locally and
+        cost no I/O, so they survive an MCP server being unreachable."""
+        tools = graph_tools.build_tools(graph_dbs)
+
         servers = [s for s in mcp_servers if s.enabled]
         if not servers:
-            return []
+            return tools
         connections = {s.name: s.to_connection() for s in servers}
         try:
-            return await mcp_client.load_tools(connections)
+            return tools + await mcp_client.load_tools(connections)
         except Exception:  # noqa: BLE001 - degrade gracefully if a server is down
-            return []
+            return tools
 
     async def _generate(
         self,
@@ -447,11 +471,12 @@ class ChatService:
         self,
         chat_model,
         mcp_servers: list[McpServer],
+        graph_dbs: list[GraphDatabase],
         messages: list,
         emit: Emit | None = None,
         stop: asyncio.Event | None = None,
     ) -> str:
-        tools = await self._load_tools(mcp_servers)
+        tools = await self._load_tools(mcp_servers, graph_dbs)
         if not tools:
             _, text = await self._generate(chat_model, messages, emit, stop)
             return text
@@ -695,6 +720,7 @@ def _config_from_agent(agent: Agent) -> RunConfig:
         markdown_enabled=agent.markdown_enabled,
         collections=list(agent.collections),
         mcp_servers=list(agent.mcp_servers),
+        graph_dbs=list(agent.graph_dbs),
     )
 
 
@@ -703,8 +729,9 @@ def _config_from_workflow_agent(wa: WorkflowAgent) -> RunConfig:
 
     The base supplies defaults; the node layers on top. Model and creativity are
     overrides (the node's value wins), collections and MCP servers are additive,
-    and the instructions concatenate: what the agent is, then what this step
-    should do, then how to shape the hand-off."""
+    graph databases come from the base agent alone, and the instructions
+    concatenate: what the agent is, then what this step should do, then how to
+    shape the hand-off."""
     base = wa.agent
     label = wa.name or "an agent node"
 
@@ -746,6 +773,9 @@ def _config_from_workflow_agent(wa: WorkflowAgent) -> RunConfig:
         markdown_enabled=markdown_enabled,
         collections=_merge_by_id(base.collections if base else [], wa.collections),
         mcp_servers=_merge_by_id(base.mcp_servers if base else [], wa.mcp_servers),
+        # A node has no graph databases of its own; it queries whatever its
+        # base agent is attached to.
+        graph_dbs=list(base.graph_dbs) if base else [],
     )
 
 
