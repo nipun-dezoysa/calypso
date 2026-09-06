@@ -19,6 +19,13 @@ export interface AgentMcpServerInfo {
     enabled: boolean
 }
 
+export interface AgentGraphDbInfo {
+    id: string
+    name: string
+    provider: string
+    enabled: boolean
+}
+
 export interface AgentCreate {
     name: string
     llm_model_id: string
@@ -27,6 +34,7 @@ export interface AgentCreate {
     markdown_enabled?: boolean
     collection_ids?: string[]
     mcp_server_ids?: string[]
+    graph_db_ids?: string[]
 }
 
 export interface AgentUpdate {
@@ -37,6 +45,7 @@ export interface AgentUpdate {
     markdown_enabled?: boolean | null
     collection_ids?: string[] | null
     mcp_server_ids?: string[] | null
+    graph_db_ids?: string[] | null
 }
 
 export interface Agent {
@@ -49,6 +58,7 @@ export interface Agent {
     markdown_enabled: boolean
     collections: AgentCollectionInfo[]
     mcp_servers: AgentMcpServerInfo[]
+    graph_dbs: AgentGraphDbInfo[]
     created_at: string
     updated_at: string
 }

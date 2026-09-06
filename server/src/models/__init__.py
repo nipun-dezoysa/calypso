@@ -1,4 +1,5 @@
 from src.models.agent_collection import agent_collection
+from src.models.agent_graph_db import agent_graph_db
 from src.models.agent_mcp_server import agent_mcp_server
 from src.models.agent_model import Agent
 from src.models.ai_provide_model import AIProvider
@@ -6,6 +7,7 @@ from src.models.app_secret_model import AppSecret
 from src.models.attachment_model import Attachment
 from src.models.condition_model import Condition
 from src.models.edge_model import Edge
+from src.models.graph_db_model import GraphDatabase
 from src.models.kb_collection_model import KbCollection
 from src.models.kb_document_model import KbDocument
 from src.models.kb_settings_model import KbSettings
@@ -30,6 +32,7 @@ __all__ = [
     "Attachment",
     "Condition",
     "Edge",
+    "GraphDatabase",
     "KbCollection",
     "KbDocument",
     "KbSettings",
@@ -43,6 +46,7 @@ __all__ = [
     "Workflow",
     "WorkflowAgent",
     "agent_collection",
+    "agent_graph_db",
     "agent_mcp_server",
     "workflow_agent_collection",
     "workflow_agent_mcp_server",

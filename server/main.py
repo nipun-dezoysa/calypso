@@ -16,6 +16,7 @@ from src.routes.agent_router import router as agent_router
 from src.routes.ai_provider_router import router as ai_provider_router
 from src.routes.auth_router import router as auth_router
 from src.routes.chat_router import router as chat_router
+from src.routes.graph_db_router import router as graph_db_router
 from src.routes.kb_router import router as kb_router
 from src.routes.langfuse_router import router as langfuse_router
 from src.routes.mcp_router import router as mcp_router
@@ -24,6 +25,7 @@ from src.routes.workflow_router import router as workflow_router
 from src.services import langfuse_tracing
 from src.services.auth_service import bootstrap_auth
 from src.services.langfuse_settings_service import LangfuseSettingsService
+from src.services.graph_client import close_all as close_graph_drivers
 
 import src.models
 
@@ -36,6 +38,7 @@ async def lifespan(_app: FastAPI):
         await LangfuseSettingsService(session).activate()
     yield
     langfuse_tracing.shutdown()
+    await close_graph_drivers()
     await engine.dispose()
 
 
@@ -64,6 +67,7 @@ def create_app() -> FastAPI:
     app.include_router(kb_router, prefix="/api/v1", dependencies=protected)
     app.include_router(langfuse_router, prefix="/api/v1", dependencies=protected)
     app.include_router(mcp_router, prefix="/api/v1", dependencies=protected)
+    app.include_router(graph_db_router, prefix="/api/v1", dependencies=protected)
     app.include_router(workflow_router, prefix="/api/v1", dependencies=protected)
     app.include_router(workflow_designer_router, prefix="/api/v1", dependencies=protected)
 

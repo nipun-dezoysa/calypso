@@ -2,6 +2,7 @@ import { IoCheckmark } from 'react-icons/io5'
 import type { AIProvider } from '../../api/aiProviderApi'
 import type { Collection } from '../../api/kbApi'
 import type { McpServer } from '../../api/mcpApi'
+import type { GraphDb } from '../../api/graphDbApi'
 import type { AgentFormHandle } from './useAgentForm'
 import { Input } from '../ui/input'
 import { Textarea } from '../ui/textarea'
@@ -19,12 +20,14 @@ import {
     SelectValue,
 } from '../ui/select'
 import './mcp.css'
+import './graph.css'
 
 interface AgentFormFieldsProps {
     form: AgentFormHandle
     providers: AIProvider[]
     collections: Collection[]
     mcpServers: McpServer[]
+    graphDbs: GraphDb[]
 }
 
 const CREATIVITY_LABELS = ['Precise', 'Balanced', 'Creative'] as const
@@ -35,7 +38,13 @@ function creativityLabel(value: number): string {
     return CREATIVITY_LABELS[2]
 }
 
-function AgentFormFields({ form, providers, collections, mcpServers }: AgentFormFieldsProps) {
+function AgentFormFields({
+    form,
+    providers,
+    collections,
+    mcpServers,
+    graphDbs,
+}: AgentFormFieldsProps) {
     const {
         name, setName,
         llmModelId, setLlmModelId,
@@ -44,6 +53,7 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
         markdownEnabled, setMarkdownEnabled,
         collectionIds, toggleCollection,
         mcpServerIds, toggleMcpServer,
+        graphDbIds, toggleGraphDb,
         errors, setErrors,
     } = form
 
@@ -232,6 +242,46 @@ function AgentFormFields({ form, providers, collections, mcpServers }: AgentForm
                                     >
                                         {on && <IoCheckmark style={{ marginRight: 3, fontSize: 10 }} />}
                                         {s.name}
+                                    </ToggleGroupItem>
+                                )
+                            })}
+                        </ToggleGroup>
+                    </>
+                )}
+            </div>
+
+            <div className="form-field">
+                <label className="form-label">
+                    Graph Databases
+                    <span className="form-label-optional">optional</span>
+                </label>
+                {graphDbs.length === 0 ? (
+                    <p style={{ fontSize: 12, color: '#71717a', fontStyle: 'italic' }}>
+                        No graph databases yet. Add one in the Graph Databases panel.
+                    </p>
+                ) : (
+                    <>
+                        <p style={{ fontSize: 11, color: '#52525b', marginBottom: 5 }}>
+                            Attach graphs this agent can inspect and query with Cypher, click to toggle:
+                        </p>
+                        <ToggleGroup
+                            type="multiple"
+                            variant="outline"
+                            className="form-model-pills"
+                            value={graphDbIds}
+                        >
+                            {graphDbs.map((g) => {
+                                const on = graphDbIds.includes(g.id)
+                                return (
+                                    <ToggleGroupItem
+                                        key={g.id}
+                                        value={g.id}
+                                        className={`form-model-pill ${on ? 'form-model-pill--on' : ''}`}
+                                        onClick={() => toggleGraphDb(g.id)}
+                                        title={`${g.uri}${g.read_only ? ' · read-only' : ''}${g.enabled ? '' : ' · disabled'}`}
+                                    >
+                                        {on && <IoCheckmark style={{ marginRight: 3, fontSize: 10 }} />}
+                                        {g.name}
                                     </ToggleGroupItem>
                                 )
                             })}

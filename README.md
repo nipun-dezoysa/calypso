@@ -53,7 +53,7 @@ Pin a version instead of `latest` if you'd rather upgrade deliberately - see the
 
 ## What's inside
 
-- **Agents** - a system prompt, a model, a temperature, plus any MCP tools and knowledge collections you attach. Each agent keeps its own chat threads.
+- **Agents** - a system prompt, a model, a temperature, plus any MCP tools, knowledge collections and graph databases you attach. Each agent keeps its own chat threads.
 - **Workflows** - a visual graph builder. Agent nodes run in sequence, passing output forward; condition nodes branch on the result. Every agent node carries its own per-workflow instructions, so the same underlying agent can behave differently in different workflows.
 - **Workflow designer** - describe the workflow you want, in the panel behind the *Designer* button on the canvas, and it gets drafted for you: nodes, branches, per-node instructions and all. It reads whatever is on the canvas, so "add a fact-check step at the end" works as well as building from scratch, and it only ever wires in agents, models and knowledge collections you actually have. Nothing is written until you press Save, and *Undo design* puts the canvas back.
 
@@ -66,6 +66,7 @@ https://github.com/user-attachments/assets/c3adfaf1-927b-4d91-87df-d5c502822e6d
 - **Streaming** - answers arrive a word at a time rather than all at once at the end, which matters most on a local model that can sit on a reply for minutes. Workflows stream too, naming each step as it takes its turn, and tool calls are announced as they run. The stop button next to the composer ends a generation early and keeps the part already written.
 - **Attachments** - send files along with a chat message: PDF, DOCX, TXT, Markdown, PNG and JPG. Calypso extracts the text and puts it in the prompt, so the agent can read a contract or a report without you pasting it. Images are sent to the model as pictures where the model has vision, and run through OCR either way, so a screenshot of a table still works on a text-only model. Attachments stay in the thread and are re-sent with later turns, so follow-up questions about the same file work.
 - **MCP servers** - connect tools over `stdio`, `streamable_http`, `sse`, or `websocket`. Calypso discovers each server's tools and exposes them to the agents you attach them to.
+- **Graph databases** - point Calypso at a Neo4j database over Bolt and attach it to an agent. The agent gets two tools per graph: one that describes the schema (node labels, relationship types, and how they connect) and one that runs a Cypher query. Connections are read-only by default, so the database itself rejects writes, and each carries its own query timeout and row limit.
 - **Knowledge base** - upload PDF, TXT, or Markdown files into collections. They're chunked, embedded, and retrieved as context at query time. Vector store is ChromaDB (local, default) or Qdrant; embeddings are FastEmbed (local, default) or Nomic.
 - **Providers** - OpenAI, Anthropic, Google Gemini, Azure OpenAI, Ollama, and any OpenAI-compatible endpoint via a custom base URL. Keys are stored in your local database and go nowhere but the provider.
 
@@ -219,7 +220,7 @@ serves.
 
 ## Tech stack
 
-**Backend** - FastAPI, SQLAlchemy (async, SQLite), LangChain and LangGraph, ChromaDB / Qdrant, FastEmbed.
+**Backend** - FastAPI, SQLAlchemy (async, SQLite), LangChain and LangGraph, ChromaDB / Qdrant, FastEmbed, Neo4j.
 
 **Frontend** - React 19, TypeScript, Vite, Tailwind CSS, Zustand, React Flow.
 

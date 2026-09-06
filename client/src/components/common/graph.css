@@ -1,0 +1,120 @@
+/* Graph-database modal UI, layered on ui.css tokens. Test-result and toggle
+   styling is shared with the MCP modals (mcp.css). */
+
+.form-hint {
+    font-size: 11px;
+    color: var(--c-text-subtle);
+    line-height: 1.45;
+    margin: 4px 0 0;
+}
+.form-hint code {
+    font-family: monospace;
+    font-size: 10.5px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: var(--c-hover);
+    color: var(--c-text-dim);
+}
+
+/* Two fields sharing a row; stacks when the modal is narrow. */
+.graph-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.graph-field-row > .form-field { min-width: 0; }
+
+@media (max-width: 480px) {
+    .graph-field-row { grid-template-columns: 1fr; }
+}
+
+/* Stands in for the password input once one is stored, since the server
+   never sends it back. */
+.graph-password-set {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 11px;
+    border: 1px solid var(--c-border);
+    border-radius: var(--radius);
+    background: var(--c-hover);
+    font-size: 12.5px;
+    color: var(--c-text-dim);
+}
+.graph-password-set > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.btn--link {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--c-accent-hi);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.btn--link:hover { text-decoration: underline; }
+
+/* ── Schema preview, shown after a successful connection test ── */
+
+.graph-schema {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.graph-schema__group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.graph-schema__label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--c-text-subtle);
+}
+.graph-schema__items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.graph-schema__more {
+    font-size: 11px;
+    color: var(--c-text-subtle);
+    align-self: center;
+}
+.graph-pattern-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--c-text-dim);
+}
+
+/* ── Sidebar row ── */
+
+.graph-row-meta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+}
+.graph-row-badge {
+    font-size: 9px;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    padding: 0 4px;
+    border-radius: 3px;
+    border: 1px solid var(--c-border);
+    color: var(--c-text-subtle);
+    flex-shrink: 0;
+}

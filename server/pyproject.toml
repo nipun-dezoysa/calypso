@@ -25,6 +25,7 @@ dependencies = [
     "langchain-text-splitters>=1.1.2",
     "langfuse>=3",
     "langgraph>=1.2.9",
+    "neo4j>=5.28.0",
     "pillow>=12.3.0",
     "pydantic>=2.13.4",
     "pydantic-settings>=2.14.1",
