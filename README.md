@@ -129,6 +129,20 @@ Every setting is optional; the defaults below are what the image uses. Providers
 
 The UI and API share an origin in the image, so CORS only matters if you call the API from somewhere else.
 
+### Tracing
+
+Langfuse tracing is off until you turn it on. Everything it needs - host, public key, secret key, environment label, sampling rate - is set under **Settings → Observability** in the UI and stored in the database; there is nothing to configure on the server. **Test connection** checks the keys against your Langfuse server before you save them, and changes take effect on the next message - no restart.
+
+Each chat turn is one trace: a root span for the agent (or the workflow, with a span per node underneath), the model generations below it, and a span per MCP tool call. Threads become Langfuse *sessions*, so a whole conversation reads as one group. The workflow designer is traced too.
+
+| Endpoint | Purpose |
+| --- | --- |
+| `GET /api/v1/langfuse/settings` | Current settings; the secret key comes back as a boolean |
+| `PUT /api/v1/langfuse/settings` | Update; only the fields sent are changed |
+| `POST /api/v1/langfuse/settings/test` | Check credentials against the server before saving |
+
+Nothing here can break a chat: if Langfuse is unreachable or the keys are wrong, the run is answered as usual and the failure is logged.
+
 ### Authentication
 
 The API is behind a JWT bearer token. On first boot the server seeds a single account from `DEFAULT_USERNAME` / `DEFAULT_PASSWORD` and flags it as unchanged, so the UI sends you straight to a *choose your credentials* screen after the first sign-in. The defaults only apply to an empty database - changing those variables later does nothing.

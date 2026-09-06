@@ -13,6 +13,8 @@ from src.schemas.workflow_designer_schema import (
     DesignResponse,
     DraftWorkflow,
 )
+from src.services import langfuse_tracing
+from src.services.langfuse_settings_service import LangfuseSettingsService
 from src.services.llm_factory import build_chat_model
 from src.services.workflow_designer_prompt import build_system_prompt
 from src.services.workflow_designer_repair import Catalog, repair_proposal
@@ -41,14 +43,23 @@ class WorkflowDesignerService:
             model_name=model.model_name,
             temperature=round(DESIGNER_CREATIVITY / 100, 2),
         )
-        response = await chat_model.ainvoke(
-            [
-                SystemMessage(content=system),
-                *_history(data),
-                HumanMessage(content=data.message),
-            ]
-        )
-        text = _stringify(response.content)
+        await LangfuseSettingsService(self.db).activate()
+        with langfuse_tracing.trace_run(
+            name="workflow designer",
+            input=data.message,
+            tags=["designer"],
+            metadata={"model": model.model_name},
+        ) as span:
+            response = await chat_model.ainvoke(
+                [
+                    SystemMessage(content=system),
+                    *_history(data),
+                    HumanMessage(content=data.message),
+                ],
+                config=langfuse_tracing.callbacks("workflow designer") or None,
+            )
+            text = _stringify(response.content)
+            langfuse_tracing.record_output(span, text)
 
         return _interpret(text, data.workflow, _catalog_ids(agents, models, collections, servers), model.id)
 

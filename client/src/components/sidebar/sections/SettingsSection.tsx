@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import CollapsibleSection from '../../common/CollapsibleSection'
 import KbSettingsModal from '../../common/KbSettingsModal'
+import LangfuseSettingsModal from '../../common/LangfuseSettingsModal'
 import AccountSettingsModal from '../../common/AccountSettingsModal'
 import ThemeSettingsModal from '../../common/ThemeSettingsModal'
 import TourSettingsModal from '../../common/TourSettingsModal'
@@ -13,11 +14,13 @@ function SettingsSection() {
     const [showAccountSettings, setShowAccountSettings] = useState(false)
     const [showThemeSettings, setShowThemeSettings] = useState(false)
     const [showTourSettings, setShowTourSettings] = useState(false)
+    const [showLangfuseSettings, setShowLangfuseSettings] = useState(false)
 
     const categories: SettingsCategory[] = [
         { label: 'Account', onOpen: () => setShowAccountSettings(true) },
         { label: 'Theme & Appearance', onOpen: () => setShowThemeSettings(true) },
         { label: 'Knowledgebase', onOpen: () => setShowKbSettings(true) },
+        { label: 'Observability', onOpen: () => setShowLangfuseSettings(true) },
         { label: 'Product Tour', onOpen: () => setShowTourSettings(true) },
     ]
 
@@ -45,6 +48,9 @@ function SettingsSection() {
             )}
             {showThemeSettings && (
                 <ThemeSettingsModal onClose={() => setShowThemeSettings(false)} />
+            )}
+            {showLangfuseSettings && (
+                <LangfuseSettingsModal onClose={() => setShowLangfuseSettings(false)} />
             )}
             {showTourSettings && (
                 <TourSettingsModal onClose={() => setShowTourSettings(false)} />

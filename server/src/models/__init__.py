@@ -11,6 +11,7 @@ from src.models.graph_db_model import GraphDatabase
 from src.models.kb_collection_model import KbCollection
 from src.models.kb_document_model import KbDocument
 from src.models.kb_settings_model import KbSettings
+from src.models.langfuse_settings_model import LangfuseSettings
 from src.models.llm_model import LLMModel
 from src.models.mcp_server_model import McpServer
 from src.models.message_model import Message
@@ -35,6 +36,7 @@ __all__ = [
     "KbCollection",
     "KbDocument",
     "KbSettings",
+    "LangfuseSettings",
     "LLMModel",
     "McpServer",
     "Message",

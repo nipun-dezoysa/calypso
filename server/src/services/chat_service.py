@@ -28,6 +28,8 @@ from src.models.workflow_agent_model import WorkflowAgent
 from src.models.workflow_model import Workflow
 from src.services import (
     attachment_extract,
+    kb_vectorstore,
+    langfuse_tracing,
     graph_tools,
     kb_vectorstore,
     mcp_client,
@@ -36,6 +38,7 @@ from src.services import (
 from src.services.attachment_service import remove_file
 from src.services.kb_settings_service import KbSettingsService
 from src.services.kb_vectorstore import KbConfig
+from src.services.langfuse_settings_service import LangfuseSettingsService
 from src.services.llm_factory import build_chat_model
 from src.services.workflow_builder_service import build_workflow_graph, latest_text
 
@@ -78,6 +81,8 @@ class RunConfig:
     markdown_enabled: bool
     collections: list[KbCollection]
     mcp_servers: list[McpServer]
+    # Only used to name the run in tracing.
+    label: str = "agent"
     graph_dbs: list[GraphDatabase]
 
 
@@ -162,10 +167,17 @@ class ChatService:
                     attachments=attachments,
                     emit=emit,
                     stop=stop,
+                    session_id=thread.id,
                 )
             else:
                 answer = await self._run_workflow(
-                    workflow, question, history, attachments, emit=emit, stop=stop
+                    workflow,
+                    question,
+                    history,
+                    attachments,
+                    emit=emit,
+                    stop=stop,
+                    session_id=thread.id,
                 )
         except Exception as exc: 
             await self.db.rollback()
@@ -209,18 +221,66 @@ class ChatService:
                 return None
             history = _history_from(thread)
 
+        # Built before the run, not after, so tracing has a session id to group
+        # the turn under even on the very first message of a thread.
+        is_new = thread is None
+        if thread is None:
+            thread = Thread(
+                id=str(uuid.uuid4()),
+                type=THREAD_TYPE_AGENT,
+                agent_id=agent.id,
+                messages=[],
+            )
+
         answer = await self._run_turn(
-            _config_from_agent(agent), question, history, attachments=attachments
+            _config_from_agent(agent),
+            question,
+            history,
+            attachments=attachments,
+            session_id=thread.id,
         )
 
-        if thread is None:
-            thread = Thread(type=THREAD_TYPE_AGENT, agent_id=agent.id, messages=[])
+        if is_new:
             self.db.add(thread)
             await self.db.flush()
 
         return await self._persist_exchange(thread, question, answer, attachments)
 
     async def _run_turn(
+        self,
+        config: RunConfig,
+        question: str,
+        history: list[AIMessage | HumanMessage] | None = None,
+        handoff: str = "",
+        attachments: list[Attachment] | None = None,
+        emit: Emit | None = None,
+        stop: asyncio.Event | None = None,
+        session_id: str | None = None,
+    ) -> str:
+        """One LLM turn. Wrapped in a Langfuse span, so the generation and any
+        tool calls under it land in a single trace; nested inside a workflow's
+        span when a node is what called this."""
+        await LangfuseSettingsService(self.db).activate()
+        with langfuse_tracing.trace_run(
+            name=f"agent: {config.label}",
+            as_type="agent",
+            session_id=session_id,
+            input=question,
+            tags=["agent"],
+            metadata={
+                "model": config.llm_model.model_name,
+                "provider": config.llm_model.ai_provider.provider_name,
+                "creativity": config.creativity,
+                "streaming": emit is not None,
+            },
+        ) as span:
+            answer = await self._turn(
+                config, question, history, handoff, attachments, emit, stop
+            )
+            langfuse_tracing.record_output(span, answer)
+            return answer
+
+    async def _turn(
         self,
         config: RunConfig,
         question: str,
@@ -276,6 +336,7 @@ class ChatService:
                 build(with_images=True),
                 sink,
                 stop,
+                config.label,
             )
         except Exception:
             if not images or streamed:
@@ -287,6 +348,7 @@ class ChatService:
                 build(with_images=False),
                 sink,
                 stop,
+                config.label,
             )
 
         if not answer and not _stopped(stop):
@@ -310,12 +372,20 @@ class ChatService:
                 return None
             history = _history_from(thread)
 
-        answer = await self._run_workflow(workflow, question, history, attachments)
-
+        is_new = thread is None
         if thread is None:
             thread = Thread(
-                type=THREAD_TYPE_WORKFLOW, workflow_id=workflow.id, messages=[]
+                id=str(uuid.uuid4()),
+                type=THREAD_TYPE_WORKFLOW,
+                workflow_id=workflow.id,
+                messages=[],
             )
+
+        answer = await self._run_workflow(
+            workflow, question, history, attachments, session_id=thread.id
+        )
+
+        if is_new:
             self.db.add(thread)
             await self.db.flush()
 
@@ -329,32 +399,52 @@ class ChatService:
         attachments: list[Attachment] | None = None,
         emit: Emit | None = None,
         stop: asyncio.Event | None = None,
+        session_id: str | None = None,
     ) -> str:
         """Execute the workflow as a LangGraph graph and return the final node's
         output. Every node sees the user's question, the thread history and any
-        attachments; the previous node's output rides along as `handoff`."""
+        attachments; the previous node's output rides along as `handoff`.
+
+        The whole graph is one Langfuse trace, a span per node underneath."""
 
         async def run_node(node: Node, node_question: str, handoff: str) -> str:
             if _stopped(stop):
                 return handoff
             if emit is not None:
                 await emit({"type": "node", "name": _node_label(node)})
+            # The node's own trace span is the one _run_turn opens.
             return await self._run_node(
-                node, node_question, handoff, history, attachments, emit, stop
+                node,
+                node_question,
+                handoff,
+                history,
+                attachments,
+                emit,
+                stop,
+                session_id,
             )
 
+        await LangfuseSettingsService(self.db).activate()
         graph = build_workflow_graph(workflow, run_node)
-        result = await graph.ainvoke(
-            {
-                "messages": [HumanMessage(content=question)],
-                "question": question,
-                "handoff": "",
-            }
-        )
-        answer = latest_text(result["messages"]).strip()
-        if _stopped(stop):
+        with langfuse_tracing.trace_run(
+            name=f"workflow: {workflow.name}",
+            session_id=session_id,
+            input=question,
+            tags=["workflow"],
+            metadata={"workflow_id": workflow.id},
+        ) as span:
+            result = await graph.ainvoke(
+                {
+                    "messages": [HumanMessage(content=question)],
+                    "question": question,
+                    "handoff": "",
+                }
+            )
+            answer = latest_text(result["messages"]).strip()
+            if not _stopped(stop):
+                answer = answer or "The workflow produced no output."
+            langfuse_tracing.record_output(span, answer)
             return answer
-        return answer or "The workflow produced no output."
 
     async def _run_node(
         self,
@@ -365,6 +455,7 @@ class ChatService:
         attachments: list[Attachment] | None = None,
         emit: Emit | None = None,
         stop: asyncio.Event | None = None,
+        session_id: str | None = None,
     ) -> str:
         # Condition nodes route inside the graph and never reach this.
         if node.type != NODE_TYPE_AGENT:
@@ -375,7 +466,7 @@ class ChatService:
             )
         config = _config_from_workflow_agent(node.agent_config)
         return await self._run_turn(
-            config, question, history, handoff, attachments, emit, stop
+            config, question, history, handoff, attachments, emit, stop, session_id
         )
 
     # ── Shared ────────────────────────────────────────────────────────────
@@ -447,14 +538,16 @@ class ChatService:
         messages: list,
         emit: Emit | None,
         stop: asyncio.Event | None,
+        label: str = "agent",
     ) -> tuple[AIMessage, str]:
+        trace = langfuse_tracing.callbacks(label) or None
         if emit is None:
-            response = await model.ainvoke(messages)
+            response = await model.ainvoke(messages, config=trace)
             return response, _stringify_content(response.content)
 
         merged = None
         spoken: list[str] = []
-        async for chunk in model.astream(messages):
+        async for chunk in model.astream(messages, config=trace):
             if _stopped(stop):
                 break
             merged = chunk if merged is None else merged + chunk
@@ -475,10 +568,11 @@ class ChatService:
         messages: list,
         emit: Emit | None = None,
         stop: asyncio.Event | None = None,
+        label: str = "agent",
     ) -> str:
         tools = await self._load_tools(mcp_servers, graph_dbs)
         if not tools:
-            _, text = await self._generate(chat_model, messages, emit, stop)
+            _, text = await self._generate(chat_model, messages, emit, stop, label)
             return text
 
         tools_by_name = {t.name: t for t in tools}
@@ -486,7 +580,7 @@ class ChatService:
             tools = tool_schema.sanitize_for_gemini(tools)
         model = chat_model.bind_tools(tools)
 
-        response, text = await self._generate(model, messages, emit, stop)
+        response, text = await self._generate(model, messages, emit, stop, label)
         rounds = [text] if text else []
         iterations = 0
         while (
@@ -508,7 +602,9 @@ class ChatService:
                 if emit is not None:
                     await emit({"type": "tool", "name": call["name"]})
                 try:
-                    tool_msg = await tool.ainvoke(call)
+                    tool_msg = await tool.ainvoke(
+                        call, config=langfuse_tracing.callbacks(call["name"]) or None
+                    )
                     tool_msg.content = _stringify_content(tool_msg.content)
                     messages.append(tool_msg)
                 except Exception as exc:
@@ -518,7 +614,7 @@ class ChatService:
                             tool_call_id=call["id"],
                         )
                     )
-            response, text = await self._generate(model, messages, emit, stop)
+            response, text = await self._generate(model, messages, emit, stop, label)
             if text:
                 rounds.append(text)
             iterations += 1
@@ -568,10 +664,17 @@ class ChatService:
                     attachments=attachments,
                     emit=emit,
                     stop=stop,
+                    session_id=thread.id,
                 )
             else:
                 answer = await self._run_workflow(
-                    workflow, question, history, attachments, emit=emit, stop=stop
+                    workflow,
+                    question,
+                    history,
+                    attachments,
+                    emit=emit,
+                    stop=stop,
+                    session_id=thread.id,
                 )
         except Exception as exc:
             await self.db.rollback()
@@ -640,10 +743,17 @@ class ChatService:
                     attachments=attachments,
                     emit=emit,
                     stop=stop,
+                    session_id=thread.id,
                 )
             else:
                 answer = await self._run_workflow(
-                    workflow, new_content, history, attachments, emit=emit, stop=stop
+                    workflow,
+                    new_content,
+                    history,
+                    attachments,
+                    emit=emit,
+                    stop=stop,
+                    session_id=thread.id,
                 )
         except Exception as exc:
             await self.db.rollback()
@@ -714,6 +824,7 @@ class ChatService:
 
 def _config_from_agent(agent: Agent) -> RunConfig:
     return RunConfig(
+        label=agent.name,
         llm_model=agent.llm_model,
         creativity=agent.creativity,
         instructions=agent.agent_instructions,
@@ -733,7 +844,7 @@ def _config_from_workflow_agent(wa: WorkflowAgent) -> RunConfig:
     concatenate: what the agent is, then what this step should do, then how to
     shape the hand-off."""
     base = wa.agent
-    label = wa.name or "an agent node"
+    label = wa.name or (base.name if base else "") or "an agent node"
 
     llm_model = wa.llm_model or (base.llm_model if base else None)
     if llm_model is None:
@@ -767,6 +878,7 @@ def _config_from_workflow_agent(wa: WorkflowAgent) -> RunConfig:
         markdown_enabled = False
 
     return RunConfig(
+        label=label,
         llm_model=llm_model,
         creativity=creativity,
         instructions=instructions,
