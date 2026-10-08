@@ -81,9 +81,9 @@ class RunConfig:
     markdown_enabled: bool
     collections: list[KbCollection]
     mcp_servers: list[McpServer]
+    graph_dbs: list[GraphDatabase]
     # Only used to name the run in tracing.
     label: str = "agent"
-    graph_dbs: list[GraphDatabase]
 
 
 class ChatService:
